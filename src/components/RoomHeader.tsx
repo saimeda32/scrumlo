@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Member } from "../../shared/protocol";
 import { avatarColor, initials } from "../lib/colors";
 
@@ -20,10 +21,28 @@ export function RoomHeader({
 }) {
   const facil = members.find((m) => m.id === facilitator);
   const isFacil = !!you && you === facilitator;
+  const [copied, setCopied] = useState(false);
+
+  function copyLink() {
+    navigator.clipboard
+      .writeText(`${location.origin}/r/${room}`)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {});
+  }
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-      <span className="font-mono text-sm text-slate-500">🔗 {room}</span>
+      <button
+        onClick={copyLink}
+        className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 focus-visible:ring-2 focus-visible:ring-indigo-500"
+        title="Copy the invite link to share this room"
+      >
+        {copied ? "Link copied ✓" : "Copy invite link"}
+      </button>
+      <span className="font-mono text-xs text-slate-400">{room}</span>
       <span
         data-testid="conn"
         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${

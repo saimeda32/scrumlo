@@ -60,6 +60,13 @@ export function EstimateBoard({
           ))}
       </div>
 
+      {!estimate.story && estimate.voted.length === 0 && (
+        <p className="mb-4 text-center text-xs text-slate-500">
+          Same link, three activities — switch to <span className="font-semibold">Retro</span> or{" "}
+          <span className="font-semibold">Pick</span> anytime; everyone follows.
+        </p>
+      )}
+
       {revealed && (
         <div className="mb-4">
           <Consensus estimate={estimate} />

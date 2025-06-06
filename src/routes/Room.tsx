@@ -131,6 +131,13 @@ export default function Room() {
           canSwitch={isFacil}
           onSwitch={(a) => client.switchActivity(a)}
         />
+        <p className="-mt-2 mb-5 text-xs text-slate-500">
+          One link runs your whole ceremony —{" "}
+          <span className="font-semibold text-slate-700">Estimate</span>,{" "}
+          <span className="font-semibold text-slate-700">Retro</span>, and{" "}
+          <span className="font-semibold text-slate-700">Pick</span> in the same room; the
+          facilitator switches and everyone follows.
+        </p>
 
         {activity === "estimate" ? (
           <EstimateBoard

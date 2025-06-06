@@ -86,6 +86,14 @@ export const IconMoon = ({ className }: IconProps) => (
   </svg>
 );
 
+export const IconCoffee = ({ className }: IconProps) => (
+  <svg {...svg(className)}>
+    <path d="M4 8h10v3.5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z" />
+    <path d="M14 9h1.8a2 2 0 0 1 0 4H14" />
+    <path d="M6 2.8v1.6M9 2.8v1.6M12 2.8v1.6" />
+  </svg>
+);
+
 export const IconCrown = ({ className }: IconProps) => (
   <svg {...svg(className)}>
     <path d="M3 7.5l3.2 2.8L10 4.5l3.8 5.8L17 7.5l-1 8H4z" />

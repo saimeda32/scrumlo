@@ -1,4 +1,5 @@
 import { DECKS } from "../../shared/protocol";
+import { IconCoffee } from "./icons";
 
 export function Deck({
   deck,
@@ -28,7 +29,7 @@ export function Deck({
                 : "border-slate-200 bg-white text-slate-800 enabled:hover:-translate-y-1 enabled:hover:border-indigo-400"
             }`}
           >
-            {c}
+            {c === "☕" ? <IconCoffee className="mx-auto h-5 w-5" /> : c}
           </button>
         );
       })}

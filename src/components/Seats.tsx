@@ -1,6 +1,6 @@
 import type { EstimateView, Member } from "../../shared/protocol";
 import { consensusColor } from "../lib/colors";
-import { IconCheck, IconWaiting } from "./icons";
+import { IconCheck, IconWaiting, IconCoffee } from "./icons";
 
 export function Seats({
   members,
@@ -24,7 +24,7 @@ export function Seats({
         let face: React.ReactNode;
         let faceStyle: React.CSSProperties;
         if (revealed && value !== undefined) {
-          face = value;
+          face = value === "☕" ? <IconCoffee className="h-6 w-6" /> : value;
           faceStyle = { background: consensusColor(value), color: "#fff" };
         } else if (voted) {
           face = "";

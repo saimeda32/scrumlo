@@ -140,7 +140,7 @@ export function PickerBoard({
           <div className="text-3xl font-extrabold text-slate-300">{flicker ?? "…"}</div>
         ) : pick.result.length === 0 ? (
           <div className="text-center text-slate-400">
-            <IconPick className="mx-auto h-10 w-10 text-slate-300" />
+            <IconPick className="mx-auto h-10 w-10 text-slate-400" />
             <div className="mt-2 text-sm">
               {isFacil ? `Hit "${spinLabel}" to pick` : "Waiting for the facilitator to spin…"}
             </div>

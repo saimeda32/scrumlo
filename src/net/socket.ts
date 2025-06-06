@@ -2,6 +2,7 @@ import { WebSocket as ReconnectingWebSocket } from "partysocket";
 import type { ClientMsg, ServerMsg, Snapshot, Activity, PickMode } from "../../shared/protocol";
 
 export type RoomClient = {
+  join: (name: string) => void;
   // estimation
   vote: (card: string) => void;
   reveal: () => void;
@@ -42,7 +43,6 @@ function clientIdFor(room: string): string {
 
 export function createRoomClient(
   room: string,
-  name: string,
   onSnapshot: (snapshot: Snapshot) => void,
   onStatus: (connected: boolean) => void,
   onEnded: () => void,
@@ -54,14 +54,21 @@ export function createRoomClient(
     `${proto}://${location.host}/ws?room=${encodeURIComponent(room)}`,
   );
 
+  // Render-first: connect as a spectator immediately. We only send "hello" (become
+  // a participant who can act) once the user picks a name. Stored so reconnects
+  // re-announce automatically.
+  let joinedName: string | null = null;
+
   const send = (m: ClientMsg) => {
     if (ws.readyState === ReconnectingWebSocket.OPEN) ws.send(JSON.stringify(m));
   };
 
-  // Re-announce ourselves on every (re)connect so the server re-attaches us.
   ws.addEventListener("open", () => {
     onStatus(true);
-    send({ t: "hello", v: 1, name, clientId });
+    // Hello if we've already named ourselves (incl. reconnects); otherwise ask for
+    // a read-only snapshot so the room renders while we spectate.
+    if (joinedName) send({ t: "hello", v: 1, name: joinedName, clientId });
+    else send({ t: "sync", v: 1 });
   });
   ws.addEventListener("close", () => onStatus(false));
   ws.addEventListener("message", (e) => {
@@ -78,6 +85,10 @@ export function createRoomClient(
   });
 
   return {
+    join: (name) => {
+      joinedName = name;
+      send({ t: "hello", v: 1, name, clientId });
+    },
     vote: (card) => send({ t: "vote", v: 1, card }),
     reveal: () => send({ t: "reveal", v: 1 }),
     restart: () => send({ t: "restart", v: 1 }),

@@ -11,11 +11,13 @@ export function EstimateBoard({
   estimate,
   members,
   isFacil,
+  canAct,
   client,
 }: {
   estimate: EstimateView;
   members: Member[];
   isFacil: boolean;
+  canAct: boolean;
   client: RoomClient;
 }) {
   const revealed = estimate.phase === "revealed";
@@ -107,7 +109,7 @@ export function EstimateBoard({
         <Deck
           deck={estimate.deck}
           yourVote={estimate.yourVote}
-          disabled={revealed}
+          disabled={revealed || !canAct}
           onVote={(c) => client.vote(c)}
         />
       </div>

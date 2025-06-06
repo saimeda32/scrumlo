@@ -6,10 +6,12 @@ import { RetroColumn } from "./RetroColumn";
 export function RetroBoard({
   retro,
   isFacil,
+  canAct,
   client,
 }: {
   retro: RetroView;
   isFacil: boolean;
+  canAct: boolean;
   client: RoomClient;
 }) {
   return (
@@ -48,6 +50,7 @@ export function RetroBoard({
             column={col}
             index={i}
             cards={retro.cards.filter((c) => c.column === col.id)}
+            canAct={canAct}
             client={client}
           />
         ))}

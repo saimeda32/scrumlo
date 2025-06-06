@@ -32,11 +32,13 @@ export function RetroColumn({
   column,
   index,
   cards,
+  canAct,
   client,
 }: {
   column: Col;
   index: number;
   cards: RetroCardView[];
+  canAct: boolean;
   client: RoomClient;
 }) {
   const [text, setText] = useState("");
@@ -70,11 +72,12 @@ export function RetroColumn({
             <div className="mt-2 flex items-center justify-between">
               <button
                 onClick={() => client.retroVote(card.id)}
+                disabled={!canAct}
                 aria-pressed={card.youVoted}
-                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition ${
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition disabled:cursor-default disabled:opacity-60 ${
                   card.youVoted
                     ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                    : "border-slate-200 text-slate-500 hover:border-indigo-300"
+                    : "border-slate-200 text-slate-500 enabled:hover:border-indigo-300"
                 }`}
               >
                 ▲ {card.votes}
@@ -93,20 +96,22 @@ export function RetroColumn({
         ))}
       </ul>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            add();
-          }
-        }}
-        placeholder="+ add a card…"
-        aria-label={`Add a card to ${column.title}`}
-        rows={1}
-        className="mt-2 w-full resize-none rounded-xl border border-dashed border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-indigo-400"
-      />
+      {canAct && (
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              add();
+            }
+          }}
+          placeholder="+ add a card…"
+          aria-label={`Add a card to ${column.title}`}
+          rows={1}
+          className="mt-2 w-full resize-none rounded-xl border border-dashed border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-indigo-400"
+        />
+      )}
     </section>
   );
 }

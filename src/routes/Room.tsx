@@ -31,17 +31,22 @@ export default function Room() {
     apply,
   } = useRoom();
   const [name, setName] = useState("");
-  const [joined, setJoined] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const clientRef = useRef<RoomClient | null>(null);
 
-  useEffect(() => () => clientRef.current?.close(), []);
+  // Render-first: connect as a spectator on mount; the user names themselves
+  // (becomes a participant) only when they want to act.
+  useEffect(() => {
+    const client = createRoomClient(room, apply, setConnected, () => setEnded(true));
+    clientRef.current = client;
+    return () => client.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room]);
 
   function join() {
     const trimmed = name.trim();
     if (!trimmed) return;
-    clientRef.current = createRoomClient(room, trimmed, apply, setConnected, () => setEnded(true));
-    setJoined(true);
+    clientRef.current?.join(trimmed);
   }
 
   if (ended) {
@@ -64,34 +69,6 @@ export default function Room() {
     );
   }
 
-  if (!joined) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-slate-50 px-6">
-        <div className="w-full max-w-sm">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-            Joining room
-          </p>
-          <h2 className="mb-5 font-mono text-lg text-slate-900">{room}</h2>
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && join()}
-            placeholder="Your name"
-            aria-label="Your name"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:border-indigo-500"
-          />
-          <button
-            onClick={join}
-            className="mt-3 w-full rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-500"
-          >
-            Join
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (!estimate || !retro || !pick) {
     return (
       <div className="grid min-h-screen place-items-center bg-slate-50 text-slate-400">
@@ -100,8 +77,10 @@ export default function Room() {
     );
   }
 
-  const isFacil = !!you && you === facilitator;
   const client = clientRef.current!;
+  const joined = !!you; // "" (spectator) is falsy
+  const isFacil = joined && you === facilitator;
+  const canAct = joined;
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -111,6 +90,7 @@ export default function Room() {
             <StatusTicker phrases={FLAVOR.reconnecting} />
           </div>
         )}
+
         <RoomHeader
           room={room}
           connected={connected}
@@ -120,15 +100,48 @@ export default function Room() {
           onClaim={() => client.claimFacilitator()}
           onExport={() => setShowExport(true)}
         />
+
+        {!joined && (
+          <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
+            <span className="text-sm font-medium text-indigo-900">
+              You’re watching. Add your name to vote or add cards.
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <input
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && join()}
+                placeholder="your name"
+                aria-label="Your name"
+                className="w-36 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              />
+              <button
+                onClick={join}
+                className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500"
+              >
+                Join
+              </button>
+            </div>
+          </div>
+        )}
+
         <ActivityTabs
           activity={activity}
           canSwitch={isFacil}
           onSwitch={(a) => client.switchActivity(a)}
         />
+
         {activity === "estimate" ? (
-          <EstimateBoard estimate={estimate} members={members} isFacil={isFacil} client={client} />
+          <EstimateBoard
+            estimate={estimate}
+            members={members}
+            isFacil={isFacil}
+            canAct={canAct}
+            client={client}
+          />
         ) : activity === "retro" ? (
-          <RetroBoard retro={retro} isFacil={isFacil} client={client} />
+          <RetroBoard retro={retro} isFacil={isFacil} canAct={canAct} client={client} />
         ) : (
           <PickerBoard pick={pick} members={members} isFacil={isFacil} client={client} />
         )}

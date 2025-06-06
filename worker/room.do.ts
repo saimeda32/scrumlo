@@ -160,6 +160,12 @@ export class RoomDO extends DurableObject<Env> {
         break;
       }
 
+      // A spectator asking for the current state (no mutation): just send snapshots.
+      case "sync": {
+        await this.broadcast();
+        return;
+      }
+
       // ---- facilitation: anyone can take over the baton (ephemeral, low-stakes) ----
       case "claimFacilitator": {
         if (!me) return;
@@ -346,15 +352,16 @@ export class RoomDO extends DurableObject<Env> {
     const pick: PickView = this.pick; // same view for everyone (not redacted)
 
     for (const w of sockets) {
+      // me === null → a spectator (connected, no name yet). They still get a
+      // read-only snapshot (you="") so the room renders before they commit a name.
       const me = w.deserializeAttachment() as Member | null;
-      if (!me) continue;
 
       const estimate: EstimateView = {
         story: this.estimate.story,
         deck: this.estimate.deck,
         phase: this.estimate.phase,
         voted: votedIds,
-        yourVote: this.estimate.votes[me.id] ?? null,
+        yourVote: me ? (this.estimate.votes[me.id] ?? null) : null,
         votes: revealed ? { ...this.estimate.votes } : null,
       };
 
@@ -365,18 +372,19 @@ export class RoomDO extends DurableObject<Env> {
           id: c.id,
           column: c.column,
           text: c.text,
-          mine: c.authorId === me.id,
+          mine: me ? c.authorId === me.id : false,
           votes: c.voters.length,
-          youVoted: c.voters.includes(me.id),
+          youVoted: me ? c.voters.includes(me.id) : false,
         })),
-        votesLeft:
-          RETRO_VOTE_BUDGET - this.retro.cards.filter((c) => c.voters.includes(me.id)).length,
+        votesLeft: me
+          ? RETRO_VOTE_BUDGET - this.retro.cards.filter((c) => c.voters.includes(me.id)).length
+          : RETRO_VOTE_BUDGET,
       };
 
       const snapshot: ServerMsg = {
         t: "snapshot",
         v: 1,
-        you: me.id,
+        you: me?.id ?? "",
         facilitator: this.facilitatorId,
         members,
         activity: this.activity,

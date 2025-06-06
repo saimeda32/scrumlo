@@ -65,6 +65,7 @@ export class RoomDO extends DurableObject<Env> {
   private facilitatorId: string | null = null;
   private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
   private timerEndsAt: number | null = null;
+  private reports: { id: string; at: number }[] = []; // abuse reports (in-memory, ephemeral)
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -175,6 +176,23 @@ export class RoomDO extends DurableObject<Env> {
         if (!me) return;
         this.facilitatorId = me.id;
         break;
+      }
+      case "endRoom": {
+        if (!this.isFacilitator(me)) return;
+        await this.terminate();
+        return;
+      }
+      case "reportRoom": {
+        if (!me) return;
+        if (this.isFacilitator(me)) {
+          await this.terminate(); // facilitator report = end the room
+          return;
+        }
+        const now = Date.now();
+        this.reports = this.reports.filter((r) => now - r.at < 60_000 && r.id !== me.id);
+        this.reports.push({ id: me.id, at: now });
+        if (this.reports.length >= 2) await this.terminate(); // 2 distinct reporters / 60s
+        return;
       }
 
       // ---- shared timer (facilitator-run countdown) ----
@@ -317,8 +335,13 @@ export class RoomDO extends DurableObject<Env> {
     await this.broadcast(ws);
   }
 
-  /** Idle TTL / empty-grace fired: end the room and delete all state. */
+  /** Idle TTL / empty-grace fired: end the room. */
   async alarm(): Promise<void> {
+    await this.terminate();
+  }
+
+  /** End the room now: tell everyone, close sockets, delete all state. */
+  private async terminate(): Promise<void> {
     const ended = JSON.stringify({ t: "ended", v: 1 } satisfies EndedMsg);
     for (const w of this.ctx.getWebSockets()) {
       try {

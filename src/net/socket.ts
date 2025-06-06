@@ -10,6 +10,8 @@ export type RoomClient = {
   setStory: (story: string) => void;
   setDeck: (deck: string) => void;
   claimFacilitator: () => void;
+  endRoom: () => void;
+  reportRoom: () => void;
   timerStart: (seconds: number) => void;
   timerStop: () => void;
   // activity + retro
@@ -97,6 +99,8 @@ export function createRoomClient(
     setStory: (story) => send({ t: "setStory", v: 1, story }),
     setDeck: (deck) => send({ t: "setDeck", v: 1, deck }),
     claimFacilitator: () => send({ t: "claimFacilitator", v: 1 }),
+    endRoom: () => send({ t: "endRoom", v: 1 }),
+    reportRoom: () => send({ t: "reportRoom", v: 1 }),
     timerStart: (seconds) => send({ t: "timerStart", v: 1, seconds }),
     timerStop: () => send({ t: "timerStop", v: 1 }),
     switchActivity: (activity) => send({ t: "switchActivity", v: 1, activity }),

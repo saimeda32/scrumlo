@@ -6,6 +6,7 @@ export { RoomDO };
 export interface Env {
   ROOM: DurableObjectNamespace;
   ASSETS: Fetcher;
+  ROOM_CREATE_LIMIT?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
 }
 
 const ADJ = ["brave", "calm", "swift", "bright", "quiet", "keen", "bold", "warm", "clever", "lucky"];
@@ -24,6 +25,14 @@ export default {
 
     // Mint a fresh room slug. No room state is created until someone connects.
     if (url.pathname === "/api/room" && request.method === "POST") {
+      // Rate-limit room creation per IP so a public instance can't be flooded.
+      if (env.ROOM_CREATE_LIMIT) {
+        const ip = request.headers.get("CF-Connecting-IP") ?? "local";
+        const { success } = await env.ROOM_CREATE_LIMIT.limit({ key: ip });
+        if (!success) {
+          return new Response("Too many rooms — please slow down.", { status: 429 });
+        }
+      }
       return Response.json({ room: makeSlug() });
     }
 

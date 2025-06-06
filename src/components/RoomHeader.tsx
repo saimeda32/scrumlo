@@ -15,6 +15,8 @@ export function RoomHeader({
   onExport,
   onTimerStart,
   onTimerStop,
+  onEnd,
+  onReport,
 }: {
   room: string;
   connected: boolean;
@@ -26,6 +28,8 @@ export function RoomHeader({
   onExport: () => void;
   onTimerStart: (seconds: number) => void;
   onTimerStop: () => void;
+  onEnd: () => void;
+  onReport: () => void;
 }) {
   const facil = members.find((m) => m.id === facilitator);
   const isFacil = !!you && you === facilitator;
@@ -87,6 +91,27 @@ export function RoomHeader({
             title="Become the facilitator (e.g. if they left)"
           >
             Take over
+          </button>
+        )}
+        {isFacil ? (
+          <button
+            onClick={() => {
+              if (confirm("End the room for everyone now? It will be deleted.")) onEnd();
+            }}
+            className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+            title="End and delete the room for everyone"
+          >
+            End room
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              if (confirm("Report this room as abusive? Two reports end it.")) onReport();
+            }}
+            className="text-xs font-medium text-slate-400 hover:text-rose-500"
+            title="Report an abusive room"
+          >
+            Report
           </button>
         )}
         <div className="flex -space-x-2">

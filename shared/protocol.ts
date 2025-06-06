@@ -181,6 +181,8 @@ export type ClientMsg =
   | { t: "setDeck"; v: 1; deck: string }
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
+  | { t: "endRoom"; v: 1 } // facilitator kills the room now
+  | { t: "reportRoom"; v: 1 } // anyone; 2 distinct reports in 60s ends an abusive room
   // activity + retro
   // timer (a shared, facilitator-run countdown, available during any activity)
   | { t: "timerStart"; v: 1; seconds: number }

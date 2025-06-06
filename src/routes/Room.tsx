@@ -103,6 +103,8 @@ export default function Room() {
           onExport={() => setShowExport(true)}
           onTimerStart={(s) => client.timerStart(s)}
           onTimerStop={() => client.timerStop()}
+          onEnd={() => client.endRoom()}
+          onReport={() => client.reportRoom()}
         />
 
         {!joined && (

@@ -59,6 +59,7 @@ export class RoomDO extends DurableObject<Env> {
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0 };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
+  private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -69,6 +70,7 @@ export class RoomDO extends DurableObject<Env> {
       if (r) this.retro = r;
       const p = await ctx.storage.get<PickState>("pick");
       if (p) this.pick = p;
+      this.clients = (await ctx.storage.get<Record<string, string>>("clients")) ?? {};
       this.activity = (await ctx.storage.get<Activity>("activity")) ?? "estimate";
       this.facilitatorId = (await ctx.storage.get<string>("facilitator")) ?? null;
     });
@@ -78,6 +80,7 @@ export class RoomDO extends DurableObject<Env> {
     await this.ctx.storage.put("estimate", this.estimate);
     await this.ctx.storage.put("retro", this.retro);
     await this.ctx.storage.put("pick", this.pick);
+    await this.ctx.storage.put("clients", this.clients);
     await this.ctx.storage.put("activity", this.activity);
     if (this.facilitatorId === null) await this.ctx.storage.delete("facilitator");
     else await this.ctx.storage.put("facilitator", this.facilitatorId);
@@ -105,9 +108,16 @@ export class RoomDO extends DurableObject<Env> {
     switch (msg.t) {
       case "hello": {
         const name = String(msg.name ?? "").trim().slice(0, 40) || "anon";
-        const member: Member = { id: crypto.randomUUID(), name };
+        const clientId = String(msg.clientId ?? "") || crypto.randomUUID();
+        // Reuse this client's member id across reconnects so seat/baton/votes survive.
+        let memberId = this.clients[clientId];
+        if (!memberId) {
+          memberId = crypto.randomUUID();
+          this.clients[clientId] = memberId;
+        }
+        const member: Member = { id: memberId, name };
         ws.serializeAttachment(member);
-        if (this.facilitatorId === null) this.facilitatorId = member.id;
+        if (this.facilitatorId === null) this.facilitatorId = memberId;
         break;
       }
 
@@ -294,14 +304,9 @@ export class RoomDO extends DurableObject<Env> {
       mutated = true;
     }
 
-    // Prune estimation votes from members who left (their card shouldn't surface).
-    // Retro cards are the TEAM's content and intentionally persist past a leave.
-    for (const id of Object.keys(this.estimate.votes)) {
-      if (!presentIds.has(id)) {
-        delete this.estimate.votes[id];
-        mutated = true;
-      }
-    }
+    // Votes and retro cards are NOT pruned on disconnect: with stable clientId
+    // identity, a member who drops and reconnects keeps their vote. Estimation
+    // votes are cleared explicitly on restart / reveal-then-restart.
 
     if (mutated) await this.persist();
 

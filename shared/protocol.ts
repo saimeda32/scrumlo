@@ -171,7 +171,7 @@ export type PickView = {
 
 /** client -> server */
 export type ClientMsg =
-  | { t: "hello"; v: 1; name: string }
+  | { t: "hello"; v: 1; name: string; clientId: string }
   // estimation
   | { t: "vote"; v: 1; card: string }
   | { t: "reveal"; v: 1 }

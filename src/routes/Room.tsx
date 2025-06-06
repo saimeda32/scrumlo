@@ -70,6 +70,11 @@ export default function Room() {
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-8">
       <div className="mx-auto max-w-3xl">
+        {!connected && (
+          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+            <StatusTicker phrases={FLAVOR.reconnecting} />
+          </div>
+        )}
         <RoomHeader room={room} connected={connected} members={members} />
         <ActivityTabs
           activity={activity}

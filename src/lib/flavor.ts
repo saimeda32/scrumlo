@@ -10,6 +10,11 @@ export const FLAVOR = {
     "conjuring a room…",
   ],
   connecting: ["finding the room…", "saying hello…", "warming up…"],
+  reconnecting: [
+    "reconnecting…",
+    "finding the room again…",
+    "picking up where we left off…",
+  ],
   waiting: [
     "keeping the numbers secret…",
     "no anchoring allowed…",

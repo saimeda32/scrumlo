@@ -1,3 +1,4 @@
+import { WebSocket as ReconnectingWebSocket } from "partysocket";
 import type { ClientMsg, ServerMsg, Activity, PickMode } from "../../shared/protocol";
 
 export type RoomClient = {
@@ -22,23 +23,43 @@ export type RoomClient = {
   close: () => void;
 };
 
-// Phase 1: a plain WebSocket. Reconnect/backoff (partysocket) + resync land next.
+// A stable per-tab id for this room, so a reconnect restores the same member
+// (seat, facilitator baton, votes). sessionStorage = lives for the tab session,
+// cleared when the tab closes — on-ethos with "no durable identity".
+function clientIdFor(room: string): string {
+  const key = `ephem-cid-${room}`;
+  try {
+    const existing = sessionStorage.getItem(key);
+    if (existing) return existing;
+    const id = crypto.randomUUID();
+    sessionStorage.setItem(key, id);
+    return id;
+  } catch {
+    return crypto.randomUUID(); // private mode / storage blocked
+  }
+}
+
 export function createRoomClient(
   room: string,
   name: string,
   onSnapshot: (snapshot: ServerMsg) => void,
   onStatus: (connected: boolean) => void,
 ): RoomClient {
+  const clientId = clientIdFor(room);
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(`${proto}://${location.host}/ws?room=${encodeURIComponent(room)}`);
+  // partysocket auto-reconnects with backoff and fires "open" again each time.
+  const ws = new ReconnectingWebSocket(
+    `${proto}://${location.host}/ws?room=${encodeURIComponent(room)}`,
+  );
 
   const send = (m: ClientMsg) => {
-    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m));
+    if (ws.readyState === ReconnectingWebSocket.OPEN) ws.send(JSON.stringify(m));
   };
 
+  // Re-announce ourselves on every (re)connect so the server re-attaches us.
   ws.addEventListener("open", () => {
     onStatus(true);
-    send({ t: "hello", v: 1, name });
+    send({ t: "hello", v: 1, name, clientId });
   });
   ws.addEventListener("close", () => onStatus(false));
   ws.addEventListener("message", (e) => {

@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import type { Activity } from "../../shared/protocol";
+import { IconEstimate, IconRetro, IconPick } from "./icons";
 
 export function ActivityTabs({
   activity,
@@ -9,7 +11,7 @@ export function ActivityTabs({
   canSwitch: boolean;
   onSwitch: (a: Activity) => void;
 }) {
-  const tab = (a: Activity, label: string, icon: string) => {
+  const tab = (a: Activity, label: string, icon: ReactNode) => {
     const active = activity === a;
     return (
       <button
@@ -24,7 +26,7 @@ export function ActivityTabs({
               : "cursor-default text-slate-300"
         }`}
       >
-        <span aria-hidden>{icon}</span>
+        {icon}
         {label}
       </button>
     );
@@ -32,9 +34,9 @@ export function ActivityTabs({
 
   return (
     <div className="mb-5 inline-flex gap-1 rounded-xl border border-slate-200 bg-white p-1">
-      {tab("estimate", "Estimate", "⟳")}
-      {tab("retro", "Retro", "✎")}
-      {tab("pick", "Pick", "🎲")}
+      {tab("estimate", "Estimate", <IconEstimate className="h-4 w-4" />)}
+      {tab("retro", "Retro", <IconRetro className="h-4 w-4" />)}
+      {tab("pick", "Pick", <IconPick className="h-4 w-4" />)}
     </div>
   );
 }

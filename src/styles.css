@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: light dark;
+  /* Light-only until the Room's dark theme is fully built (UX board B4) — avoids
+     a dark landing then a blinding light room. Full dark mode is a deferred pass. */
+  color-scheme: light;
 }
 
 html,

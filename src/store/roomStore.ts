@@ -5,11 +5,12 @@ import type {
   RetroView,
   PickView,
   Activity,
-  ServerMsg,
+  Snapshot,
 } from "../../shared/protocol";
 
 type RoomState = {
   connected: boolean;
+  ended: boolean;
   you: string | null;
   facilitator: string | null;
   members: Member[];
@@ -18,11 +19,13 @@ type RoomState = {
   retro: RetroView | null;
   pick: PickView | null;
   setConnected: (connected: boolean) => void;
-  apply: (snapshot: ServerMsg) => void;
+  setEnded: (ended: boolean) => void;
+  apply: (snapshot: Snapshot) => void;
 };
 
 export const useRoom = create<RoomState>((set) => ({
   connected: false,
+  ended: false,
   you: null,
   facilitator: null,
   members: [],
@@ -31,6 +34,7 @@ export const useRoom = create<RoomState>((set) => ({
   retro: null,
   pick: null,
   setConnected: (connected) => set({ connected }),
+  setEnded: (ended) => set({ ended }),
   apply: (s) =>
     set({
       you: s.you,

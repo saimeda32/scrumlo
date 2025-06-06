@@ -192,7 +192,7 @@ export type ClientMsg =
   | { t: "pickClear"; v: 1 };
 
 /** server -> client. One full snapshot per change (Phase 1; patches come later). */
-export type ServerMsg = {
+export type Snapshot = {
   t: "snapshot";
   v: 1;
   you: string;
@@ -203,3 +203,8 @@ export type ServerMsg = {
   retro: RetroView;
   pick: PickView;
 };
+
+/** server -> client: the room has expired and been deleted. */
+export type EndedMsg = { t: "ended"; v: 1 };
+
+export type ServerMsg = Snapshot | EndedMsg;

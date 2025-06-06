@@ -1,5 +1,5 @@
 import { WebSocket as ReconnectingWebSocket } from "partysocket";
-import type { ClientMsg, ServerMsg, Activity, PickMode } from "../../shared/protocol";
+import type { ClientMsg, ServerMsg, Snapshot, Activity, PickMode } from "../../shared/protocol";
 
 export type RoomClient = {
   // estimation
@@ -42,8 +42,9 @@ function clientIdFor(room: string): string {
 export function createRoomClient(
   room: string,
   name: string,
-  onSnapshot: (snapshot: ServerMsg) => void,
+  onSnapshot: (snapshot: Snapshot) => void,
   onStatus: (connected: boolean) => void,
+  onEnded: () => void,
 ): RoomClient {
   const clientId = clientIdFor(room);
   const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -66,6 +67,10 @@ export function createRoomClient(
     try {
       const msg = JSON.parse(e.data as string) as ServerMsg;
       if (msg.t === "snapshot") onSnapshot(msg);
+      else if (msg.t === "ended") {
+        onEnded();
+        ws.close(); // stop reconnecting to a room that's gone
+      }
     } catch {
       // ignore malformed frames
     }

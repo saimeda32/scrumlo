@@ -38,7 +38,7 @@ export function StatusTicker({
 
   return (
     <span
-      aria-live="polite"
+      aria-hidden
       className={`inline-block transition-opacity duration-200 ${
         visible ? "opacity-100" : "opacity-0"
       } ${className}`}

@@ -13,8 +13,20 @@ import { FLAVOR } from "../lib/flavor";
 export default function Room() {
   const params = useParams<{ room: string }>();
   const room = params.room;
-  const { connected, you, facilitator, members, activity, estimate, retro, pick, setConnected, apply } =
-    useRoom();
+  const {
+    connected,
+    ended,
+    you,
+    facilitator,
+    members,
+    activity,
+    estimate,
+    retro,
+    pick,
+    setConnected,
+    setEnded,
+    apply,
+  } = useRoom();
   const [name, setName] = useState("");
   const [joined, setJoined] = useState(false);
   const clientRef = useRef<RoomClient | null>(null);
@@ -24,8 +36,30 @@ export default function Room() {
   function join() {
     const trimmed = name.trim();
     if (!trimmed) return;
-    clientRef.current = createRoomClient(room, trimmed, apply, setConnected);
+    clientRef.current = createRoomClient(room, trimmed, apply, setConnected, () => setEnded(true));
     setJoined(true);
+  }
+
+  if (ended) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-slate-50 px-6 text-center">
+        <div className="max-w-sm">
+          <div className="text-4xl" aria-hidden>
+            🌙
+          </div>
+          <h2 className="mt-3 text-xl font-bold text-slate-900">This session has ended</h2>
+          <p className="mt-2 text-sm text-slate-500">
+            The room expired and was deleted. Nothing was kept — that’s the point.
+          </p>
+          <a
+            href="/"
+            className="mt-6 inline-block rounded-xl bg-indigo-600 px-5 py-2.5 font-semibold text-white hover:bg-indigo-500"
+          >
+            Start a new room
+          </a>
+        </div>
+      </div>
+    );
   }
 
   if (!joined) {

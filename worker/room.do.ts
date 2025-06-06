@@ -4,6 +4,7 @@ import type { Env } from "./index";
 import type {
   ClientMsg,
   ServerMsg,
+  EndedMsg,
   Member,
   EstimateView,
   RetroView,
@@ -13,6 +14,9 @@ import type {
   Activity,
 } from "../shared/protocol";
 import { DECKS, RETRO_TEMPLATES, RETRO_VOTE_BUDGET } from "../shared/protocol";
+
+const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
+const EMPTY_GRACE_MS = 2 * 60 * 1000; // 2 min after the last person leaves (reconnect grace)
 
 type EstimateState = {
   story: string;
@@ -91,6 +95,7 @@ export class RoomDO extends DurableObject<Env> {
     const client = pair[0];
     const server = pair[1];
     this.ctx.acceptWebSocket(server); // hibernation-aware (NOT server.accept())
+    await this.ctx.storage.setAlarm(Date.now() + IDLE_MS);
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -268,14 +273,32 @@ export class RoomDO extends DurableObject<Env> {
     // before the next event can't roll it back.
     await this.persist();
     await this.broadcast();
+    await this.ctx.storage.setAlarm(Date.now() + IDLE_MS); // any activity resets the idle clock
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
     await this.broadcast(ws);
+    const remaining = this.ctx.getWebSockets().filter((w) => w !== ws).length;
+    // Empty room → short grace (reconnect window) then evaporate; otherwise idle TTL.
+    await this.ctx.storage.setAlarm(Date.now() + (remaining === 0 ? EMPTY_GRACE_MS : IDLE_MS));
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
     await this.broadcast(ws);
+  }
+
+  /** Idle TTL / empty-grace fired: end the room and delete all state. */
+  async alarm(): Promise<void> {
+    const ended = JSON.stringify({ t: "ended", v: 1 } satisfies EndedMsg);
+    for (const w of this.ctx.getWebSockets()) {
+      try {
+        w.send(ended);
+        w.close(1000, "room ended");
+      } catch {
+        // ignore
+      }
+    }
+    await this.ctx.storage.deleteAll(); // no DB residue; the room is gone
   }
 
   // ---- helpers ----

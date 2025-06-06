@@ -104,8 +104,8 @@ export default function Room() {
   const client = clientRef.current!;
 
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-8">
-      <div className="mx-auto max-w-3xl">
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         {!connected && (
           <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
             <StatusTicker phrases={FLAVOR.reconnecting} />
@@ -140,7 +140,10 @@ export default function Room() {
             onClose={() => setShowExport(false)}
           />
         )}
-      </div>
+      </main>
+      <footer className="border-t border-slate-200/70 bg-white/40 py-4 text-center text-xs text-slate-400">
+        Nothing is stored — the room is deleted when everyone leaves.
+      </footer>
     </div>
   );
 }

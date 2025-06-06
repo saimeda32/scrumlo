@@ -42,10 +42,11 @@ export function RetroBoard({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {retro.columns.map((col) => (
+        {retro.columns.map((col, i) => (
           <RetroColumn
             key={col.id}
             column={col}
+            index={i}
             cards={retro.cards.filter((c) => c.column === col.id)}
             client={client}
           />

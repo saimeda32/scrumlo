@@ -160,6 +160,13 @@ export class RoomDO extends DurableObject<Env> {
         break;
       }
 
+      // ---- facilitation: anyone can take over the baton (ephemeral, low-stakes) ----
+      case "claimFacilitator": {
+        if (!me) return;
+        this.facilitatorId = me.id;
+        break;
+      }
+
       // ---- activity + retro ----
       case "switchActivity": {
         if (!this.isFacilitator(me)) return;

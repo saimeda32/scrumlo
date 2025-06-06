@@ -10,8 +10,10 @@ export function avatarColor(id: string): string {
 }
 
 export function initials(name: string): string {
-  const t = name.trim();
-  return (t.slice(0, 2) || "?").toUpperCase();
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 /** numeric value of a card, or null for ?, ☕, and t-shirt sizes */

@@ -178,6 +178,8 @@ export type ClientMsg =
   | { t: "restart"; v: 1 }
   | { t: "setStory"; v: 1; story: string }
   | { t: "setDeck"; v: 1; deck: string }
+  // facilitation
+  | { t: "claimFacilitator"; v: 1 }
   // activity + retro
   | { t: "switchActivity"; v: 1; activity: Activity }
   | { t: "retroSetTemplate"; v: 1; template: string }

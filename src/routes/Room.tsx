@@ -109,7 +109,14 @@ export default function Room() {
             <StatusTicker phrases={FLAVOR.reconnecting} />
           </div>
         )}
-        <RoomHeader room={room} connected={connected} members={members} />
+        <RoomHeader
+          room={room}
+          connected={connected}
+          members={members}
+          facilitator={facilitator}
+          you={you}
+          onClaim={() => client.claimFacilitator()}
+        />
         <ActivityTabs
           activity={activity}
           canSwitch={isFacil}

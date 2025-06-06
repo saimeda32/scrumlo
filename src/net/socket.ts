@@ -8,6 +8,7 @@ export type RoomClient = {
   restart: () => void;
   setStory: (story: string) => void;
   setDeck: (deck: string) => void;
+  claimFacilitator: () => void;
   // activity + retro
   switchActivity: (activity: Activity) => void;
   retroSetTemplate: (template: string) => void;
@@ -82,6 +83,7 @@ export function createRoomClient(
     restart: () => send({ t: "restart", v: 1 }),
     setStory: (story) => send({ t: "setStory", v: 1, story }),
     setDeck: (deck) => send({ t: "setDeck", v: 1, deck }),
+    claimFacilitator: () => send({ t: "claimFacilitator", v: 1 }),
     switchActivity: (activity) => send({ t: "switchActivity", v: 1, activity }),
     retroSetTemplate: (template) => send({ t: "retroSetTemplate", v: 1, template }),
     retroAddCard: (column, text) => send({ t: "retroAddCard", v: 1, column, text }),

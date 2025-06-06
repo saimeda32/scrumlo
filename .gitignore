@@ -1,0 +1,17 @@
+# deps / build
+node_modules/
+dist/
+.wrangler/
+.vite/
+*.log
+
+# brainstorm scratch (visual companion, workflow journals)
+.superpowers/
+
+# env / secrets
+.dev.vars
+.env
+.env.*
+
+# os
+.DS_Store

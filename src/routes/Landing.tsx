@@ -187,7 +187,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="mx-auto max-w-3xl px-6 py-10 text-center text-xs leading-relaxed text-slate-400">
+      <footer className="mx-auto max-w-3xl px-6 py-10 text-center text-xs leading-relaxed text-slate-500">
         Free, open-source planning poker and sprint retrospectives — no login, no database,
         anonymous, ephemeral, self-hostable. Estimate. Retro. Forgotten.
       </footer>

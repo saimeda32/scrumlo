@@ -22,10 +22,10 @@ export function Deck({
             disabled={disabled}
             onClick={() => onVote(c)}
             aria-pressed={selected}
-            className={`h-16 w-12 rounded-xl border text-lg font-extrabold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`h-16 w-12 rounded-xl border text-lg font-extrabold transition focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40 ${
               selected
                 ? "-translate-y-2 border-indigo-600 bg-indigo-600 text-white shadow-md"
-                : "border-slate-200 bg-white text-slate-800 hover:-translate-y-1 hover:border-indigo-400"
+                : "border-slate-200 bg-white text-slate-800 enabled:hover:-translate-y-1 enabled:hover:border-indigo-400"
             }`}
           >
             {c}

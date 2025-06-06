@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { PickView, PickMode, Member } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
+import { IconPerson, IconOrder, IconList, IconPick } from "./icons";
 
 export function PickerBoard({
   pick,
@@ -44,11 +45,11 @@ export function PickerBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pick.nonce]);
 
-  const modeBtn = (m: PickMode, label: string) => (
+  const modeBtn = (m: PickMode, icon: ReactNode, label: string) => (
     <button
       key={m}
       onClick={() => isFacil && client.pickSetMode(m)}
-      className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
+      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold ${
         pick.mode === m
           ? "bg-indigo-100 text-indigo-700"
           : isFacil
@@ -56,6 +57,7 @@ export function PickerBoard({
             : "text-slate-300"
       }`}
     >
+      {icon}
       {label}
     </button>
   );
@@ -67,9 +69,9 @@ export function PickerBoard({
     <div>
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <div className="flex gap-1">
-          {modeBtn("person", "🙋 Person")}
-          {modeBtn("order", "🔀 Order")}
-          {modeBtn("list", "📋 List")}
+          {modeBtn("person", <IconPerson className="h-3.5 w-3.5" />, "Person")}
+          {modeBtn("order", <IconOrder className="h-3.5 w-3.5" />, "Order")}
+          {modeBtn("list", <IconList className="h-3.5 w-3.5" />, "List")}
         </div>
         {isFacil && (
           <div className="ml-auto flex gap-2">
@@ -84,9 +86,10 @@ export function PickerBoard({
             <button
               onClick={() => client.pickSpin()}
               disabled={spinning}
-              className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
             >
-              🎲 {spinLabel}
+              <IconPick className="h-4 w-4" />
+              {spinLabel}
             </button>
           </div>
         )}
@@ -137,9 +140,7 @@ export function PickerBoard({
           <div className="text-3xl font-extrabold text-slate-300">{flicker ?? "…"}</div>
         ) : pick.result.length === 0 ? (
           <div className="text-center text-slate-400">
-            <div className="text-4xl" aria-hidden>
-              🎲
-            </div>
+            <IconPick className="mx-auto h-10 w-10 text-slate-300" />
             <div className="mt-2 text-sm">
               {isFacil ? `Hit "${spinLabel}" to pick` : "Waiting for the facilitator to spin…"}
             </div>

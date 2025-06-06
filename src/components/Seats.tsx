@@ -1,5 +1,6 @@
 import type { EstimateView, Member } from "../../shared/protocol";
 import { consensusColor } from "../lib/colors";
+import { IconCheck, IconWaiting } from "./icons";
 
 export function Seats({
   members,
@@ -33,8 +34,8 @@ export function Seats({
             border: "1px solid #d8dcff",
           };
         } else {
-          face = "🤔";
-          faceStyle = { background: "#f1f5f9", color: "#94a3b8", border: "1px dashed #cbd5e1" };
+          face = <IconWaiting className="h-5 w-5 text-slate-400" />;
+          faceStyle = { background: "#f1f5f9", border: "1px dashed #cbd5e1" };
         }
 
         return (
@@ -43,7 +44,13 @@ export function Seats({
             className="relative rounded-2xl border border-slate-200 bg-white p-3 text-center shadow-sm"
           >
             {!revealed && (
-              <span className="absolute right-2 top-2 text-sm">{voted ? "👍" : "🤔"}</span>
+              <span className="absolute right-2 top-2">
+                {voted ? (
+                  <IconCheck className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <IconWaiting className="h-4 w-4 text-slate-300" />
+                )}
+              </span>
             )}
             <div
               className="mx-auto mb-2 flex h-16 w-12 items-center justify-center rounded-lg text-lg font-extrabold"

@@ -9,6 +9,7 @@ import { RetroBoard } from "../components/RetroBoard";
 import { PickerBoard } from "../components/PickerBoard";
 import { ExportSheet } from "../components/ExportSheet";
 import { StatusTicker } from "../components/StatusTicker";
+import { IconMoon } from "../components/icons";
 import { FLAVOR } from "../lib/flavor";
 import { buildSessionMarkdown } from "../lib/exportMarkdown";
 
@@ -47,9 +48,7 @@ export default function Room() {
     return (
       <div className="grid min-h-screen place-items-center bg-slate-50 px-6 text-center">
         <div className="max-w-sm">
-          <div className="text-4xl" aria-hidden>
-            🌙
-          </div>
+          <IconMoon className="mx-auto h-12 w-12 text-slate-400" />
           <h2 className="mt-3 text-xl font-bold text-slate-900">This session has ended</h2>
           <p className="mt-2 text-sm text-slate-500">
             The room expired and was deleted. Nothing was kept — that’s the point.

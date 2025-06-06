@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Member } from "../../shared/protocol";
 import { avatarColor, initials } from "../lib/colors";
+import { IconCrown } from "./icons";
 
 export function RoomHeader({
   room,
@@ -85,8 +86,8 @@ export function RoomHeader({
             >
               {initials(m.name)}
               {m.id === facilitator && (
-                <span className="absolute -right-1 -top-2 text-[11px]" aria-hidden>
-                  👑
+                <span className="absolute -right-1.5 -top-2 text-amber-500">
+                  <IconCrown className="h-3 w-3" />
                 </span>
               )}
             </div>

@@ -43,6 +43,8 @@ export type EstimateView = {
   voted: string[]; // member ids who have voted (no values before reveal)
   yourVote: string | null; // your own vote (so your card shows selected)
   votes: Record<string, string> | null; // member id -> card, only once revealed
+  // Reveal-to-Resolution: the outliers' one-line "what are you pricing?", shown only after reveal.
+  rationales: Record<string, string> | null;
 };
 
 // ---- Retro ----
@@ -179,6 +181,7 @@ export type ClientMsg =
   | { t: "restart"; v: 1 }
   | { t: "setStory"; v: 1; story: string }
   | { t: "setDeck"; v: 1; deck: string }
+  | { t: "setRationale"; v: 1; text: string } // an outlier explains their estimate
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
   | { t: "endRoom"; v: 1 } // facilitator kills the room now

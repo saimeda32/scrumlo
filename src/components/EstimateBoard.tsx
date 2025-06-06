@@ -3,19 +3,21 @@ import { DECKS, DECK_LABELS } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { Seats } from "./Seats";
 import { Deck } from "./Deck";
-import { Consensus } from "./Consensus";
+import { TensionLine } from "./TensionLine";
 import { StatusTicker } from "./StatusTicker";
 import { FLAVOR } from "../lib/flavor";
 
 export function EstimateBoard({
   estimate,
   members,
+  you,
   isFacil,
   canAct,
   client,
 }: {
   estimate: EstimateView;
   members: Member[];
+  you: string;
   isFacil: boolean;
   canAct: boolean;
   client: RoomClient;
@@ -62,13 +64,11 @@ export function EstimateBoard({
           ))}
       </div>
 
-      {revealed && (
-        <div className="mb-4">
-          <Consensus estimate={estimate} />
-        </div>
+      {revealed ? (
+        <TensionLine estimate={estimate} members={members} you={you} client={client} />
+      ) : (
+        <Seats members={members} estimate={estimate} />
       )}
-
-      <Seats members={members} estimate={estimate} />
 
       {/* deck */}
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

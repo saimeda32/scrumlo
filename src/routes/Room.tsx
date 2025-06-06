@@ -149,6 +149,7 @@ export default function Room() {
           <EstimateBoard
             estimate={estimate}
             members={members}
+            you={you ?? ""}
             isFacil={isFacil}
             canAct={canAct}
             client={client}

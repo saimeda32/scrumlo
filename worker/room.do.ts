@@ -23,6 +23,7 @@ type EstimateState = {
   deck: string;
   phase: Phase;
   votes: Record<string, string>; // memberId -> card
+  rationales: Record<string, string>; // memberId -> one-line "what are you pricing?"
 };
 
 type RetroCard = {
@@ -58,7 +59,13 @@ type PickState = {
  * re-create this object (resetting instance fields) between events.
  */
 export class RoomDO extends DurableObject<Env> {
-  private estimate: EstimateState = { story: "", deck: "fib", phase: "voting", votes: {} };
+  private estimate: EstimateState = {
+    story: "",
+    deck: "fib",
+    phase: "voting",
+    votes: {},
+    rationales: {},
+  };
   private retro: RetroState = { template: "ssc", cards: [] };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0 };
   private activity: Activity = "estimate";
@@ -149,6 +156,12 @@ export class RoomDO extends DurableObject<Env> {
         if (!this.isFacilitator(me)) return;
         this.estimate.phase = "voting";
         this.estimate.votes = {};
+        this.estimate.rationales = {};
+        break;
+      }
+      case "setRationale": {
+        if (!me) return;
+        this.estimate.rationales[me.id] = String(msg.text ?? "").trim().slice(0, 120);
         break;
       }
       case "setStory": {
@@ -161,6 +174,7 @@ export class RoomDO extends DurableObject<Env> {
         if (!DECKS[msg.deck]) return;
         this.estimate.deck = msg.deck;
         this.estimate.votes = {};
+        this.estimate.rationales = {};
         this.estimate.phase = "voting";
         break;
       }
@@ -403,6 +417,7 @@ export class RoomDO extends DurableObject<Env> {
         voted: votedIds,
         yourVote: me ? (this.estimate.votes[me.id] ?? null) : null,
         votes: revealed ? { ...this.estimate.votes } : null,
+        rationales: revealed ? { ...this.estimate.rationales } : null,
       };
 
       const retro: RetroView = {

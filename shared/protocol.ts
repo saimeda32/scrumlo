@@ -182,6 +182,9 @@ export type ClientMsg =
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
   // activity + retro
+  // timer (a shared, facilitator-run countdown, available during any activity)
+  | { t: "timerStart"; v: 1; seconds: number }
+  | { t: "timerStop"; v: 1 }
   | { t: "switchActivity"; v: 1; activity: Activity }
   | { t: "retroSetTemplate"; v: 1; template: string }
   | { t: "retroAddCard"; v: 1; column: string; text: string }
@@ -205,6 +208,8 @@ export type Snapshot = {
   estimate: EstimateView;
   retro: RetroView;
   pick: PickView;
+  /** shared countdown: epoch-ms when it ends, or null. Clients render the remaining time. */
+  timerEndsAt: number | null;
 };
 
 /** server -> client: the room has expired and been deleted. */

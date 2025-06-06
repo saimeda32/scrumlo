@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Member } from "../../shared/protocol";
 import { avatarColor, initials } from "../lib/colors";
 import { IconCrown } from "./icons";
+import { TimerChip } from "./TimerChip";
 
 export function RoomHeader({
   room,
@@ -9,16 +10,22 @@ export function RoomHeader({
   members,
   facilitator,
   you,
+  timerEndsAt,
   onClaim,
   onExport,
+  onTimerStart,
+  onTimerStop,
 }: {
   room: string;
   connected: boolean;
   members: Member[];
   facilitator: string | null;
   you: string | null;
+  timerEndsAt: number | null;
   onClaim: () => void;
   onExport: () => void;
+  onTimerStart: (seconds: number) => void;
+  onTimerStop: () => void;
 }) {
   const facil = members.find((m) => m.id === facilitator);
   const isFacil = !!you && you === facilitator;
@@ -60,6 +67,12 @@ export function RoomHeader({
       )}
 
       <div className="ml-auto flex items-center gap-3">
+        <TimerChip
+          endsAt={timerEndsAt}
+          isFacil={isFacil}
+          onStart={onTimerStart}
+          onStop={onTimerStop}
+        />
         <button
           onClick={onExport}
           className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"

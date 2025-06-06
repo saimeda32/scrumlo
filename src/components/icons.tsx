@@ -86,6 +86,13 @@ export const IconMoon = ({ className }: IconProps) => (
   </svg>
 );
 
+export const IconClock = ({ className }: IconProps) => (
+  <svg {...svg(className)}>
+    <circle cx="10" cy="10" r="6.8" />
+    <path d="M10 6v4.2l2.6 1.8" />
+  </svg>
+);
+
 export const IconCoffee = ({ className }: IconProps) => (
   <svg {...svg(className)}>
     <path d="M4 8h10v3.5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z" />

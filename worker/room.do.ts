@@ -64,6 +64,7 @@ export class RoomDO extends DurableObject<Env> {
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
   private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
+  private timerEndsAt: number | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -77,6 +78,7 @@ export class RoomDO extends DurableObject<Env> {
       this.clients = (await ctx.storage.get<Record<string, string>>("clients")) ?? {};
       this.activity = (await ctx.storage.get<Activity>("activity")) ?? "estimate";
       this.facilitatorId = (await ctx.storage.get<string>("facilitator")) ?? null;
+      this.timerEndsAt = (await ctx.storage.get<number>("timerEndsAt")) ?? null;
     });
   }
 
@@ -86,6 +88,8 @@ export class RoomDO extends DurableObject<Env> {
     await this.ctx.storage.put("pick", this.pick);
     await this.ctx.storage.put("clients", this.clients);
     await this.ctx.storage.put("activity", this.activity);
+    if (this.timerEndsAt === null) await this.ctx.storage.delete("timerEndsAt");
+    else await this.ctx.storage.put("timerEndsAt", this.timerEndsAt);
     if (this.facilitatorId === null) await this.ctx.storage.delete("facilitator");
     else await this.ctx.storage.put("facilitator", this.facilitatorId);
   }
@@ -170,6 +174,19 @@ export class RoomDO extends DurableObject<Env> {
       case "claimFacilitator": {
         if (!me) return;
         this.facilitatorId = me.id;
+        break;
+      }
+
+      // ---- shared timer (facilitator-run countdown) ----
+      case "timerStart": {
+        if (!this.isFacilitator(me)) return;
+        const secs = Math.max(5, Math.min(60 * 60, Math.floor(msg.seconds)));
+        this.timerEndsAt = Date.now() + secs * 1000;
+        break;
+      }
+      case "timerStop": {
+        if (!this.isFacilitator(me)) return;
+        this.timerEndsAt = null;
         break;
       }
 
@@ -391,6 +408,7 @@ export class RoomDO extends DurableObject<Env> {
         estimate,
         retro,
         pick,
+        timerEndsAt: this.timerEndsAt,
       };
       try {
         w.send(JSON.stringify(snapshot));

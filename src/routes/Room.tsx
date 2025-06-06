@@ -26,6 +26,7 @@ export default function Room() {
     estimate,
     retro,
     pick,
+    timerEndsAt,
     setConnected,
     setEnded,
     apply,
@@ -97,8 +98,11 @@ export default function Room() {
           members={members}
           facilitator={facilitator}
           you={you}
+          timerEndsAt={timerEndsAt}
           onClaim={() => client.claimFacilitator()}
           onExport={() => setShowExport(true)}
+          onTimerStart={(s) => client.timerStart(s)}
+          onTimerStop={() => client.timerStop()}
         />
 
         {!joined && (

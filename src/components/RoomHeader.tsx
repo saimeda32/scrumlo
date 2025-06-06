@@ -8,6 +8,7 @@ export function RoomHeader({
   facilitator,
   you,
   onClaim,
+  onExport,
 }: {
   room: string;
   connected: boolean;
@@ -15,6 +16,7 @@ export function RoomHeader({
   facilitator: string | null;
   you: string | null;
   onClaim: () => void;
+  onExport: () => void;
 }) {
   const facil = members.find((m) => m.id === facilitator);
   const isFacil = !!you && you === facilitator;
@@ -38,6 +40,13 @@ export function RoomHeader({
       )}
 
       <div className="ml-auto flex items-center gap-3">
+        <button
+          onClick={onExport}
+          className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+          title="Copy/download the session before it's gone"
+        >
+          ⤓ Export
+        </button>
         {!isFacil && (
           <button
             onClick={onClaim}

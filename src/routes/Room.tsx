@@ -7,8 +7,10 @@ import { ActivityTabs } from "../components/ActivityTabs";
 import { EstimateBoard } from "../components/EstimateBoard";
 import { RetroBoard } from "../components/RetroBoard";
 import { PickerBoard } from "../components/PickerBoard";
+import { ExportSheet } from "../components/ExportSheet";
 import { StatusTicker } from "../components/StatusTicker";
 import { FLAVOR } from "../lib/flavor";
+import { buildSessionMarkdown } from "../lib/exportMarkdown";
 
 export default function Room() {
   const params = useParams<{ room: string }>();
@@ -29,6 +31,7 @@ export default function Room() {
   } = useRoom();
   const [name, setName] = useState("");
   const [joined, setJoined] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const clientRef = useRef<RoomClient | null>(null);
 
   useEffect(() => () => clientRef.current?.close(), []);
@@ -116,6 +119,7 @@ export default function Room() {
           facilitator={facilitator}
           you={you}
           onClaim={() => client.claimFacilitator()}
+          onExport={() => setShowExport(true)}
         />
         <ActivityTabs
           activity={activity}
@@ -128,6 +132,14 @@ export default function Room() {
           <RetroBoard retro={retro} isFacil={isFacil} client={client} />
         ) : (
           <PickerBoard pick={pick} members={members} isFacil={isFacil} client={client} />
+        )}
+
+        {showExport && (
+          <ExportSheet
+            room={room}
+            markdown={buildSessionMarkdown({ room, members, estimate, retro, pick })}
+            onClose={() => setShowExport(false)}
+          />
         )}
       </div>
     </div>

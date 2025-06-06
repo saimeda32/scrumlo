@@ -16,17 +16,17 @@ export function RetroBoard({
 }) {
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex items-center gap-3">
         {isFacil ? (
-          <div className="flex gap-1">
+          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-1">
             {Object.entries(RETRO_TEMPLATES).map(([id, t]) => (
               <button
                 key={id}
                 onClick={() => client.retroSetTemplate(id)}
-                className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
+                className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold ${
                   retro.template === id
                     ? "bg-indigo-100 text-indigo-700"
-                    : "text-slate-400 hover:bg-slate-100"
+                    : "text-slate-500 hover:bg-slate-100"
                 }`}
               >
                 {t.label}
@@ -34,11 +34,11 @@ export function RetroBoard({
             ))}
           </div>
         ) : (
-          <span className="text-xs font-semibold text-slate-400">
+          <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-500">
             {RETRO_TEMPLATES[retro.template]?.label ?? "Retro"}
           </span>
         )}
-        <span className="ml-auto rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+        <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
           {retro.votesLeft} {retro.votesLeft === 1 ? "vote" : "votes"} left
         </span>
       </div>

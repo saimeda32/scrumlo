@@ -77,7 +77,7 @@ export function EstimateBoard({
             Your card
           </span>
           {isFacil ? (
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {Object.keys(DECKS).map((d) => (
                 <button
                   key={d}

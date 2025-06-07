@@ -159,6 +159,14 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.rationales = {};
         break;
       }
+      case "reestimate": {
+        // Close the loop: reopen voting on the SAME story, clear the cards, but keep the
+        // rationales so the room re-votes knowing why people disagreed.
+        if (!this.isFacilitator(me)) return;
+        this.estimate.phase = "voting";
+        this.estimate.votes = {};
+        break;
+      }
       case "setRationale": {
         if (!me) return;
         this.estimate.rationales[me.id] = String(msg.text ?? "").trim().slice(0, 120);
@@ -417,7 +425,9 @@ export class RoomDO extends DurableObject<Env> {
         voted: votedIds,
         yourVote: me ? (this.estimate.votes[me.id] ?? null) : null,
         votes: revealed ? { ...this.estimate.votes } : null,
-        rationales: revealed ? { ...this.estimate.rationales } : null,
+        // Rationales aren't secret like votes (they carry no number) — send them whenever
+        // they exist so a re-vote can show last round's takes. Empty {} → nothing to show.
+        rationales: Object.keys(this.estimate.rationales).length ? { ...this.estimate.rationales } : null,
       };
 
       const retro: RetroView = {

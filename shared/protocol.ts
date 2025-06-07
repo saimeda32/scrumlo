@@ -178,7 +178,8 @@ export type ClientMsg =
   // estimation
   | { t: "vote"; v: 1; card: string }
   | { t: "reveal"; v: 1 }
-  | { t: "restart"; v: 1 }
+  | { t: "restart"; v: 1 } // wipe the round (votes + rationales) and start fresh
+  | { t: "reestimate"; v: 1 } // reopen voting but KEEP the story + rationales, so the room converges in place
   | { t: "setStory"; v: 1; story: string }
   | { t: "setDeck"; v: 1; deck: string }
   | { t: "setRationale"; v: 1; text: string } // an outlier explains their estimate

@@ -4,12 +4,15 @@ import { StatusTicker } from "../components/StatusTicker";
 import { FLAVOR } from "../lib/flavor";
 import { IconEstimate, IconRetro, IconPick } from "../components/icons";
 
+// Mock reveal for the hero. Deck index positions (fib): 3→0.43, 5→0.57, 8→0.71, 13→0.86.
+// avg = (3+5+8+13)/4 = 7.25 — computed below, never hardcoded.
 const SEATS = [
-  { v: "3", c: "#34b27b", n: "Priya" },
-  { v: "5", c: "#f0a23b", n: "Sai" },
-  { v: "8", c: "#f0a23b", n: "Dana" },
-  { v: "13", c: "#e8615f", n: "Jo" },
+  { v: 3, n: "Priya", pos: 0.43, kind: "low" as const },
+  { v: 5, n: "Sai", pos: 0.57, kind: "mid" as const },
+  { v: 8, n: "Dana", pos: 0.71, kind: "mid" as const },
+  { v: 13, n: "Jo", pos: 0.86, kind: "high" as const },
 ];
+const AVG = (SEATS.reduce((s, x) => s + x.v, 0) / SEATS.length).toFixed(2).replace(/\.?0+$/, "");
 
 export default function Landing() {
   const [, navigate] = useLocation();
@@ -57,8 +60,9 @@ export default function Landing() {
             <span className="text-indigo-600">Forgotten.</span>
           </h1>
           <p className="mt-5 max-w-md text-lg text-slate-600">
-            Planning poker, retrospectives, and a name-picker — three sprint ceremonies in one
-            no-login link. The room deletes itself when everyone leaves.
+            Every planning-poker tool flips the cards and goes quiet. Ephem turns the spread into a
+            conversation — the outliers say what they're pricing, then you re-vote. Plus retro and a
+            name-picker, all in one no-login link that deletes itself when everyone leaves.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -100,40 +104,58 @@ export default function Landing() {
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
                 ● live
               </span>
-              <div className="ml-auto flex -space-x-1.5">
-                {SEATS.map((s) => (
-                  <span
-                    key={s.n}
-                    className="h-5 w-5 rounded-full border-2 border-white text-[9px] font-bold leading-[16px] text-white"
-                    style={{ background: s.c, textAlign: "center" }}
-                  >
-                    {s.n[0]}
-                  </span>
-                ))}
-              </div>
+              <span className="ml-auto text-[10px] font-medium text-slate-400">cards revealed</span>
             </div>
             <div className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700">Reset password via email</span>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700">Add CSV export to billing</span>
                 <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600">
                   ↔ spread 3–13
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+
+              {/* the tension line */}
+              <div className="relative mx-1 my-7 h-1 rounded-full bg-slate-100">
+                <div
+                  className="absolute top-0 h-1 rounded-full bg-gradient-to-r from-sky-400 to-rose-400"
+                  style={{ left: "43%", width: "43%" }}
+                />
                 {SEATS.map((s) => (
-                  <div key={s.n} className="text-center">
+                  <div
+                    key={s.n}
+                    className="absolute -top-1 -translate-x-1/2"
+                    style={{ left: `${s.pos * 100}%` }}
+                  >
                     <div
-                      className="mx-auto mb-1 flex h-14 w-10 items-center justify-center rounded-md text-base font-extrabold text-white"
-                      style={{ background: s.c }}
-                    >
-                      {s.v}
-                    </div>
-                    <div className="truncate text-[10px] text-slate-500">{s.n}</div>
+                      className={`h-3 w-3 rounded-full border-2 border-white ${
+                        s.kind === "low"
+                          ? "scale-110 bg-sky-500"
+                          : s.kind === "high"
+                            ? "scale-110 bg-rose-500"
+                            : "bg-slate-300"
+                      }`}
+                    />
                   </div>
                 ))}
+                <span className="absolute -bottom-6 -translate-x-1/2 text-sm font-extrabold text-sky-600" style={{ left: "43%" }}>
+                  3
+                </span>
+                <span className="absolute -bottom-6 -translate-x-1/2 text-sm font-extrabold text-rose-600" style={{ left: "86%" }}>
+                  13
+                </span>
               </div>
-              <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
-                avg <b className="text-slate-700">8.0</b> · not in sync — talk to the 3 and the 13
+
+              <p className="mt-7 text-center text-[11px] leading-relaxed text-slate-600">
+                <b className="text-sky-600">Priya</b> is pricing “just the endpoint” ·{" "}
+                <b className="text-rose-600">Jo</b> is pricing “pagination + permissions”
+              </p>
+              <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+                <span>
+                  avg <b className="text-slate-700">{AVG}</b> · two camps
+                </span>
+                <span className="rounded-md bg-indigo-600 px-2 py-1 text-[10px] font-semibold text-white">
+                  ↻ Re-estimate
+                </span>
               </div>
             </div>
           </div>
@@ -147,7 +169,7 @@ export default function Landing() {
             {
               Icon: IconEstimate,
               t: "Estimate",
-              d: "Blind-reveal planning poker. 6 decks, instant color-coded consensus.",
+              d: "Blind-reveal poker that doesn’t go quiet — the spread becomes a conversation, then you re-vote.",
             },
             { Icon: IconRetro, t: "Retro", d: "10 real formats. Anonymous cards, dot-voting." },
             { Icon: IconPick, t: "Pick", d: "Random person, order, or topic. Who goes first?" },

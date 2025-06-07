@@ -46,26 +46,38 @@ export function EstimateBoard({
             </div>
           )}
         </div>
-        {isFacil &&
-          (revealed ? (
-            <button
-              onClick={() => client.restart()}
-              className="shrink-0 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              ↻ New round
-            </button>
-          ) : (
-            <button
-              onClick={() => client.reveal()}
-              className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-            >
-              Reveal cards
-            </button>
-          ))}
+        {isFacil && !revealed && (
+          <button
+            onClick={() => client.reveal()}
+            className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+          >
+            Reveal cards
+          </button>
+        )}
       </div>
 
+      {/* re-vote context: last round's captured takes, so the room converges knowing why */}
+      {!revealed && estimate.rationales && Object.keys(estimate.rationales).length > 0 && (
+        <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-indigo-400">
+            Re-voting — last round
+          </div>
+          <div className="mt-1 text-sm text-slate-600">
+            {Object.entries(estimate.rationales).map(([id, text], i) => {
+              const name = members.find((m) => m.id === id)?.name ?? "someone";
+              return (
+                <span key={id}>
+                  {i > 0 && <span className="text-slate-300"> · </span>}
+                  <b className="text-slate-700">{name}</b>: “{text}”
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {revealed ? (
-        <TensionLine estimate={estimate} members={members} you={you} client={client} />
+        <TensionLine estimate={estimate} members={members} you={you} isFacil={isFacil} client={client} />
       ) : (
         <Seats members={members} estimate={estimate} />
       )}

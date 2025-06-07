@@ -7,6 +7,7 @@ export type RoomClient = {
   vote: (card: string) => void;
   reveal: () => void;
   restart: () => void;
+  reestimate: () => void;
   setStory: (story: string) => void;
   setDeck: (deck: string) => void;
   setRationale: (text: string) => void;
@@ -97,6 +98,7 @@ export function createRoomClient(
     vote: (card) => send({ t: "vote", v: 1, card }),
     reveal: () => send({ t: "reveal", v: 1 }),
     restart: () => send({ t: "restart", v: 1 }),
+    reestimate: () => send({ t: "reestimate", v: 1 }),
     setStory: (story) => send({ t: "setStory", v: 1, story }),
     setDeck: (deck) => send({ t: "setDeck", v: 1, deck }),
     setRationale: (text) => send({ t: "setRationale", v: 1, text }),

@@ -28,7 +28,22 @@ export function buildSessionMarkdown(args: {
       const min = Math.min(...nums);
       const max = Math.max(...nums);
       const avg = (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1);
-      out.push("", min === max ? `Consensus: **${min}**` : `Spread **${min}–${max}**, avg **${avg}**`);
+      const sorted = [...nums].sort((a, b) => a - b);
+      const median = sorted[Math.floor((sorted.length - 1) / 2)];
+      out.push(
+        "",
+        min === max
+          ? `Consensus: **${min}**`
+          : `Spread **${min}–${max}**, median **${median}**, avg **${avg}**`,
+      );
+    }
+    // The reason the room disagreed — the part that's actually worth keeping.
+    if (estimate.rationales) {
+      const why = Object.entries(estimate.rationales).filter(([, t]) => t?.trim());
+      if (why.length) {
+        out.push("", "**Why they disagreed:**");
+        for (const [id, text] of why) out.push(`- ${nameById.get(id) ?? "anon"}: ${text}`);
+      }
     }
   } else {
     out.push("_(votes not revealed)_");

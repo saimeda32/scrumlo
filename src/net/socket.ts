@@ -11,6 +11,7 @@ export type RoomClient = {
   setStory: (story: string) => void;
   setDeck: (deck: string) => void;
   setRationale: (text: string) => void;
+  typing: (on: boolean) => void;
   claimFacilitator: () => void;
   endRoom: () => void;
   reportRoom: () => void;
@@ -102,6 +103,7 @@ export function createRoomClient(
     setStory: (story) => send({ t: "setStory", v: 1, story }),
     setDeck: (deck) => send({ t: "setDeck", v: 1, deck }),
     setRationale: (text) => send({ t: "setRationale", v: 1, text }),
+    typing: (on) => send({ t: "typing", v: 1, on }),
     claimFacilitator: () => send({ t: "claimFacilitator", v: 1 }),
     endRoom: () => send({ t: "endRoom", v: 1 }),
     reportRoom: () => send({ t: "reportRoom", v: 1 }),

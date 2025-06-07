@@ -110,11 +110,13 @@ export function TensionLine({
   const highR = endRationale(max);
   const waitingLow = !lowR;
   const waitingHigh = !highR;
+  const typingNames = (estimate.typing ?? []).filter((id) => id !== you).map(nameOf);
 
   function share() {
     if (draft.trim()) {
       client.setRationale(draft.trim());
       setDraft("");
+      client.typing(false);
     }
   }
 
@@ -122,14 +124,17 @@ export function TensionLine({
     <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
       <p className="sr-only">{distText}</p>
 
+      {/* convergence trail — the spread shrinking, round over round */}
+      {estimate.history.length >= 2 && <ConvergenceTrail history={estimate.history} />}
+
       {/* the taut line with every camp */}
       <div className="relative mx-auto h-24 max-w-2xl">
-        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slate-100" />
+        <div className="absolute inset-x-0 h-1.5 rounded-full bg-slate-100" style={{ top: "calc(50% - 3px)" }} />
         <div
-          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gradient-to-r from-sky-400 to-rose-400"
-          style={{ left: `${minPos}%`, width: `${Math.max(0, maxPos - minPos)}%` }}
+          className="animate-draw absolute h-1.5 rounded-full bg-gradient-to-r from-sky-400 to-rose-400"
+          style={{ top: "calc(50% - 3px)", left: `${minPos}%`, width: `${Math.max(0, maxPos - minPos)}%` }}
         />
-        {clusters.map((c) => {
+        {clusters.map((c, i) => {
           const size = Math.min(14 + (c.ids.length - 1) * 6, 30);
           const color =
             c.kind === "low" ? "bg-sky-500" : c.kind === "high" ? "bg-rose-500" : "bg-slate-300";
@@ -142,8 +147,8 @@ export function TensionLine({
               style={{ left: `${c.pos * 100}%` }}
             >
               <div
-                className={`flex items-center justify-center rounded-full border-2 border-white shadow-sm ${color}`}
-                style={{ height: size, width: size }}
+                className={`animate-pop flex items-center justify-center rounded-full border-2 border-white shadow-sm ${color}`}
+                style={{ height: size, width: size, animationDelay: `${0.15 + i * 0.08}s` }}
                 title={c.ids.map(nameOf).join(", ")}
               >
                 {c.ids.length > 1 && (
@@ -161,7 +166,7 @@ export function TensionLine({
       </div>
 
       {/* the camps, in words */}
-      <div className="mt-6 text-center text-sm text-slate-600">
+      <div className="animate-rise mt-6 text-center text-sm text-slate-600" style={{ animationDelay: "0.35s" }}>
         {clusters.map((c, i) => (
           <span key={c.value}>
             {i > 0 && <span className="text-slate-300"> · </span>}
@@ -176,7 +181,7 @@ export function TensionLine({
 
       {/* the captured "why" */}
       {(lowR || highR) && (
-        <p className="mt-4 text-center text-sm text-slate-700">
+        <p className="animate-rise mt-4 text-center text-sm text-slate-700">
           {lowR && (
             <>
               <span className="font-semibold text-sky-600">{lowR.name}</span> is pricing “{lowR.text}”
@@ -190,12 +195,18 @@ export function TensionLine({
           )}
         </p>
       )}
-      {(waitingLow || waitingHigh) && (
-        <p className="mt-4 text-center text-xs text-slate-400">
-          {waitingLow && waitingHigh
-            ? `Waiting on the ${min} and the ${max} to say what they're pricing…`
-            : `Waiting on the ${waitingLow ? min : max} to say what they're pricing…`}
+      {typingNames.length > 0 ? (
+        <p className="animate-pulse-soft mt-4 text-center text-xs font-medium text-indigo-500">
+          {typingNames.join(" & ")} {typingNames.length > 1 ? "are" : "is"} explaining…
         </p>
+      ) : (
+        (waitingLow || waitingHigh) && (
+          <p className="mt-4 text-center text-xs text-slate-400">
+            {waitingLow && waitingHigh
+              ? `Waiting on the ${min} and the ${max} to say what they're pricing…`
+              : `Waiting on the ${waitingLow ? min : max} to say what they're pricing…`}
+          </p>
+        )
       )}
 
       {/* outlier prompt */}
@@ -210,6 +221,8 @@ export function TensionLine({
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && share()}
+              onFocus={() => client.typing(true)}
+              onBlur={() => client.typing(false)}
               placeholder="e.g. the data migration"
               className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             />
@@ -231,6 +244,35 @@ export function TensionLine({
 
       {/* close the loop */}
       {isFacil && <ReestimateBar client={client} className="mt-7 justify-center" />}
+    </div>
+  );
+}
+
+/** The spread shrinking, round over round — the room visibly converging. */
+function ConvergenceTrail({ history }: { history: { lo: number; hi: number; n: number }[] }) {
+  return (
+    <div className="mb-6 flex flex-wrap items-center justify-center gap-2 text-xs">
+      <span className="font-semibold uppercase tracking-wide text-slate-400">Converging</span>
+      {history.map((r, i) => {
+        const consensus = r.lo === r.hi;
+        const last = i === history.length - 1;
+        return (
+          <span key={i} className="inline-flex items-center gap-2">
+            {i > 0 && <span className="text-slate-300">→</span>}
+            <span
+              className={`rounded-full px-2 py-0.5 font-semibold ${
+                last
+                  ? consensus
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-indigo-100 text-indigo-700"
+                  : "bg-slate-100 text-slate-500"
+              }`}
+            >
+              {consensus ? `✓ ${r.lo}` : `${r.lo}–${r.hi}`}
+            </span>
+          </span>
+        );
+      })}
     </div>
   );
 }

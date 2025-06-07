@@ -45,6 +45,10 @@ export type EstimateView = {
   votes: Record<string, string> | null; // member id -> card, only once revealed
   // Reveal-to-Resolution: the outliers' one-line "what are you pricing?", shown only after reveal.
   rationales: Record<string, string> | null;
+  // Convergence trail: one entry per reveal of this story, oldest→newest. The spread shrinking.
+  history: { lo: number; hi: number; n: number }[];
+  // Live presence: member ids currently typing a rationale.
+  typing: string[];
 };
 
 // ---- Retro ----
@@ -183,6 +187,7 @@ export type ClientMsg =
   | { t: "setStory"; v: 1; story: string }
   | { t: "setDeck"; v: 1; deck: string }
   | { t: "setRationale"; v: 1; text: string } // an outlier explains their estimate
+  | { t: "typing"; v: 1; on: boolean } // live presence while composing a rationale
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
   | { t: "endRoom"; v: 1 } // facilitator kills the room now

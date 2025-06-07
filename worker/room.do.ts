@@ -18,12 +18,22 @@ import { DECKS, RETRO_TEMPLATES, RETRO_VOTE_BUDGET } from "../shared/protocol";
 const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
 const EMPTY_GRACE_MS = 2 * 60 * 1000; // 2 min after the last person leaves (reconnect grace)
 
+/** Numeric value of a deck card, or null for ?/☕/t-shirt sizes. "½" → 0.5. */
+function cardToNum(card: string): number | null {
+  if (card === "½") return 0.5;
+  const n = Number(card);
+  return Number.isFinite(n) ? n : null;
+}
+
 type EstimateState = {
   story: string;
   deck: string;
   phase: Phase;
   votes: Record<string, string>; // memberId -> card
   rationales: Record<string, string>; // memberId -> one-line "what are you pricing?"
+  // Convergence trail: one entry per reveal of the CURRENT story, in order. Lets the
+  // room watch the spread shrink across re-votes. Reset on restart/new-deck, kept on re-estimate.
+  history: { lo: number; hi: number; n: number }[];
 };
 
 type RetroCard = {
@@ -65,7 +75,10 @@ export class RoomDO extends DurableObject<Env> {
     phase: "voting",
     votes: {},
     rationales: {},
+    history: [],
   };
+  // Transient presence — who is mid-typing a rationale. Never persisted (it's live-only).
+  private typing = new Set<string>();
   private retro: RetroState = { template: "ssc", cards: [] };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0 };
   private activity: Activity = "estimate";
@@ -78,7 +91,10 @@ export class RoomDO extends DurableObject<Env> {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
       const e = await ctx.storage.get<EstimateState>("estimate");
-      if (e) this.estimate = e;
+      if (e) {
+        this.estimate = e;
+        this.estimate.history ??= []; // tolerate state persisted before convergence trail
+      }
       const r = await ctx.storage.get<RetroState>("retro");
       if (r) this.retro = r;
       const p = await ctx.storage.get<PickState>("pick");
@@ -150,6 +166,17 @@ export class RoomDO extends DurableObject<Env> {
       case "reveal": {
         if (!this.isFacilitator(me)) return;
         this.estimate.phase = "revealed";
+        // Record this round into the convergence trail.
+        const nums = Object.values(this.estimate.votes)
+          .map(cardToNum)
+          .filter((n): n is number => n !== null);
+        if (nums.length) {
+          this.estimate.history.push({
+            lo: Math.min(...nums),
+            hi: Math.max(...nums),
+            n: nums.length,
+          });
+        }
         break;
       }
       case "restart": {
@@ -157,6 +184,8 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.phase = "voting";
         this.estimate.votes = {};
         this.estimate.rationales = {};
+        this.estimate.history = []; // new story → fresh convergence trail
+        this.typing.clear();
         break;
       }
       case "reestimate": {
@@ -183,7 +212,15 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.deck = msg.deck;
         this.estimate.votes = {};
         this.estimate.rationales = {};
+        this.estimate.history = []; // different scale → trail no longer comparable
         this.estimate.phase = "voting";
+        break;
+      }
+      case "typing": {
+        // Live presence while an outlier composes a rationale. Transient, not persisted.
+        if (!me) return;
+        if (msg.on) this.typing.add(me.id);
+        else this.typing.delete(me.id);
         break;
       }
 
@@ -428,6 +465,8 @@ export class RoomDO extends DurableObject<Env> {
         // Rationales aren't secret like votes (they carry no number) — send them whenever
         // they exist so a re-vote can show last round's takes. Empty {} → nothing to show.
         rationales: Object.keys(this.estimate.rationales).length ? { ...this.estimate.rationales } : null,
+        history: this.estimate.history,
+        typing: [...this.typing],
       };
 
       const retro: RetroView = {

@@ -145,14 +145,19 @@ export const RETRO_TEMPLATES: Record<string, { label: string; columns: RetroColu
 
 export const RETRO_VOTE_BUDGET = 5;
 
-/** A retro card as a client sees it — author is NEVER sent (anonymity by default). */
+/** Emoji a card can be reacted with (server-validated). */
+export const RETRO_REACTIONS = ["👍", "❤️", "🎯", "🔥", "😂", "👀"] as const;
+
+/** A retro card as a client sees it. Author is sent only when the room is non-anonymous. */
 export type RetroCardView = {
   id: string;
   column: string;
   text: string;
   mine: boolean; // is this my card (so I can delete it)
+  author: string | null; // author name when the room shows names; null when anonymous
   votes: number; // total dot-votes
   youVoted: boolean;
+  reactions: { emoji: string; count: number; mine: boolean }[]; // only non-zero, in RETRO_REACTIONS order
 };
 
 export type RetroView = {
@@ -160,6 +165,8 @@ export type RetroView = {
   columns: RetroColumn[];
   cards: RetroCardView[];
   votesLeft: number; // dot-votes you have left
+  anonymous: boolean; // room setting: hide card authors (default true)
+  spotlightId: string | null; // facilitator is focusing the room on one card
 };
 
 // ---- Picker (the facilitator's "wheel of names") ----
@@ -201,6 +208,9 @@ export type ClientMsg =
   | { t: "retroAddCard"; v: 1; column: string; text: string }
   | { t: "retroVote"; v: 1; cardId: string }
   | { t: "retroDeleteCard"; v: 1; cardId: string }
+  | { t: "retroReact"; v: 1; cardId: string; emoji: string } // toggle an emoji reaction
+  | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors
+  | { t: "retroSpotlight"; v: 1; cardId: string | null } // facilitator: focus everyone on a card
   // picker
   | { t: "pickSetMode"; v: 1; mode: PickMode }
   | { t: "pickAddItem"; v: 1; text: string }

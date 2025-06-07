@@ -13,7 +13,7 @@ import type {
   Phase,
   Activity,
 } from "../shared/protocol";
-import { DECKS, RETRO_TEMPLATES, RETRO_VOTE_BUDGET } from "../shared/protocol";
+import { DECKS, RETRO_TEMPLATES, RETRO_VOTE_BUDGET, RETRO_REACTIONS } from "../shared/protocol";
 
 const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
 const EMPTY_GRACE_MS = 2 * 60 * 1000; // 2 min after the last person leaves (reconnect grace)
@@ -40,13 +40,16 @@ type RetroCard = {
   id: string;
   column: string;
   text: string;
-  authorId: string; // server-only; never sent to other clients (anonymity)
+  authorId: string; // server-only; sent as a name only when the room is non-anonymous
   voters: string[]; // memberIds who dot-voted this card
+  reactions: Record<string, string[]>; // emoji -> memberIds
 };
 
 type RetroState = {
   template: string;
   cards: RetroCard[];
+  anonymous: boolean; // hide authors (default true)
+  spotlightId: string | null; // facilitator focusing the room on a card
 };
 
 type PickState = {
@@ -79,7 +82,7 @@ export class RoomDO extends DurableObject<Env> {
   };
   // Transient presence — who is mid-typing a rationale. Never persisted (it's live-only).
   private typing = new Set<string>();
-  private retro: RetroState = { template: "ssc", cards: [] };
+  private retro: RetroState = { template: "ssc", cards: [], anonymous: true, spotlightId: null };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0 };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
@@ -96,7 +99,12 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.history ??= []; // tolerate state persisted before convergence trail
       }
       const r = await ctx.storage.get<RetroState>("retro");
-      if (r) this.retro = r;
+      if (r) {
+        this.retro = r;
+        this.retro.anonymous ??= true; // tolerate state from before authorship/reactions
+        this.retro.spotlightId ??= null;
+        for (const c of this.retro.cards) c.reactions ??= {};
+      }
       const p = await ctx.storage.get<PickState>("pick");
       if (p) this.pick = p;
       this.clients = (await ctx.storage.get<Record<string, string>>("clients")) ?? {};
@@ -280,6 +288,7 @@ export class RoomDO extends DurableObject<Env> {
         if (!RETRO_TEMPLATES[msg.template]) return;
         this.retro.template = msg.template;
         this.retro.cards = []; // changing template resets the board
+        this.retro.spotlightId = null;
         break;
       }
       case "retroAddCard": {
@@ -295,6 +304,7 @@ export class RoomDO extends DurableObject<Env> {
           text,
           authorId: me.id,
           voters: [],
+          reactions: {},
         });
         break;
       }
@@ -318,6 +328,30 @@ export class RoomDO extends DurableObject<Env> {
         if (!card) return;
         if (card.authorId !== me.id && !this.isFacilitator(me)) return;
         this.retro.cards = this.retro.cards.filter((c) => c.id !== msg.cardId);
+        if (this.retro.spotlightId === msg.cardId) this.retro.spotlightId = null;
+        break;
+      }
+      case "retroReact": {
+        if (!me) return;
+        if (!RETRO_REACTIONS.includes(msg.emoji as (typeof RETRO_REACTIONS)[number])) return;
+        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        if (!card) return;
+        const list = (card.reactions[msg.emoji] ??= []);
+        const i = list.indexOf(me.id);
+        if (i >= 0) list.splice(i, 1);
+        else list.push(me.id);
+        if (list.length === 0) delete card.reactions[msg.emoji];
+        break;
+      }
+      case "retroSetAnonymous": {
+        if (!this.isFacilitator(me)) return;
+        this.retro.anonymous = !!msg.on;
+        break;
+      }
+      case "retroSpotlight": {
+        if (!this.isFacilitator(me)) return;
+        if (msg.cardId === null) this.retro.spotlightId = null;
+        else if (this.retro.cards.some((c) => c.id === msg.cardId)) this.retro.spotlightId = msg.cardId;
         break;
       }
 
@@ -429,6 +463,7 @@ export class RoomDO extends DurableObject<Env> {
     const sockets = this.ctx.getWebSockets().filter((w) => w !== exclude);
     const members = this.membersFrom(sockets);
     const presentIds = new Set(members.map((m) => m.id));
+    const nameById = new Map(members.map((m) => [m.id, m.name]));
 
     let mutated = false;
 
@@ -477,12 +512,20 @@ export class RoomDO extends DurableObject<Env> {
           column: c.column,
           text: c.text,
           mine: me ? c.authorId === me.id : false,
+          author: this.retro.anonymous ? null : (nameById.get(c.authorId) ?? null),
           votes: c.voters.length,
           youVoted: me ? c.voters.includes(me.id) : false,
+          reactions: RETRO_REACTIONS.filter((e) => (c.reactions[e]?.length ?? 0) > 0).map((e) => ({
+            emoji: e,
+            count: c.reactions[e].length,
+            mine: me ? c.reactions[e].includes(me.id) : false,
+          })),
         })),
         votesLeft: me
           ? RETRO_VOTE_BUDGET - this.retro.cards.filter((c) => c.voters.includes(me.id)).length
           : RETRO_VOTE_BUDGET,
+        anonymous: this.retro.anonymous,
+        spotlightId: this.retro.spotlightId,
       };
 
       const snapshot: ServerMsg = {

@@ -23,6 +23,9 @@ export type RoomClient = {
   retroAddCard: (column: string, text: string) => void;
   retroVote: (cardId: string) => void;
   retroDeleteCard: (cardId: string) => void;
+  retroReact: (cardId: string, emoji: string) => void;
+  retroSetAnonymous: (on: boolean) => void;
+  retroSpotlight: (cardId: string | null) => void;
   // picker
   pickSetMode: (mode: PickMode) => void;
   pickAddItem: (text: string) => void;
@@ -114,6 +117,9 @@ export function createRoomClient(
     retroAddCard: (column, text) => send({ t: "retroAddCard", v: 1, column, text }),
     retroVote: (cardId) => send({ t: "retroVote", v: 1, cardId }),
     retroDeleteCard: (cardId) => send({ t: "retroDeleteCard", v: 1, cardId }),
+    retroReact: (cardId, emoji) => send({ t: "retroReact", v: 1, cardId, emoji }),
+    retroSetAnonymous: (on) => send({ t: "retroSetAnonymous", v: 1, on }),
+    retroSpotlight: (cardId) => send({ t: "retroSpotlight", v: 1, cardId }),
     pickSetMode: (mode) => send({ t: "pickSetMode", v: 1, mode }),
     pickAddItem: (text) => send({ t: "pickAddItem", v: 1, text }),
     pickRemoveItem: (index) => send({ t: "pickRemoveItem", v: 1, index }),

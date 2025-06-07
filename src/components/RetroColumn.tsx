@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { RetroColumn as Col, RetroCardView } from "../../shared/protocol";
+import { RETRO_REACTIONS } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
+import { avatarColor, initials } from "../lib/colors";
 
 // Engineering-grade color identity per column (no cartoon graphics). Semantic where
 // the meaning is known (start=green, stop=red), else a palette spread by position —
@@ -17,15 +19,15 @@ const SEMANTIC: Record<string, string> = {
 };
 const PALETTE = ["emerald", "sky", "amber", "violet", "rose", "teal"];
 
-const C: Record<string, { dot: string; from: string; text: string }> = {
-  emerald: { dot: "bg-emerald-400", from: "from-emerald-50", text: "text-emerald-700" },
-  sky: { dot: "bg-sky-400", from: "from-sky-50", text: "text-sky-700" },
-  amber: { dot: "bg-amber-400", from: "from-amber-50", text: "text-amber-700" },
-  violet: { dot: "bg-violet-400", from: "from-violet-50", text: "text-violet-700" },
-  rose: { dot: "bg-rose-400", from: "from-rose-50", text: "text-rose-700" },
-  teal: { dot: "bg-teal-400", from: "from-teal-50", text: "text-teal-700" },
-  orange: { dot: "bg-orange-400", from: "from-orange-50", text: "text-orange-700" },
-  slate: { dot: "bg-slate-400", from: "from-slate-100", text: "text-slate-700" },
+const C: Record<string, { dot: string; from: string; text: string; ring: string }> = {
+  emerald: { dot: "bg-emerald-400", from: "from-emerald-50", text: "text-emerald-700", ring: "ring-emerald-200" },
+  sky: { dot: "bg-sky-400", from: "from-sky-50", text: "text-sky-700", ring: "ring-sky-200" },
+  amber: { dot: "bg-amber-400", from: "from-amber-50", text: "text-amber-700", ring: "ring-amber-200" },
+  violet: { dot: "bg-violet-400", from: "from-violet-50", text: "text-violet-700", ring: "ring-violet-200" },
+  rose: { dot: "bg-rose-400", from: "from-rose-50", text: "text-rose-700", ring: "ring-rose-200" },
+  teal: { dot: "bg-teal-400", from: "from-teal-50", text: "text-teal-700", ring: "ring-teal-200" },
+  orange: { dot: "bg-orange-400", from: "from-orange-50", text: "text-orange-700", ring: "ring-orange-200" },
+  slate: { dot: "bg-slate-400", from: "from-slate-100", text: "text-slate-700", ring: "ring-slate-200" },
 };
 
 export function RetroColumn({
@@ -33,12 +35,16 @@ export function RetroColumn({
   index,
   cards,
   canAct,
+  isFacil,
+  spotlightId,
   client,
 }: {
   column: Col;
   index: number;
   cards: RetroCardView[];
   canAct: boolean;
+  isFacil: boolean;
+  spotlightId: string | null;
   client: RoomClient;
 }) {
   const [text, setText] = useState("");
@@ -64,35 +70,15 @@ export function RetroColumn({
 
       <ul className="space-y-2">
         {sorted.map((card) => (
-          <li
+          <RetroCard
             key={card.id}
-            className="group rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm"
-          >
-            <div className="whitespace-pre-wrap break-words">{card.text}</div>
-            <div className="mt-2 flex items-center justify-between">
-              <button
-                onClick={() => client.retroVote(card.id)}
-                disabled={!canAct}
-                aria-pressed={card.youVoted}
-                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition disabled:cursor-default disabled:opacity-60 ${
-                  card.youVoted
-                    ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                    : "border-slate-200 text-slate-500 enabled:hover:border-indigo-300"
-                }`}
-              >
-                ▲ {card.votes}
-              </button>
-              {card.mine && (
-                <button
-                  onClick={() => client.retroDeleteCard(card.id)}
-                  aria-label="Delete card"
-                  className="text-xs text-slate-300 opacity-0 transition focus:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-rose-500"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </li>
+            card={card}
+            canAct={canAct}
+            isFacil={isFacil}
+            spotlit={spotlightId === card.id}
+            ring={c.ring}
+            client={client}
+          />
         ))}
       </ul>
 
@@ -113,5 +99,132 @@ export function RetroColumn({
         />
       )}
     </section>
+  );
+}
+
+function RetroCard({
+  card,
+  canAct,
+  isFacil,
+  spotlit,
+  ring,
+  client,
+}: {
+  card: RetroCardView;
+  canAct: boolean;
+  isFacil: boolean;
+  spotlit: boolean;
+  ring: string;
+  client: RoomClient;
+}) {
+  const [pickReaction, setPickReaction] = useState(false);
+
+  return (
+    <li
+      className={`group rounded-xl border bg-white px-3 py-2 text-sm text-slate-800 shadow-sm transition ${
+        spotlit ? `border-transparent ring-2 ring-indigo-400 ${ring}` : "border-slate-200"
+      }`}
+    >
+      {card.author && (
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <span
+            className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white"
+            style={{ background: avatarColor(card.author) }}
+          >
+            {initials(card.author)}
+          </span>
+          <span className="text-[11px] font-medium text-slate-400">{card.author}</span>
+        </div>
+      )}
+
+      <div className="whitespace-pre-wrap break-words">{card.text}</div>
+
+      {card.reactions.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {card.reactions.map((r) => (
+            <button
+              key={r.emoji}
+              onClick={() => canAct && client.retroReact(card.id, r.emoji)}
+              disabled={!canAct}
+              className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-xs transition disabled:cursor-default ${
+                r.mine ? "border-indigo-300 bg-indigo-50" : "border-slate-200 hover:border-indigo-300"
+              }`}
+            >
+              <span>{r.emoji}</span>
+              <span className="font-semibold text-slate-500">{r.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          onClick={() => client.retroVote(card.id)}
+          disabled={!canAct}
+          aria-pressed={card.youVoted}
+          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition disabled:cursor-default disabled:opacity-60 ${
+            card.youVoted
+              ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+              : "border-slate-200 text-slate-500 enabled:hover:border-indigo-300"
+          }`}
+        >
+          ▲ {card.votes}
+        </button>
+
+        {canAct && (
+          <div className="relative">
+            <button
+              onClick={() => setPickReaction((v) => !v)}
+              aria-label="Add reaction"
+              className="rounded-full border border-slate-200 px-2 py-0.5 text-xs text-slate-400 transition hover:border-indigo-300 hover:text-indigo-500"
+            >
+              ☺﹢
+            </button>
+            {pickReaction && (
+              <div className="absolute left-0 top-7 z-10 flex gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-lg">
+                {RETRO_REACTIONS.map((e) => (
+                  <button
+                    key={e}
+                    onClick={() => {
+                      client.retroReact(card.id, e);
+                      setPickReaction(false);
+                    }}
+                    className="rounded-full px-1 text-base transition hover:scale-125"
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          {isFacil && (
+            <button
+              onClick={() => client.retroSpotlight(spotlit ? null : card.id)}
+              aria-label={spotlit ? "Stop spotlight" : "Spotlight this card"}
+              title={spotlit ? "Stop spotlight" : "Spotlight — focus the room here"}
+              className={`text-xs transition ${
+                spotlit
+                  ? "text-indigo-500"
+                  : "text-slate-300 opacity-0 hover:text-indigo-500 group-focus-within:opacity-100 group-hover:opacity-100"
+              }`}
+            >
+              ◎
+            </button>
+          )}
+          {card.mine && (
+            <button
+              onClick={() => client.retroDeleteCard(card.id)}
+              aria-label="Delete card"
+              className="text-xs text-slate-300 opacity-0 transition focus:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-rose-500"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+    </li>
   );
 }

@@ -71,7 +71,10 @@ export function RoomHeader({
       {facil && (
         <span className="text-xs text-slate-500 dark:text-slate-400">
           facilitated by{" "}
-          <span className="font-semibold text-slate-700 dark:text-slate-200">{isFacil ? "you" : facil.name}</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-200">
+            {facil.name}
+            {isFacil && <span className="font-normal text-slate-400 dark:text-slate-500"> (you)</span>}
+          </span>
         </span>
       )}
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { EstimateView, Member } from "../../shared/protocol";
 import { DECKS, DECK_LABELS } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
@@ -23,9 +24,96 @@ export function EstimateBoard({
   client: RoomClient;
 }) {
   const revealed = estimate.phase === "revealed";
+  const [showAdd, setShowAdd] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  // Keyboard voting: press a card's value to vote it; R reveals (facilitator).
+  useEffect(() => {
+    if (!canAct) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (isFacil && (e.key === "r" || e.key === "R") && !revealed) {
+        client.reveal();
+        return;
+      }
+      if (revealed) return;
+      const deck = DECKS[estimate.deck] ?? DECKS.fib;
+      if (deck.includes(e.key)) client.vote(e.key);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canAct, isFacil, revealed, estimate.deck, client]);
+
+  function addStories() {
+    const stories = draft.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (stories.length) client.estimateQueueAdd(stories);
+    setDraft("");
+    setShowAdd(false);
+  }
 
   return (
     <>
+      {/* backlog bar */}
+      {(estimate.queue.length > 0 || estimate.log.length > 0 || isFacil) && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/60 px-4 py-2.5 text-xs dark:border-white/10 dark:bg-white/5">
+          {estimate.log.length > 0 && (
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              ✓ {estimate.log.length} estimated
+            </span>
+          )}
+          {estimate.queue.length > 0 ? (
+            <span className="min-w-0 truncate text-slate-500 dark:text-slate-400">
+              Up next: <span className="font-medium text-slate-700 dark:text-slate-200">{estimate.queue[0]}</span>
+              {estimate.queue.length > 1 && ` (+${estimate.queue.length - 1} more)`}
+            </span>
+          ) : (
+            <span className="text-slate-400 dark:text-slate-500">Backlog empty</span>
+          )}
+          {isFacil && (
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={() => setShowAdd((v) => !v)}
+                className="rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+              >
+                + Add stories
+              </button>
+              {(estimate.queue.length > 0 || estimate.decision) && (
+                <button
+                  onClick={() => client.estimateNextStory()}
+                  className="rounded-lg bg-iris-600 px-2.5 py-1 font-semibold text-white hover:bg-iris-500"
+                >
+                  Next story →
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      {showAdd && isFacil && (
+        <div className="mb-3 rounded-xl border border-iris-200 bg-iris-50/50 p-3 dark:border-iris-500/25 dark:bg-iris-500/5">
+          <textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Paste your backlog, one story per line…"
+            rows={4}
+            className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-sm text-slate-500">
+              Cancel
+            </button>
+            <button
+              onClick={addStories}
+              className="rounded-lg bg-iris-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-iris-500"
+            >
+              Queue them
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* story bar */}
       <div className="mb-4 flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
         <div className="min-w-0 flex-1">

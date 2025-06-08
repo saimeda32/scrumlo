@@ -36,6 +36,9 @@ type EstimateState = {
   history: { lo: number; hi: number; n: number }[];
   // The locked outcome for this story: agreed value + the reason. Reset on restart/new-deck.
   decision: { value: string; note: string } | null;
+  // Backlog: stories queued to estimate next, and a log of ones already decided.
+  queue: string[];
+  log: { story: string; value: string; note: string }[];
 };
 
 type RetroCard = {
@@ -86,6 +89,8 @@ export class RoomDO extends DurableObject<Env> {
     rationales: {},
     history: [],
     decision: null,
+    queue: [],
+    log: [],
   };
   // Transient presence — who is mid-typing a rationale. Never persisted (it's live-only).
   private typing = new Set<string>();
@@ -112,6 +117,8 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate = e;
         this.estimate.history ??= []; // tolerate state persisted before convergence trail
         this.estimate.decision ??= null;
+        this.estimate.queue ??= [];
+        this.estimate.log ??= [];
       }
       const r = await ctx.storage.get<RetroState>("retro");
       if (r) {
@@ -195,22 +202,16 @@ export class RoomDO extends DurableObject<Env> {
         const deck = DECKS[this.estimate.deck] ?? DECKS.fib;
         if (!deck.includes(msg.card)) return;
         this.estimate.votes[me.id] = msg.card;
+        // Auto-reveal the moment everyone present has voted.
+        const present = this.membersFrom(this.ctx.getWebSockets());
+        if (present.length > 0 && present.every((m) => this.estimate.votes[m.id] !== undefined)) {
+          this.recordReveal();
+        }
         break;
       }
       case "reveal": {
         if (!this.isFacilitator(me)) return;
-        this.estimate.phase = "revealed";
-        // Record this round into the convergence trail.
-        const nums = Object.values(this.estimate.votes)
-          .map(cardToNum)
-          .filter((n): n is number => n !== null);
-        if (nums.length) {
-          this.estimate.history.push({
-            lo: Math.min(...nums),
-            hi: Math.max(...nums),
-            n: nums.length,
-          });
-        }
+        this.recordReveal();
         break;
       }
       case "restart": {
@@ -241,6 +242,39 @@ export class RoomDO extends DurableObject<Env> {
         const value = String(msg.value ?? "").trim().slice(0, 12);
         const note = String(msg.note ?? "").trim().slice(0, 140);
         this.estimate.decision = value ? { value, note } : null; // "" → unlock
+        break;
+      }
+      case "estimateQueueAdd": {
+        if (!this.isFacilitator(me)) return;
+        const stories = (Array.isArray(msg.stories) ? msg.stories : [])
+          .map((s) => String(s ?? "").trim().slice(0, 200))
+          .filter(Boolean)
+          .slice(0, 100);
+        // first one fills an empty current story; the rest queue up
+        for (const st of stories) {
+          if (!this.estimate.story && this.estimate.queue.length === 0) this.estimate.story = st;
+          else this.estimate.queue.push(st);
+        }
+        this.estimate.queue = this.estimate.queue.slice(0, 200);
+        break;
+      }
+      case "estimateNextStory": {
+        if (!this.isFacilitator(me)) return;
+        // log the current story's outcome (if decided), then load the next one fresh
+        if (this.estimate.story && this.estimate.decision) {
+          this.estimate.log.push({
+            story: this.estimate.story,
+            value: this.estimate.decision.value,
+            note: this.estimate.decision.note,
+          });
+        }
+        this.estimate.story = this.estimate.queue.shift() ?? "";
+        this.estimate.votes = {};
+        this.estimate.rationales = {};
+        this.estimate.history = [];
+        this.estimate.decision = null;
+        this.estimate.phase = "voting";
+        this.typing.clear();
         break;
       }
       case "setStory": {
@@ -569,6 +603,17 @@ export class RoomDO extends DurableObject<Env> {
     return !!me && me.id === this.facilitatorId;
   }
 
+  /** Flip to revealed and append this round's spread to the convergence trail. */
+  private recordReveal(): void {
+    this.estimate.phase = "revealed";
+    const nums = Object.values(this.estimate.votes)
+      .map(cardToNum)
+      .filter((n): n is number => n !== null);
+    if (nums.length) {
+      this.estimate.history.push({ lo: Math.min(...nums), hi: Math.max(...nums), n: nums.length });
+    }
+  }
+
   /** A group of one isn't a group — clear its lone member's groupId. */
   private dissolveSingletonGroups(gid: string | null): void {
     if (!gid) return;
@@ -626,6 +671,8 @@ export class RoomDO extends DurableObject<Env> {
         history: this.estimate.history,
         typing: [...this.typing],
         decision: this.estimate.decision,
+        queue: this.estimate.queue,
+        log: this.estimate.log,
       };
 
       const retro: RetroView = {

@@ -13,6 +13,8 @@ export type RoomClient = {
   setRationale: (text: string) => void;
   typing: (on: boolean) => void;
   lockDecision: (value: string, note: string) => void;
+  estimateQueueAdd: (stories: string[]) => void;
+  estimateNextStory: () => void;
   claimFacilitator: () => void;
   endRoom: () => void;
   reportRoom: () => void;
@@ -127,6 +129,8 @@ export function createRoomClient(
     setRationale: (text) => send({ t: "setRationale", v: 1, text }),
     typing: (on) => send({ t: "typing", v: 1, on }),
     lockDecision: (value, note) => send({ t: "lockDecision", v: 1, value, note }),
+    estimateQueueAdd: (stories) => send({ t: "estimateQueueAdd", v: 1, stories }),
+    estimateNextStory: () => send({ t: "estimateNextStory", v: 1 }),
     claimFacilitator: () => send({ t: "claimFacilitator", v: 1 }),
     endRoom: () => send({ t: "endRoom", v: 1 }),
     reportRoom: () => send({ t: "reportRoom", v: 1 }),

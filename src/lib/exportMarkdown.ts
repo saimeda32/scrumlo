@@ -19,7 +19,15 @@ export function buildSessionMarkdown(args: {
   const out: string[] = [`# Ephem — ${room}`, `_Exported ${new Date().toLocaleString()}_`];
 
   // Estimation
-  out.push("", "## Estimation", `**Story:** ${estimate.story || "—"}`);
+  out.push("", "## Estimation");
+  if (estimate.log.length) {
+    out.push("", "**Estimated this session:**");
+    for (const e of estimate.log) {
+      out.push(`- ${e.story} → **${e.value}**${e.note ? ` (${e.note})` : ""}`);
+    }
+    out.push("");
+  }
+  out.push(`**Now:** ${estimate.story || "—"}`);
   if (estimate.decision) {
     out.push(
       "",

@@ -51,6 +51,9 @@ export type EstimateView = {
   typing: string[];
   // The locked outcome: the agreed estimate + the one-line reason. The artifact teams keep.
   decision: { value: string; note: string } | null;
+  // Backlog: stories queued next, and a log of ones already decided this session.
+  queue: string[];
+  log: { story: string; value: string; note: string }[];
 };
 
 // ---- Retro ----
@@ -230,6 +233,8 @@ export type ClientMsg =
   | { t: "setRationale"; v: 1; text: string } // an outlier explains their estimate
   | { t: "typing"; v: 1; on: boolean } // live presence while composing a rationale
   | { t: "lockDecision"; v: 1; value: string; note: string } // facilitator locks the outcome ("" value = unlock)
+  | { t: "estimateQueueAdd"; v: 1; stories: string[] } // queue stories to estimate
+  | { t: "estimateNextStory"; v: 1 } // log current decision, advance to the next story
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
   | { t: "endRoom"; v: 1 } // facilitator kills the room now

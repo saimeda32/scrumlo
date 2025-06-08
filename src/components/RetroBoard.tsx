@@ -61,12 +61,12 @@ export function RetroBoard({
               onClick={() => client.retroPickRandom()}
               className="rounded-xl bg-iris-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-iris-600/20 hover:bg-iris-500"
             >
-              🎲 Discuss a random card
+              Spin for a card to discuss
             </button>
           ) : (
             <>
-              <span className="rounded-xl bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
-                ✓ Every sticky discussed · nice work
+              <span className="rounded-xl bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                Every sticky had its moment. Nicely done.
               </span>
               <button
                 onClick={() => client.retroResetDiscussed()}
@@ -160,8 +160,8 @@ export function RetroBoard({
       </div>
 
       <p className="mt-6 text-xs text-slate-400 dark:text-slate-500">
-        {retro.anonymous ? "Stickies are anonymous" : "Authors are shown"} · {retro.votesLeft}{" "}
-        dot-votes each · react with emoji · nothing is stored after the room ends.
+        {retro.anonymous ? "Anonymous by default" : "Authors shown"}. Five dot-votes each. React,
+        drag, group. The wall forgets when you go.
       </p>
     </>
   );

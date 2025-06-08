@@ -70,9 +70,10 @@ export default function Room() {
       <div className="grid min-h-screen place-items-center px-6 text-center [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(50rem_30rem_at_50%_-8rem,#1b1838,transparent_60%)]">
         <div className="max-w-sm">
           <LogoMark size={48} className="mx-auto opacity-90 grayscale" />
-          <h2 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">This session has ended</h2>
+          <h2 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">Poof. It’s gone.</h2>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            The room expired and was deleted. Nothing was kept · that’s the point.
+            The room and everything in it just dissolved. That was always the deal, nothing to delete
+            later.
           </p>
           <a
             href="/"
@@ -143,7 +144,7 @@ export default function Room() {
         {!joined && (
           <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-iris-200 bg-iris-50 px-4 py-3 dark:border-iris-500/25 dark:bg-iris-500/10">
             <span className="text-sm font-medium text-iris-900 dark:text-iris-200">
-              You’re watching. Add your name to vote or add cards.
+              You’re a fly on the wall. Drop your name to grab a seat.
             </span>
             <div className="ml-auto flex items-center gap-2">
               <input

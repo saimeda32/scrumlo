@@ -112,9 +112,9 @@ export default function Landing() {
             <span className="text-iris-600">Forgotten.</span>
           </h1>
           <p className="mt-5 max-w-md text-lg text-slate-600 dark:text-slate-300">
-            Every planning-poker tool flips the cards and goes quiet. Ephem turns the spread into a
-            conversation · the outliers say what they're pricing, then you re-vote. Plus retro and a
-            name-picker, all in one no-login link that deletes itself when everyone leaves.
+            Most tools flip the cards and go quiet. Ephem turns that silence into a real conversation,
+            then a number everyone owns. Retro and a name-picker ride the same link. When the last
+            person leaves, the room forgets it ever happened.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -223,10 +223,14 @@ export default function Landing() {
             {
               Icon: IconEstimate,
               t: "Estimate",
-              d: "Blind-reveal poker that doesn’t go quiet · the spread becomes a conversation, then you re-vote.",
+              d: "Blind-reveal poker that refuses to go quiet. The spread becomes a debate, the debate becomes a number.",
             },
-            { Icon: IconRetro, t: "Retro", d: "10 real formats. Anonymous cards, dot-voting." },
-            { Icon: IconPick, t: "Pick", d: "Random person, order, or topic. Who goes first?" },
+            {
+              Icon: IconRetro,
+              t: "Retro",
+              d: "Thirteen boards, from Sailboat to the Avengers. Sticky notes that drag, group, and vanish.",
+            },
+            { Icon: IconPick, t: "Pick", d: "Who goes first? Spin for a name, an order, or a topic. No favorites." },
           ].map(({ Icon, t, d }) => (
             <div key={t} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-iris-50 text-iris-600 dark:bg-iris-500/15 dark:text-iris-300">
@@ -247,7 +251,7 @@ export default function Landing() {
         <div className="mx-auto max-w-2xl px-6">
           <h2 className="text-2xl font-bold sm:text-3xl">
             Other tools keep your boards. Ephem keeps{" "}
-            <span className="text-iris-400">nothing</span> · on purpose.
+            <span className="text-iris-400">nothing</span>. On purpose.
           </h2>
           <p className="mt-4 text-slate-300">
             No database to leak, no account to manage. Each room is one little server that holds your

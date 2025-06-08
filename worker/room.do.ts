@@ -34,6 +34,8 @@ type EstimateState = {
   // Convergence trail: one entry per reveal of the CURRENT story, in order. Lets the
   // room watch the spread shrink across re-votes. Reset on restart/new-deck, kept on re-estimate.
   history: { lo: number; hi: number; n: number }[];
+  // The locked outcome for this story: agreed value + the reason. Reset on restart/new-deck.
+  decision: { value: string; note: string } | null;
 };
 
 type RetroCard = {
@@ -50,6 +52,7 @@ type RetroState = {
   cards: RetroCard[];
   anonymous: boolean; // hide authors (default true)
   spotlightId: string | null; // facilitator focusing the room on a card
+  discussed: string[]; // card ids the random picker has already surfaced
 };
 
 type PickState = {
@@ -79,10 +82,17 @@ export class RoomDO extends DurableObject<Env> {
     votes: {},
     rationales: {},
     history: [],
+    decision: null,
   };
   // Transient presence — who is mid-typing a rationale. Never persisted (it's live-only).
   private typing = new Set<string>();
-  private retro: RetroState = { template: "ssc", cards: [], anonymous: true, spotlightId: null };
+  private retro: RetroState = {
+    template: "ssc",
+    cards: [],
+    anonymous: true,
+    spotlightId: null,
+    discussed: [],
+  };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0 };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
@@ -97,12 +107,14 @@ export class RoomDO extends DurableObject<Env> {
       if (e) {
         this.estimate = e;
         this.estimate.history ??= []; // tolerate state persisted before convergence trail
+        this.estimate.decision ??= null;
       }
       const r = await ctx.storage.get<RetroState>("retro");
       if (r) {
         this.retro = r;
         this.retro.anonymous ??= true; // tolerate state from before authorship/reactions
         this.retro.spotlightId ??= null;
+        this.retro.discussed ??= [];
         for (const c of this.retro.cards) c.reactions ??= {};
       }
       const p = await ctx.storage.get<PickState>("pick");
@@ -193,6 +205,7 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.votes = {};
         this.estimate.rationales = {};
         this.estimate.history = []; // new story → fresh convergence trail
+        this.estimate.decision = null;
         this.typing.clear();
         break;
       }
@@ -209,6 +222,13 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.rationales[me.id] = String(msg.text ?? "").trim().slice(0, 120);
         break;
       }
+      case "lockDecision": {
+        if (!this.isFacilitator(me)) return;
+        const value = String(msg.value ?? "").trim().slice(0, 12);
+        const note = String(msg.note ?? "").trim().slice(0, 140);
+        this.estimate.decision = value ? { value, note } : null; // "" → unlock
+        break;
+      }
       case "setStory": {
         if (!this.isFacilitator(me)) return;
         this.estimate.story = String(msg.story ?? "").slice(0, 200);
@@ -221,6 +241,7 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.votes = {};
         this.estimate.rationales = {};
         this.estimate.history = []; // different scale → trail no longer comparable
+        this.estimate.decision = null;
         this.estimate.phase = "voting";
         break;
       }
@@ -289,6 +310,7 @@ export class RoomDO extends DurableObject<Env> {
         this.retro.template = msg.template;
         this.retro.cards = []; // changing template resets the board
         this.retro.spotlightId = null;
+        this.retro.discussed = [];
         break;
       }
       case "retroAddCard": {
@@ -329,6 +351,7 @@ export class RoomDO extends DurableObject<Env> {
         if (card.authorId !== me.id && !this.isFacilitator(me)) return;
         this.retro.cards = this.retro.cards.filter((c) => c.id !== msg.cardId);
         if (this.retro.spotlightId === msg.cardId) this.retro.spotlightId = null;
+        this.retro.discussed = this.retro.discussed.filter((id) => id !== msg.cardId);
         break;
       }
       case "retroReact": {
@@ -352,6 +375,23 @@ export class RoomDO extends DurableObject<Env> {
         if (!this.isFacilitator(me)) return;
         if (msg.cardId === null) this.retro.spotlightId = null;
         else if (this.retro.cards.some((c) => c.id === msg.cardId)) this.retro.spotlightId = msg.cardId;
+        break;
+      }
+      case "retroPickRandom": {
+        // Discuss cards in random order, each once — picked → spotlight it + mark discussed.
+        if (!this.isFacilitator(me)) return;
+        const done = new Set(this.retro.discussed);
+        const pool = this.retro.cards.filter((c) => !done.has(c.id));
+        if (pool.length === 0) return; // all discussed → no-op (client offers reset)
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        this.retro.spotlightId = pick.id;
+        this.retro.discussed.push(pick.id);
+        break;
+      }
+      case "retroResetDiscussed": {
+        if (!this.isFacilitator(me)) return;
+        this.retro.discussed = [];
+        this.retro.spotlightId = null;
         break;
       }
 
@@ -502,6 +542,7 @@ export class RoomDO extends DurableObject<Env> {
         rationales: Object.keys(this.estimate.rationales).length ? { ...this.estimate.rationales } : null,
         history: this.estimate.history,
         typing: [...this.typing],
+        decision: this.estimate.decision,
       };
 
       const retro: RetroView = {
@@ -520,6 +561,7 @@ export class RoomDO extends DurableObject<Env> {
             count: c.reactions[e].length,
             mine: me ? c.reactions[e].includes(me.id) : false,
           })),
+          discussed: this.retro.discussed.includes(c.id),
         })),
         votesLeft: me
           ? RETRO_VOTE_BUDGET - this.retro.cards.filter((c) => c.voters.includes(me.id)).length

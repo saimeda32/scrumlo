@@ -12,6 +12,7 @@ export type RoomClient = {
   setDeck: (deck: string) => void;
   setRationale: (text: string) => void;
   typing: (on: boolean) => void;
+  lockDecision: (value: string, note: string) => void;
   claimFacilitator: () => void;
   endRoom: () => void;
   reportRoom: () => void;
@@ -26,6 +27,8 @@ export type RoomClient = {
   retroReact: (cardId: string, emoji: string) => void;
   retroSetAnonymous: (on: boolean) => void;
   retroSpotlight: (cardId: string | null) => void;
+  retroPickRandom: () => void;
+  retroResetDiscussed: () => void;
   // picker
   pickSetMode: (mode: PickMode) => void;
   pickAddItem: (text: string) => void;
@@ -107,6 +110,7 @@ export function createRoomClient(
     setDeck: (deck) => send({ t: "setDeck", v: 1, deck }),
     setRationale: (text) => send({ t: "setRationale", v: 1, text }),
     typing: (on) => send({ t: "typing", v: 1, on }),
+    lockDecision: (value, note) => send({ t: "lockDecision", v: 1, value, note }),
     claimFacilitator: () => send({ t: "claimFacilitator", v: 1 }),
     endRoom: () => send({ t: "endRoom", v: 1 }),
     reportRoom: () => send({ t: "reportRoom", v: 1 }),
@@ -120,6 +124,8 @@ export function createRoomClient(
     retroReact: (cardId, emoji) => send({ t: "retroReact", v: 1, cardId, emoji }),
     retroSetAnonymous: (on) => send({ t: "retroSetAnonymous", v: 1, on }),
     retroSpotlight: (cardId) => send({ t: "retroSpotlight", v: 1, cardId }),
+    retroPickRandom: () => send({ t: "retroPickRandom", v: 1 }),
+    retroResetDiscussed: () => send({ t: "retroResetDiscussed", v: 1 }),
     pickSetMode: (mode) => send({ t: "pickSetMode", v: 1, mode }),
     pickAddItem: (text) => send({ t: "pickAddItem", v: 1, text }),
     pickRemoveItem: (index) => send({ t: "pickRemoveItem", v: 1, index }),

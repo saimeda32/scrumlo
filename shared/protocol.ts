@@ -49,6 +49,8 @@ export type EstimateView = {
   history: { lo: number; hi: number; n: number }[];
   // Live presence: member ids currently typing a rationale.
   typing: string[];
+  // The locked outcome: the agreed estimate + the one-line reason. The artifact teams keep.
+  decision: { value: string; note: string } | null;
 };
 
 // ---- Retro ----
@@ -158,6 +160,7 @@ export type RetroCardView = {
   votes: number; // total dot-votes
   youVoted: boolean;
   reactions: { emoji: string; count: number; mine: boolean }[]; // only non-zero, in RETRO_REACTIONS order
+  discussed: boolean; // already picked by the random picker → marked done, won't be re-picked
 };
 
 export type RetroView = {
@@ -195,6 +198,7 @@ export type ClientMsg =
   | { t: "setDeck"; v: 1; deck: string }
   | { t: "setRationale"; v: 1; text: string } // an outlier explains their estimate
   | { t: "typing"; v: 1; on: boolean } // live presence while composing a rationale
+  | { t: "lockDecision"; v: 1; value: string; note: string } // facilitator locks the outcome ("" value = unlock)
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
   | { t: "endRoom"; v: 1 } // facilitator kills the room now
@@ -211,6 +215,8 @@ export type ClientMsg =
   | { t: "retroReact"; v: 1; cardId: string; emoji: string } // toggle an emoji reaction
   | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors
   | { t: "retroSpotlight"; v: 1; cardId: string | null } // facilitator: focus everyone on a card
+  | { t: "retroPickRandom"; v: 1 } // facilitator: spotlight a random not-yet-discussed card
+  | { t: "retroResetDiscussed"; v: 1 } // facilitator: clear the discussed marks, start a fresh pass
   // picker
   | { t: "pickSetMode"; v: 1; mode: PickMode }
   | { t: "pickAddItem"; v: 1; text: string }

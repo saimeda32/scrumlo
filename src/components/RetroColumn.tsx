@@ -4,9 +4,8 @@ import { RETRO_REACTIONS } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { avatarColor, initials } from "../lib/colors";
 
-// Engineering-grade color identity per column (no cartoon graphics). Semantic where
-// the meaning is known (start=green, stop=red), else a palette spread by position —
-// so every format looks distinct and designed, not an identical gray kanban.
+// Each column is a zone on the wall; its cards are sticky notes in the zone's color.
+// Semantic where the meaning is known (start=green, stop=pink), else a palette by position.
 const SEMANTIC: Record<string, string> = {
   start: "emerald", continue: "sky", stop: "rose",
   glad: "emerald", sad: "amber", mad: "rose",
@@ -17,18 +16,26 @@ const SEMANTIC: Record<string, string> = {
   more: "emerald", less: "amber", plus: "emerald", delta: "violet",
   straw: "amber", sticks: "orange", bricks: "rose",
 };
-const PALETTE = ["emerald", "sky", "amber", "violet", "rose", "teal"];
+const PALETTE = ["amber", "sky", "emerald", "rose", "violet", "teal"];
 
-const C: Record<string, { dot: string; from: string; text: string; ring: string }> = {
-  emerald: { dot: "bg-emerald-400", from: "from-emerald-50", text: "text-emerald-700", ring: "ring-emerald-200" },
-  sky: { dot: "bg-sky-400", from: "from-sky-50", text: "text-sky-700", ring: "ring-sky-200" },
-  amber: { dot: "bg-amber-400", from: "from-amber-50", text: "text-amber-700", ring: "ring-amber-200" },
-  violet: { dot: "bg-violet-400", from: "from-violet-50", text: "text-violet-700", ring: "ring-violet-200" },
-  rose: { dot: "bg-rose-400", from: "from-rose-50", text: "text-rose-700", ring: "ring-rose-200" },
-  teal: { dot: "bg-teal-400", from: "from-teal-50", text: "text-teal-700", ring: "ring-teal-200" },
-  orange: { dot: "bg-orange-400", from: "from-orange-50", text: "text-orange-700", ring: "ring-orange-200" },
-  slate: { dot: "bg-slate-400", from: "from-slate-100", text: "text-slate-700", ring: "ring-slate-200" },
+// Sticky-note color = solid warm paper. dot/text for the zone header.
+const C: Record<string, { note: string; edge: string; dot: string; text: string }> = {
+  amber: { note: "bg-amber-200", edge: "bg-amber-300", dot: "bg-amber-400", text: "text-amber-800" },
+  emerald: { note: "bg-emerald-200", edge: "bg-emerald-300", dot: "bg-emerald-400", text: "text-emerald-800" },
+  sky: { note: "bg-sky-200", edge: "bg-sky-300", dot: "bg-sky-400", text: "text-sky-800" },
+  rose: { note: "bg-rose-200", edge: "bg-rose-300", dot: "bg-rose-400", text: "text-rose-800" },
+  violet: { note: "bg-violet-200", edge: "bg-violet-300", dot: "bg-violet-400", text: "text-violet-800" },
+  teal: { note: "bg-teal-200", edge: "bg-teal-300", dot: "bg-teal-400", text: "text-teal-800" },
+  orange: { note: "bg-orange-200", edge: "bg-orange-300", dot: "bg-orange-400", text: "text-orange-800" },
+  slate: { note: "bg-slate-200", edge: "bg-slate-300", dot: "bg-slate-400", text: "text-slate-700" },
 };
+
+// Small deterministic tilt per note so the wall feels hand-placed, not snapped to a grid.
+function tiltOf(id: string): number {
+  let h = 0;
+  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return ((h % 5) - 2) * 0.9; // -1.8°..+1.8°
+}
 
 export function RetroColumn({
   column,
@@ -48,7 +55,8 @@ export function RetroColumn({
   client: RoomClient;
 }) {
   const [text, setText] = useState("");
-  const c = C[SEMANTIC[column.id] ?? PALETTE[index % PALETTE.length]] ?? C.slate;
+  const color = SEMANTIC[column.id] ?? PALETTE[index % PALETTE.length];
+  const c = C[color] ?? C.slate;
   const sorted = [...cards].sort((a, b) => b.votes - a.votes);
 
   function add() {
@@ -59,16 +67,14 @@ export function RetroColumn({
   }
 
   return (
-    <section
-      className={`flex min-h-[220px] flex-col rounded-2xl border border-slate-200 bg-gradient-to-b ${c.from} to-white p-3 shadow-sm`}
-    >
+    <section className="flex min-h-[260px] flex-col">
       <h3 className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold">
         <span className={`h-2.5 w-2.5 rounded-full ${c.dot}`} aria-hidden />
         <span className={c.text}>{column.title}</span>
         <span className="ml-auto text-xs font-normal text-slate-400">{cards.length}</span>
       </h3>
 
-      <ul className="space-y-2">
+      <ul className="flex flex-col gap-3">
         {sorted.map((card) => (
           <RetroCard
             key={card.id}
@@ -76,7 +82,7 @@ export function RetroColumn({
             canAct={canAct}
             isFacil={isFacil}
             spotlit={spotlightId === card.id}
-            ring={c.ring}
+            c={c}
             client={client}
           />
         ))}
@@ -92,10 +98,10 @@ export function RetroColumn({
               add();
             }
           }}
-          placeholder="+ add a card…"
+          placeholder="+ jot a sticky…"
           aria-label={`Add a card to ${column.title}`}
           rows={1}
-          className="mt-2 w-full resize-none rounded-xl border border-dashed border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-indigo-400"
+          className="mt-3 w-full resize-none rounded-lg border border-dashed border-slate-300 bg-white/50 px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400 focus:bg-white"
         />
       )}
     </section>
@@ -107,24 +113,39 @@ function RetroCard({
   canAct,
   isFacil,
   spotlit,
-  ring,
+  c,
   client,
 }: {
   card: RetroCardView;
   canAct: boolean;
   isFacil: boolean;
   spotlit: boolean;
-  ring: string;
+  c: { note: string; edge: string; dot: string; text: string };
   client: RoomClient;
 }) {
   const [pickReaction, setPickReaction] = useState(false);
+  const tilt = tiltOf(card.id);
 
   return (
     <li
-      className={`group rounded-xl border bg-white px-3 py-2 text-sm text-slate-800 shadow-sm transition ${
-        spotlit ? `border-transparent ring-2 ring-indigo-400 ${ring}` : "border-slate-200"
-      }`}
+      style={{ rotate: spotlit ? "0deg" : `${tilt}deg` }}
+      className={`group relative rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_14px_-6px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:rotate-0 hover:shadow-[0_12px_22px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
+        spotlit ? "z-10 scale-[1.03] shadow-[0_16px_30px_-10px_rgba(79,70,229,0.55)] ring-2 ring-indigo-400 ring-offset-2" : ""
+      } ${card.discussed && !spotlit ? "opacity-65 saturate-50" : ""}`}
     >
+      {/* peeled corner */}
+      <span
+        className={`pointer-events-none absolute bottom-0 right-0 h-4 w-4 rounded-br-[10px] ${c.edge}`}
+        style={{ clipPath: "polygon(100% 0, 0 100%, 100% 100%)" }}
+        aria-hidden
+      />
+
+      {card.discussed && !spotlit && (
+        <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow" title="Discussed">
+          ✓
+        </span>
+      )}
+
       {card.author && (
         <div className="mb-1.5 flex items-center gap-1.5">
           <span
@@ -133,11 +154,11 @@ function RetroCard({
           >
             {initials(card.author)}
           </span>
-          <span className="text-[11px] font-medium text-slate-400">{card.author}</span>
+          <span className="text-[11px] font-medium text-slate-600/80">{card.author}</span>
         </div>
       )}
 
-      <div className="whitespace-pre-wrap break-words">{card.text}</div>
+      <div className="whitespace-pre-wrap break-words font-medium">{card.text}</div>
 
       {card.reactions.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
@@ -146,12 +167,12 @@ function RetroCard({
               key={r.emoji}
               onClick={() => canAct && client.retroReact(card.id, r.emoji)}
               disabled={!canAct}
-              className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-xs transition disabled:cursor-default ${
-                r.mine ? "border-indigo-300 bg-indigo-50" : "border-slate-200 hover:border-indigo-300"
+              className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs transition disabled:cursor-default ${
+                r.mine ? "bg-white/90 ring-1 ring-slate-300" : "bg-white/55 hover:bg-white/90"
               }`}
             >
               <span>{r.emoji}</span>
-              <span className="font-semibold text-slate-500">{r.count}</span>
+              <span className="font-semibold text-slate-600">{r.count}</span>
             </button>
           ))}
         </div>
@@ -162,10 +183,8 @@ function RetroCard({
           onClick={() => client.retroVote(card.id)}
           disabled={!canAct}
           aria-pressed={card.youVoted}
-          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition disabled:cursor-default disabled:opacity-60 ${
-            card.youVoted
-              ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-              : "border-slate-200 text-slate-500 enabled:hover:border-indigo-300"
+          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold transition disabled:cursor-default disabled:opacity-70 ${
+            card.youVoted ? "bg-slate-900 text-white" : "bg-white/70 text-slate-600 enabled:hover:bg-white"
           }`}
         >
           ▲ {card.votes}
@@ -176,12 +195,12 @@ function RetroCard({
             <button
               onClick={() => setPickReaction((v) => !v)}
               aria-label="Add reaction"
-              className="rounded-full border border-slate-200 px-2 py-0.5 text-xs text-slate-400 transition hover:border-indigo-300 hover:text-indigo-500"
+              className="rounded-full bg-white/55 px-2 py-0.5 text-xs text-slate-500 transition hover:bg-white/90"
             >
               ☺﹢
             </button>
             {pickReaction && (
-              <div className="absolute left-0 top-7 z-10 flex gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-lg">
+              <div className="absolute left-0 top-7 z-20 flex gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-lg">
                 {RETRO_REACTIONS.map((e) => (
                   <button
                     key={e}
@@ -207,8 +226,8 @@ function RetroCard({
               title={spotlit ? "Stop spotlight" : "Spotlight — focus the room here"}
               className={`text-xs transition ${
                 spotlit
-                  ? "text-indigo-500"
-                  : "text-slate-300 opacity-0 hover:text-indigo-500 group-focus-within:opacity-100 group-hover:opacity-100"
+                  ? "text-indigo-600"
+                  : "text-slate-500/60 opacity-0 hover:text-indigo-600 group-focus-within:opacity-100 group-hover:opacity-100"
               }`}
             >
               ◎
@@ -218,7 +237,7 @@ function RetroCard({
             <button
               onClick={() => client.retroDeleteCard(card.id)}
               aria-label="Delete card"
-              className="text-xs text-slate-300 opacity-0 transition focus:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-rose-500"
+              className="text-xs text-slate-500/50 opacity-0 transition focus:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-rose-600"
             >
               ✕
             </button>

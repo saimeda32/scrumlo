@@ -80,6 +80,7 @@ export function TensionLine({
 
   const sorted = [...values].sort((a, b) => a - b);
   const median = sorted[Math.floor((sorted.length - 1) / 2)];
+  const medianCard = scale.find((c) => numericValue(c) === median) ?? String(median);
 
   // Text alternative — the distribution in words (color is not the only signal).
   const distText =
@@ -91,7 +92,16 @@ export function TensionLine({
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-8 text-center">
         <div className="text-2xl font-extrabold text-emerald-700">Everyone said {clusters[0].card}</div>
         <div className="mt-1 text-sm text-slate-500">No tension — that's a clean estimate. Lock it in.</div>
-        {isFacil && <ReestimateBar client={client} className="mt-5 justify-center" fresh />}
+        <div className="mx-auto mt-5 max-w-md text-left">
+          <DecisionBar
+            decision={estimate.decision}
+            isFacil={isFacil}
+            defaultValue={clusters[0].card}
+            defaultNote=""
+            client={client}
+          />
+        </div>
+        {isFacil && <ReestimateBar client={client} className="justify-center" fresh />}
       </div>
     );
   }
@@ -123,6 +133,14 @@ export function TensionLine({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
       <p className="sr-only">{distText}</p>
+
+      <DecisionBar
+        decision={estimate.decision}
+        isFacil={isFacil}
+        defaultValue={medianCard}
+        defaultNote={highR?.text ?? ""}
+        client={client}
+      />
 
       {/* convergence trail — the spread shrinking, round over round */}
       {estimate.history.length >= 2 && <ConvergenceTrail history={estimate.history} />}
@@ -244,6 +262,72 @@ export function TensionLine({
 
       {/* close the loop */}
       {isFacil && <ReestimateBar client={client} className="mt-7 justify-center" />}
+    </div>
+  );
+}
+
+/** Lock the outcome — the agreed number + the reason. The artifact the team keeps. */
+function DecisionBar({
+  decision,
+  isFacil,
+  defaultValue,
+  defaultNote,
+  client,
+}: {
+  decision: { value: string; note: string } | null;
+  isFacil: boolean;
+  defaultValue: string;
+  defaultNote: string;
+  client: RoomClient;
+}) {
+  const [value, setValue] = useState(defaultValue);
+  const [note, setNote] = useState(defaultNote);
+
+  if (decision) {
+    return (
+      <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-extrabold text-white">
+          {decision.value}
+        </span>
+        <div className="min-w-0 flex-1 text-sm">
+          <span className="font-semibold text-emerald-700">Locked</span>
+          {decision.note && <span className="text-slate-600"> — {decision.note}</span>}
+        </div>
+        {isFacil && (
+          <button
+            onClick={() => client.lockDecision("", "")}
+            className="shrink-0 text-xs font-semibold text-emerald-600 hover:underline"
+          >
+            Unlock
+          </button>
+        )}
+      </div>
+    );
+  }
+  if (!isFacil) return null;
+  return (
+    <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+      <span className="text-xs font-semibold text-slate-500">Lock it at</span>
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        aria-label="Agreed estimate"
+        className="w-12 rounded-lg border border-slate-300 px-2 py-1 text-center text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+      />
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && value.trim() && client.lockDecision(value.trim(), note.trim())}
+        placeholder="because… (optional)"
+        aria-label="Reason"
+        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+      />
+      <button
+        onClick={() => value.trim() && client.lockDecision(value.trim(), note.trim())}
+        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500"
+      >
+        ✓ Lock
+      </button>
     </div>
   );
 }

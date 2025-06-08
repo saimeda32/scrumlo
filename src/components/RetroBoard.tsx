@@ -2,6 +2,7 @@ import type { RetroView } from "../../shared/protocol";
 import { RETRO_TEMPLATES } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { RetroColumn } from "./RetroColumn";
+import { retroTheme } from "../lib/retroThemes";
 
 export function RetroBoard({
   retro,
@@ -15,6 +16,10 @@ export function RetroBoard({
   client: RoomClient;
 }) {
   const spotlit = retro.cards.find((c) => c.id === retro.spotlightId) ?? null;
+  const total = retro.cards.length;
+  const discussedCount = retro.cards.filter((c) => c.discussed).length;
+  const anyLeft = discussedCount < total;
+  const theme = retroTheme(retro.template);
   return (
     <>
       <div className="mb-4 flex items-center gap-3">
@@ -53,6 +58,36 @@ export function RetroBoard({
         </span>
       </div>
 
+      {isFacil && total > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {anyLeft ? (
+            <button
+              onClick={() => client.retroPickRandom()}
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 hover:bg-indigo-500"
+            >
+              🎲 Discuss a random card
+            </button>
+          ) : (
+            <>
+              <span className="rounded-xl bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
+                ✓ Every sticky discussed — nice work
+              </span>
+              <button
+                onClick={() => client.retroResetDiscussed()}
+                className="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-600 hover:underline"
+              >
+                run another pass
+              </button>
+            </>
+          )}
+          {anyLeft && (
+            <span className="text-xs font-medium text-slate-400">
+              {discussedCount} / {total} discussed
+            </span>
+          )}
+        </div>
+      )}
+
       {spotlit && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-indigo-200 bg-indigo-50/70 px-5 py-4">
           <span className="mt-0.5 text-indigo-500">◎</span>
@@ -75,24 +110,40 @@ export function RetroBoard({
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {retro.columns.map((col, i) => (
-          <RetroColumn
-            key={col.id}
-            column={col}
-            index={i}
-            cards={retro.cards.filter((c) => c.column === col.id)}
-            canAct={canAct}
-            isFacil={isFacil}
-            spotlightId={retro.spotlightId}
-            client={client}
-          />
-        ))}
+      {/* the themed wall — each format its own atmosphere */}
+      <div
+        className={`relative overflow-hidden rounded-3xl border border-black/5 bg-gradient-to-br ${theme.panel} p-4 shadow-inner sm:p-6`}
+      >
+        <span
+          className="pointer-events-none absolute -right-6 -top-8 select-none text-[160px] leading-none opacity-[0.07]"
+          aria-hidden
+        >
+          {theme.motif}
+        </span>
+        <p className="relative mb-5 flex items-center gap-2 text-sm font-medium text-slate-600">
+          <span className="text-lg" aria-hidden>{theme.motif}</span>
+          {theme.blurb}
+        </p>
+
+        <div className="relative grid gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+          {retro.columns.map((col, i) => (
+            <RetroColumn
+              key={col.id}
+              column={col}
+              index={i}
+              cards={retro.cards.filter((c) => c.column === col.id)}
+              canAct={canAct}
+              isFacil={isFacil}
+              spotlightId={retro.spotlightId}
+              client={client}
+            />
+          ))}
+        </div>
       </div>
 
-      <p className="mt-8 text-xs text-slate-400">
-        {retro.anonymous ? "Cards are anonymous" : "Authors are shown"} · {retro.votesLeft} dot-votes
-        each · react with emoji · nothing is stored after the room ends.
+      <p className="mt-6 text-xs text-slate-400">
+        {retro.anonymous ? "Stickies are anonymous" : "Authors are shown"} · {retro.votesLeft}{" "}
+        dot-votes each · react with emoji · nothing is stored after the room ends.
       </p>
     </>
   );

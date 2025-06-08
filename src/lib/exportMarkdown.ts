@@ -20,6 +20,12 @@ export function buildSessionMarkdown(args: {
 
   // Estimation
   out.push("", "## Estimation", `**Story:** ${estimate.story || "—"}`);
+  if (estimate.decision) {
+    out.push(
+      "",
+      `**Decision: \`${estimate.decision.value}\`**${estimate.decision.note ? ` — ${estimate.decision.note}` : ""}`,
+    );
+  }
   if (estimate.phase === "revealed" && estimate.votes) {
     const entries = Object.entries(estimate.votes);
     for (const [id, card] of entries) out.push(`- ${nameById.get(id) ?? "anon"}: **${card}**`);

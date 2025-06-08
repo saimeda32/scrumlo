@@ -159,11 +159,19 @@ function RetroCard({
   const [pickReaction, setPickReaction] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [over, setOver] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(card.text);
   const tilt = tiltOf(card.id);
+
+  function saveEdit() {
+    const t = draft.trim();
+    if (t && t !== card.text) client.retroEditCard(card.id, t);
+    setEditing(false);
+  }
 
   return (
     <li
-      draggable={canAct}
+      draggable={canAct && !editing}
       onDragStart={(e) => {
         e.dataTransfer.setData("text/cardId", card.id);
         e.dataTransfer.effectAllowed = "move";
@@ -213,7 +221,37 @@ function RetroCard({
         </div>
       )}
 
-      <div className="whitespace-pre-wrap break-words font-medium">{card.text}</div>
+      {editing ? (
+        <textarea
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              saveEdit();
+            } else if (e.key === "Escape") {
+              setEditing(false);
+            }
+          }}
+          onBlur={saveEdit}
+          rows={2}
+          className="w-full resize-none rounded-md border border-black/10 bg-white/70 px-2 py-1 text-[15px] font-medium text-slate-800 outline-none focus:bg-white"
+        />
+      ) : (
+        <div
+          className="whitespace-pre-wrap break-words font-medium"
+          onDoubleClick={() => {
+            if (canAct && card.mine) {
+              setDraft(card.text);
+              setEditing(true);
+            }
+          }}
+          title={canAct && card.mine ? "Double-click to edit" : undefined}
+        >
+          {card.text}
+        </div>
+      )}
 
       {card.reactions.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">

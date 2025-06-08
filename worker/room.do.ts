@@ -368,6 +368,15 @@ export class RoomDO extends DurableObject<Env> {
         }
         break;
       }
+      case "retroEditCard": {
+        if (!me) return;
+        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        if (!card) return;
+        if (card.authorId !== me.id && !this.isFacilitator(me)) return; // author or facilitator
+        const text = String(msg.text ?? "").trim().slice(0, 280);
+        if (text) card.text = text;
+        break;
+      }
       case "retroDeleteCard": {
         if (!me) return;
         const card = this.retro.cards.find((c) => c.id === msg.cardId);

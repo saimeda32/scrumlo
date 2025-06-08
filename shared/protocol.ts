@@ -215,6 +215,7 @@ export type ClientMsg =
   | { t: "retroDeleteCard"; v: 1; cardId: string }
   | { t: "retroReact"; v: 1; cardId: string; emoji: string } // toggle an emoji reaction
   | { t: "retroMoveCard"; v: 1; cardId: string; toColumn: string; toIndex: number } // drag to rearrange
+  | { t: "retroEditCard"; v: 1; cardId: string; text: string } // edit a sticky's text in place
   | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors
   | { t: "retroSpotlight"; v: 1; cardId: string | null } // facilitator: focus everyone on a card
   | { t: "retroPickRandom"; v: 1 } // facilitator: spotlight a random not-yet-discussed card

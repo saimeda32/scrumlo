@@ -211,6 +211,7 @@ export type PickView = {
   items: string[]; // candidates for "list" mode
   result: string[]; // [] = nothing yet; 1 for person/list; N (ordered) for order
   nonce: number; // bumps on each spin so the client re-runs its reveal animation
+  recent: string[]; // already picked this round (no-repeat), in pick order
 };
 
 // ---- Messages ----

@@ -2,6 +2,17 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { PickView, PickMode, Member } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { IconPerson, IconOrder, IconList, IconPick } from "./icons";
+import { Wheel } from "./Wheel";
+
+async function fireConfetti() {
+  try {
+    const confetti = (await import("canvas-confetti")).default;
+    confetti({ particleCount: 140, spread: 75, startVelocity: 42, origin: { y: 0.42 } });
+    setTimeout(() => confetti({ particleCount: 60, spread: 100, scalar: 0.8, origin: { y: 0.5 } }), 180);
+  } catch {
+    /* confetti is pure delight; never block on it */
+  }
+}
 
 export function PickerBoard({
   pick,
@@ -15,33 +26,18 @@ export function PickerBoard({
   client: RoomClient;
 }) {
   const [item, setItem] = useState("");
-  const [flicker, setFlicker] = useState<string | null>(null);
   const [spinning, setSpinning] = useState(false);
   const lastNonce = useRef(pick.nonce);
 
   const candidates = pick.mode === "list" ? pick.items : members.map((m) => m.name);
+  const wheelMode = pick.mode === "person" || pick.mode === "list";
 
-  // Re-run the slot-machine flicker whenever the server bumps the spin nonce.
+  // When the server bumps the spin nonce, start the wheel (person/list); the Wheel
+  // calls onSettle when it lands. Order mode reveals its list instantly.
   useEffect(() => {
     if (pick.nonce === lastNonce.current) return;
     lastNonce.current = pick.nonce;
-    if (pick.result.length === 0) {
-      setSpinning(false);
-      setFlicker(null);
-      return;
-    }
-    const pool = candidates.length ? candidates : pick.result;
-    setSpinning(true);
-    let n = 0;
-    const id = setInterval(() => {
-      setFlicker(pool[Math.floor(Math.random() * pool.length)] ?? "");
-      if (++n > 12) {
-        clearInterval(id);
-        setSpinning(false);
-        setFlicker(null);
-      }
-    }, 70);
-    return () => clearInterval(id);
+    setSpinning(wheelMode && pick.result.length > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pick.nonce]);
 
@@ -138,39 +134,85 @@ export function PickerBoard({
         </div>
       )}
 
-      <div className="grid min-h-[180px] place-items-center rounded-2xl border border-slate-200 bg-white p-8 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
-        {spinning ? (
-          <div className="text-3xl font-extrabold text-slate-300 dark:text-slate-600">{flicker ?? "…"}</div>
-        ) : pick.result.length === 0 ? (
-          <div className="text-center text-slate-400 dark:text-slate-500">
-            <IconPick className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-600" />
-            <div className="mt-2 text-sm">
-              {isFacil ? `Hit "${spinLabel}" to pick` : "Waiting for the facilitator to spin…"}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
+        {pick.mode === "order" ? (
+          <div className="grid min-h-[160px] place-items-center">
+            {pick.result.length === 0 ? (
+              <div className="text-center text-sm text-slate-400 dark:text-slate-500">
+                <IconPick className="mx-auto h-9 w-9 text-slate-300 dark:text-slate-600" />
+                <div className="mt-2">
+                  {isFacil ? `Hit "${spinLabel}"` : "Waiting for the facilitator to spin…"}
+                </div>
+              </div>
+            ) : (
+              <ol className="space-y-1.5 text-lg font-semibold text-slate-800 dark:text-slate-100">
+                {pick.result.map((r, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <span className="grid h-7 w-7 place-items-center rounded-full bg-iris-100 text-sm text-iris-700 dark:bg-iris-500/20 dark:text-iris-300">
+                      {i + 1}
+                    </span>
+                    {r}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        ) : candidates.length === 0 ? (
+          <div className="grid min-h-[160px] place-items-center text-sm text-slate-400 dark:text-slate-500">
+            {pick.mode === "list" ? "Add a few options to spin." : "No one’s here to pick yet."}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center">
+            <Wheel
+              candidates={candidates}
+              winner={pick.result[0] ?? null}
+              nonce={pick.nonce}
+              spinning={spinning}
+              onSettle={() => {
+                setSpinning(false);
+                fireConfetti();
+              }}
+            />
+            <div className="mt-3 flex h-12 flex-col justify-center text-center">
+              {!spinning && pick.result[0] ? (
+                <>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                    {pick.mode === "person" ? "It’s" : "Picked"}
+                  </div>
+                  <div className="text-3xl font-extrabold text-iris-600 dark:text-iris-400">
+                    {pick.result[0]}
+                  </div>
+                </>
+              ) : !spinning ? (
+                <div className="text-sm text-slate-400 dark:text-slate-500">
+                  {isFacil ? `Hit "${spinLabel}"` : "Waiting for the facilitator to spin…"}
+                </div>
+              ) : null}
             </div>
           </div>
-        ) : pick.mode === "order" ? (
-          <ol className="space-y-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
-            {pick.result.map((r, i) => (
-              <li key={i} className="flex items-center gap-3">
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-iris-100 text-sm text-iris-700 dark:bg-iris-500/20 dark:text-iris-300">
-                  {i + 1}
-                </span>
-                {r}
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <div className="text-center">
-            <div className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
-              {pick.mode === "person" ? "It’s" : "Picked"}
+        )}
+
+        {wheelMode && pick.recent.length > 0 && (
+          <div className="mt-4 border-t border-slate-100 pt-3 text-center dark:border-white/10">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              Picked so far · no repeats until everyone’s had a turn
             </div>
-            <div className="mt-1 text-4xl font-extrabold text-iris-600 dark:text-iris-400">{pick.result[0]}</div>
+            <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
+              {pick.recent.map((r, i) => (
+                <span
+                  key={i}
+                  className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500 dark:bg-white/10 dark:text-slate-400"
+                >
+                  {r}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
       <p className="mt-8 text-xs text-slate-400 dark:text-slate-500">
-        A fair random picker for “who goes first?” · fast, and forgotten when the room ends.
+        A fair shake for “who goes first?” Spin it, and it’s forgotten when the room ends.
       </p>
     </div>
   );

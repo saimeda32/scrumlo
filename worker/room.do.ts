@@ -62,6 +62,7 @@ type PickState = {
   items: string[];
   result: string[];
   nonce: number;
+  recent: string[]; // already-picked names/items, excluded until the pool is exhausted
 };
 
 /**
@@ -95,7 +96,7 @@ export class RoomDO extends DurableObject<Env> {
     spotlightId: null,
     discussed: [],
   };
-  private pick: PickState = { mode: "person", items: [], result: [], nonce: 0 };
+  private pick: PickState = { mode: "person", items: [], result: [], nonce: 0, recent: [] };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
   private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
@@ -125,7 +126,10 @@ export class RoomDO extends DurableObject<Env> {
         });
       }
       const p = await ctx.storage.get<PickState>("pick");
-      if (p) this.pick = p;
+      if (p) {
+        this.pick = p;
+        this.pick.recent ??= [];
+      }
       this.clients = (await ctx.storage.get<Record<string, string>>("clients")) ?? {};
       this.activity = (await ctx.storage.get<Activity>("activity")) ?? "estimate";
       this.facilitatorId = (await ctx.storage.get<string>("facilitator")) ?? null;
@@ -467,6 +471,7 @@ export class RoomDO extends DurableObject<Env> {
         if (msg.mode !== "person" && msg.mode !== "order" && msg.mode !== "list") return;
         this.pick.mode = msg.mode;
         this.pick.result = [];
+        this.pick.recent = []; // new pool → fresh rotation
         break;
       }
       case "pickAddItem": {
@@ -487,9 +492,7 @@ export class RoomDO extends DurableObject<Env> {
       case "pickSpin": {
         if (!this.isFacilitator(me)) return;
         const names = this.membersFrom(this.ctx.getWebSockets()).map((m) => m.name);
-        if (this.pick.mode === "person") {
-          this.pick.result = names.length ? [names[Math.floor(Math.random() * names.length)]] : [];
-        } else if (this.pick.mode === "order") {
+        if (this.pick.mode === "order") {
           const a = [...names];
           for (let i = a.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -497,10 +500,16 @@ export class RoomDO extends DurableObject<Env> {
           }
           this.pick.result = a;
         } else {
-          const items = this.pick.items;
-          this.pick.result = items.length
-            ? [items[Math.floor(Math.random() * items.length)]]
-            : [];
+          // person / list: pick one, never repeating until the pool is exhausted.
+          const all = this.pick.mode === "person" ? names : this.pick.items;
+          let pool = all.filter((n) => !this.pick.recent.includes(n));
+          if (pool.length === 0) {
+            this.pick.recent = [];
+            pool = all;
+          }
+          const winner = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+          this.pick.result = winner ? [winner] : [];
+          if (winner) this.pick.recent.push(winner);
         }
         this.pick.nonce++;
         break;
@@ -508,6 +517,7 @@ export class RoomDO extends DurableObject<Env> {
       case "pickClear": {
         if (!this.isFacilitator(me)) return;
         this.pick.result = [];
+        this.pick.recent = []; // start the rotation fresh
         this.pick.nonce++;
         break;
       }

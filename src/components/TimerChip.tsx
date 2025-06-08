@@ -1,10 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { IconClock } from "./icons";
-
-function fmt(ms: number): string {
-  const s = Math.max(0, Math.ceil(ms / 1000));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
 
 const PRESETS = [
   { label: "1m", s: 60 },
@@ -17,52 +12,17 @@ export function TimerChip({
   endsAt,
   isFacil,
   onStart,
-  onStop,
 }: {
   endsAt: number | null;
   isFacil: boolean;
   onStart: (seconds: number) => void;
-  onStop: () => void;
+  onStop?: () => void; // running timer is shown by TimerBanner; kept for caller compatibility
 }) {
-  const [now, setNow] = useState(() => Date.now());
   const [menu, setMenu] = useState(false);
 
-  useEffect(() => {
-    if (endsAt === null) return;
-    const id = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(id);
-  }, [endsAt]);
-
-  if (endsAt !== null) {
-    const remaining = endsAt - now;
-    const done = remaining <= 0;
-    const urgent = !done && remaining <= 10_000;
-    return (
-      <span
-        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold tabular-nums ${
-          done
-            ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
-            : urgent
-              ? "animate-pulse bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300"
-              : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200"
-        }`}
-      >
-        <IconClock className="h-3.5 w-3.5" />
-        {done ? "time’s up" : fmt(remaining)}
-        {isFacil && (
-          <button
-            onClick={onStop}
-            aria-label="Stop timer"
-            className="ml-0.5 text-slate-400 hover:text-rose-500"
-          >
-            ✕
-          </button>
-        )}
-      </span>
-    );
-  }
-
-  if (!isFacil) return null;
+  // A running timer is shown by the prominent TimerBanner — and only the
+  // facilitator gets the start control here.
+  if (endsAt !== null || !isFacil) return null;
 
   return (
     <div className="relative">

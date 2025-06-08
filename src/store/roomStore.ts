@@ -19,6 +19,7 @@ type RoomState = {
   retro: RetroView | null;
   pick: PickView | null;
   timerEndsAt: number | null;
+  timerDurationMs: number | null;
   setConnected: (connected: boolean) => void;
   setEnded: (ended: boolean) => void;
   apply: (snapshot: Snapshot) => void;
@@ -35,6 +36,7 @@ export const useRoom = create<RoomState>((set) => ({
   retro: null,
   pick: null,
   timerEndsAt: null,
+  timerDurationMs: null,
   setConnected: (connected) => set({ connected }),
   setEnded: (ended) => set({ ended }),
   apply: (s) =>
@@ -47,5 +49,6 @@ export const useRoom = create<RoomState>((set) => ({
       retro: s.retro,
       pick: s.pick,
       timerEndsAt: s.timerEndsAt,
+      timerDurationMs: s.timerDurationMs,
     }),
 }));

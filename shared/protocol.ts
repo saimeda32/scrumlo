@@ -242,6 +242,8 @@ export type Snapshot = {
   pick: PickView;
   /** shared countdown: epoch-ms when it ends, or null. Clients render the remaining time. */
   timerEndsAt: number | null;
+  /** total length of the running timer in ms (for the progress bar); null when no timer */
+  timerDurationMs: number | null;
 };
 
 /** server -> client: the room has expired and been deleted. */

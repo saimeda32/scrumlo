@@ -10,6 +10,7 @@ import { PickerBoard } from "../components/PickerBoard";
 import { ExportSheet } from "../components/ExportSheet";
 import { StatusTicker } from "../components/StatusTicker";
 import { LogoMark } from "../components/Logo";
+import { TimerBanner } from "../components/TimerBanner";
 import { FLAVOR } from "../lib/flavor";
 import { buildSessionMarkdown } from "../lib/exportMarkdown";
 
@@ -27,6 +28,7 @@ export default function Room() {
     retro,
     pick,
     timerEndsAt,
+    timerDurationMs,
     setConnected,
     setEnded,
     apply,
@@ -105,6 +107,13 @@ export default function Room() {
           onTimerStop={() => client.timerStop()}
           onEnd={() => client.endRoom()}
           onReport={() => client.reportRoom()}
+        />
+
+        <TimerBanner
+          endsAt={timerEndsAt}
+          durationMs={timerDurationMs}
+          isFacil={isFacil}
+          onStop={() => client.timerStop()}
         />
 
         {!joined && (

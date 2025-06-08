@@ -41,7 +41,7 @@ export function Seats({
         return (
           <li
             key={m.id}
-            className="relative rounded-2xl border border-slate-200 bg-white p-3 text-center shadow-soft"
+            className="relative rounded-2xl border border-slate-200 bg-white p-3 text-center shadow-soft dark:border-white/10 dark:bg-[#14141b]"
           >
             {!revealed && (
               <span className="absolute right-2 top-2">
@@ -58,8 +58,8 @@ export function Seats({
             >
               {face}
             </div>
-            <div className="truncate text-sm font-semibold text-slate-800">{m.name}</div>
-            <div className="text-xs text-slate-400">
+            <div className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{m.name}</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">
               {revealed
                 ? value
                   ? `voted ${value}`

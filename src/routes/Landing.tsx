@@ -4,6 +4,7 @@ import { StatusTicker } from "../components/StatusTicker";
 import { FLAVOR } from "../lib/flavor";
 import { IconEstimate, IconRetro, IconPick } from "../components/icons";
 import { Logo } from "../components/Logo";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 // Mock reveal for the hero. Deck index positions (fib): 3→0.43, 5→0.57, 8→0.71, 13→0.86.
 // avg = (3+5+8+13)/4 = 7.25 — computed below, never hardcoded.
@@ -37,13 +38,16 @@ export default function Landing() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-iris-50/60 via-slate-50 to-slate-50 text-slate-900">
+    <main className="min-h-screen bg-gradient-to-b from-iris-50/60 via-slate-50 to-slate-50 text-slate-900 dark:from-[#11101c] dark:via-[#0a0a0f] dark:to-[#0a0a0f] dark:text-slate-100">
       {/* nav */}
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
         <Logo />
-        <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500">
-          Open source · AGPL-3.0
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+            Open source · AGPL-3.0
+          </span>
+          <ThemeToggle />
+        </div>
       </nav>
 
       {/* hero */}
@@ -57,7 +61,7 @@ export default function Landing() {
             <br />
             <span className="text-iris-600">Forgotten.</span>
           </h1>
-          <p className="mt-5 max-w-md text-lg text-slate-600">
+          <p className="mt-5 max-w-md text-lg text-slate-600 dark:text-slate-300">
             Every planning-poker tool flips the cards and goes quiet. Ephem turns the spread into a
             conversation — the outliers say what they're pricing, then you re-vote. Plus retro and a
             name-picker, all in one no-login link that deletes itself when everyone leaves.
@@ -79,11 +83,11 @@ export default function Landing() {
                 onKeyDown={(e) => e.key === "Enter" && joinRoom()}
                 placeholder="or enter a room code"
                 aria-label="Room code to join"
-                className="w-40 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus-visible:border-iris-500 focus-visible:ring-2 focus-visible:ring-iris-500"
+                className="w-40 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus-visible:border-iris-500 focus-visible:ring-2 focus-visible:ring-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
               <button
                 onClick={joinRoom}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-iris-500"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
               >
                 Join
               </button>
@@ -94,26 +98,26 @@ export default function Landing() {
         {/* product window */}
         <div className="relative">
           <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-tr from-iris-200/40 to-violet-200/30 blur-2xl" />
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-iris-900/10">
-            <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5">
-              <span className="rounded-md bg-iris-50 px-2 py-0.5 text-[10px] font-semibold text-iris-700">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-iris-900/10 dark:border-white/10 dark:bg-[#14141b] dark:shadow-black/40">
+            <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-white/10">
+              <span className="rounded-md bg-iris-50 px-2 py-0.5 text-[10px] font-semibold text-iris-700 dark:bg-iris-500/15 dark:text-iris-300">
                 Copy invite link
               </span>
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
                 ● live
               </span>
-              <span className="ml-auto text-[10px] font-medium text-slate-400">cards revealed</span>
+              <span className="ml-auto text-[10px] font-medium text-slate-400 dark:text-slate-500">cards revealed</span>
             </div>
             <div className="p-4">
               <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700">Add CSV export to billing</span>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Add CSV export to billing</span>
                 <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600">
                   ↔ spread 3–13
                 </span>
               </div>
 
               {/* the tension line */}
-              <div className="relative mx-1 my-7 h-1 rounded-full bg-slate-100">
+              <div className="relative mx-1 my-7 h-1 rounded-full bg-slate-100 dark:bg-white/10">
                 <div
                   className="absolute top-0 h-1 rounded-full bg-gradient-to-r from-sky-400 to-rose-400"
                   style={{ left: "43%", width: "43%" }}
@@ -143,13 +147,13 @@ export default function Landing() {
                 </span>
               </div>
 
-              <p className="mt-7 text-center text-[11px] leading-relaxed text-slate-600">
-                <b className="text-sky-600">Priya</b> is pricing “just the endpoint” ·{" "}
-                <b className="text-rose-600">Jo</b> is pricing “pagination + permissions”
+              <p className="mt-7 text-center text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+                <b className="text-sky-600 dark:text-sky-400">Priya</b> is pricing “just the endpoint” ·{" "}
+                <b className="text-rose-600 dark:text-rose-400">Jo</b> is pricing “pagination + permissions”
               </p>
-              <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+              <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500 dark:bg-white/5 dark:text-slate-400">
                 <span>
-                  avg <b className="text-slate-700">{AVG}</b> · two camps
+                  avg <b className="text-slate-700 dark:text-slate-200">{AVG}</b> · two camps
                 </span>
                 <span className="rounded-md bg-iris-600 px-2 py-1 text-[10px] font-semibold text-white">
                   ↻ Re-estimate
@@ -172,16 +176,16 @@ export default function Landing() {
             { Icon: IconRetro, t: "Retro", d: "10 real formats. Anonymous cards, dot-voting." },
             { Icon: IconPick, t: "Pick", d: "Random person, order, or topic. Who goes first?" },
           ].map(({ Icon, t, d }) => (
-            <div key={t} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-iris-50 text-iris-600">
+            <div key={t} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-iris-50 text-iris-600 dark:bg-iris-500/15 dark:text-iris-300">
                 <Icon className="h-5 w-5" />
               </div>
               <div className="mt-3 font-semibold">{t}</div>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{d}</p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{d}</p>
             </div>
           ))}
         </div>
-        <p className="mt-5 text-center text-sm text-slate-500">
+        <p className="mt-5 text-center text-sm text-slate-500 dark:text-slate-400">
           All three in one room — the facilitator switches live and everyone follows.
         </p>
       </section>
@@ -207,7 +211,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="mx-auto max-w-3xl px-6 py-10 text-center text-xs leading-relaxed text-slate-500">
+      <footer className="mx-auto max-w-3xl px-6 py-10 text-center text-xs leading-relaxed text-slate-500 dark:text-slate-500">
         Free, open-source planning poker and sprint retrospectives — no login, no database,
         anonymous, ephemeral, self-hostable. Estimate. Retro. Forgotten.
       </footer>

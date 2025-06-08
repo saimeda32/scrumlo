@@ -51,10 +51,10 @@ export function PickerBoard({
       onClick={() => isFacil && client.pickSetMode(m)}
       className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold ${
         pick.mode === m
-          ? "bg-iris-100 text-iris-700"
+          ? "bg-iris-100 text-iris-700 dark:bg-iris-500/20 dark:text-iris-300"
           : isFacil
-            ? "text-slate-400 hover:bg-slate-100"
-            : "text-slate-300"
+            ? "text-slate-400 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5"
+            : "text-slate-300 dark:text-slate-600"
       }`}
     >
       {icon}
@@ -78,7 +78,7 @@ export function PickerBoard({
             {pick.result.length > 0 && (
               <button
                 onClick={() => client.pickClear()}
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
               >
                 Clear
               </button>
@@ -96,7 +96,7 @@ export function PickerBoard({
       </div>
 
       {pick.mode === "list" && (
-        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
           {isFacil && (
             <input
               value={item}
@@ -109,14 +109,14 @@ export function PickerBoard({
               }}
               placeholder="Add an option / topic, press Enter"
               aria-label="Add a pick option"
-              className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-iris-500"
+              className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           )}
           <div className="flex flex-wrap gap-2">
             {pick.items.map((it, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700"
+                className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 dark:bg-white/10 dark:text-slate-200"
               >
                 {it}
                 {isFacil && (
@@ -130,26 +130,26 @@ export function PickerBoard({
                 )}
               </span>
             ))}
-            {pick.items.length === 0 && <span className="text-sm text-slate-400">No options yet.</span>}
+            {pick.items.length === 0 && <span className="text-sm text-slate-400 dark:text-slate-500">No options yet.</span>}
           </div>
         </div>
       )}
 
-      <div className="grid min-h-[180px] place-items-center rounded-2xl border border-slate-200 bg-white p-8 shadow-soft">
+      <div className="grid min-h-[180px] place-items-center rounded-2xl border border-slate-200 bg-white p-8 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
         {spinning ? (
-          <div className="text-3xl font-extrabold text-slate-300">{flicker ?? "…"}</div>
+          <div className="text-3xl font-extrabold text-slate-300 dark:text-slate-600">{flicker ?? "…"}</div>
         ) : pick.result.length === 0 ? (
-          <div className="text-center text-slate-400">
-            <IconPick className="mx-auto h-10 w-10 text-slate-400" />
+          <div className="text-center text-slate-400 dark:text-slate-500">
+            <IconPick className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-600" />
             <div className="mt-2 text-sm">
               {isFacil ? `Hit "${spinLabel}" to pick` : "Waiting for the facilitator to spin…"}
             </div>
           </div>
         ) : pick.mode === "order" ? (
-          <ol className="space-y-1 text-lg font-semibold text-slate-800">
+          <ol className="space-y-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
             {pick.result.map((r, i) => (
               <li key={i} className="flex items-center gap-3">
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-iris-100 text-sm text-iris-700">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-iris-100 text-sm text-iris-700 dark:bg-iris-500/20 dark:text-iris-300">
                   {i + 1}
                 </span>
                 {r}
@@ -158,15 +158,15 @@ export function PickerBoard({
           </ol>
         ) : (
           <div className="text-center">
-            <div className="text-xs uppercase tracking-wide text-slate-400">
+            <div className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
               {pick.mode === "person" ? "It’s" : "Picked"}
             </div>
-            <div className="mt-1 text-4xl font-extrabold text-iris-600">{pick.result[0]}</div>
+            <div className="mt-1 text-4xl font-extrabold text-iris-600 dark:text-iris-400">{pick.result[0]}</div>
           </div>
         )}
       </div>
 
-      <p className="mt-8 text-xs text-slate-400">
+      <p className="mt-8 text-xs text-slate-400 dark:text-slate-500">
         A fair random picker for “who goes first?” — fast, and forgotten when the room ends.
       </p>
     </div>

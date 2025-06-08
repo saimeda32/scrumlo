@@ -26,7 +26,7 @@ export function Deck({
             className={`h-16 w-12 rounded-xl border text-lg font-extrabold transition focus-visible:ring-2 focus-visible:ring-iris-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40 ${
               selected
                 ? "-translate-y-2 border-iris-600 bg-iris-600 text-white shadow-md"
-                : "border-slate-200 bg-white text-slate-800 enabled:hover:-translate-y-1 enabled:hover:border-iris-400"
+                : "border-slate-200 bg-white text-slate-800 enabled:hover:-translate-y-1 enabled:hover:border-iris-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:enabled:hover:border-iris-400"
             }`}
           >
             {c === "☕" ? <IconCoffee className="mx-auto h-5 w-5" /> : c}

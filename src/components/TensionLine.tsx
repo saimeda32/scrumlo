@@ -47,7 +47,7 @@ export function TensionLine({
 
   if (numeric.length < 2) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-[#14141b] dark:text-slate-400">
         Not enough numeric votes to compare.
         {isFacil && <ReestimateBar client={client} className="mt-4 justify-center" />}
       </div>
@@ -89,9 +89,9 @@ export function TensionLine({
 
   if (!tension) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-8 text-center">
-        <div className="text-2xl font-extrabold text-emerald-700">Everyone said {clusters[0].card}</div>
-        <div className="mt-1 text-sm text-slate-500">No tension — that's a clean estimate. Lock it in.</div>
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-8 text-center shadow-soft dark:border-emerald-500/25 dark:bg-emerald-500/10">
+        <div className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-300">Everyone said {clusters[0].card}</div>
+        <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">No tension — that's a clean estimate. Lock it in.</div>
         <div className="mx-auto mt-5 max-w-md text-left">
           <DecisionBar
             decision={estimate.decision}
@@ -131,7 +131,7 @@ export function TensionLine({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8 dark:border-white/10 dark:bg-[#14141b]">
       <p className="sr-only">{distText}</p>
 
       <DecisionBar
@@ -147,7 +147,7 @@ export function TensionLine({
 
       {/* the taut line with every camp */}
       <div className="relative mx-auto h-24 max-w-2xl">
-        <div className="absolute inset-x-0 h-1.5 rounded-full bg-slate-100" style={{ top: "calc(50% - 3px)" }} />
+        <div className="absolute inset-x-0 h-1.5 rounded-full bg-slate-100 dark:bg-white/10" style={{ top: "calc(50% - 3px)" }} />
         <div
           className="animate-draw absolute h-1.5 rounded-full bg-gradient-to-r from-sky-400 to-rose-400"
           style={{ top: "calc(50% - 3px)", left: `${minPos}%`, width: `${Math.max(0, maxPos - minPos)}%` }}
@@ -165,7 +165,7 @@ export function TensionLine({
               style={{ left: `${c.pos * 100}%` }}
             >
               <div
-                className={`animate-pop flex items-center justify-center rounded-full border-2 border-white  shadow-soft ${color}`}
+                className={`animate-pop flex items-center justify-center rounded-full border-2 border-white shadow-soft dark:border-[#14141b] ${color}`}
                 style={{ height: size, width: size, animationDelay: `${0.15 + i * 0.08}s` }}
                 title={c.ids.map(nameOf).join(", ")}
               >
@@ -184,31 +184,31 @@ export function TensionLine({
       </div>
 
       {/* the camps, in words */}
-      <div className="animate-rise mt-6 text-center text-sm text-slate-600" style={{ animationDelay: "0.35s" }}>
+      <div className="animate-rise mt-6 text-center text-sm text-slate-600 dark:text-slate-300" style={{ animationDelay: "0.35s" }}>
         {clusters.map((c, i) => (
           <span key={c.value}>
-            {i > 0 && <span className="text-slate-300"> · </span>}
-            <b className={c.kind === "low" ? "text-sky-600" : c.kind === "high" ? "text-rose-600" : "text-slate-500"}>
+            {i > 0 && <span className="text-slate-300 dark:text-slate-600"> · </span>}
+            <b className={c.kind === "low" ? "text-sky-600 dark:text-sky-400" : c.kind === "high" ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-300"}>
               {c.card}
             </b>{" "}
             {c.ids.map(nameOf).join(", ")}
           </span>
         ))}
-        <span className="text-slate-400"> — median {median}</span>
+        <span className="text-slate-400 dark:text-slate-500"> — median {median}</span>
       </div>
 
       {/* the captured "why" */}
       {(lowR || highR) && (
-        <p className="animate-rise mt-4 text-center text-sm text-slate-700">
+        <p className="animate-rise mt-4 text-center text-sm text-slate-700 dark:text-slate-200">
           {lowR && (
             <>
-              <span className="font-semibold text-sky-600">{lowR.name}</span> is pricing “{lowR.text}”
+              <span className="font-semibold text-sky-600 dark:text-sky-400">{lowR.name}</span> is pricing “{lowR.text}”
             </>
           )}
-          {lowR && highR && <span className="text-slate-400"> · </span>}
+          {lowR && highR && <span className="text-slate-400 dark:text-slate-600"> · </span>}
           {highR && (
             <>
-              <span className="font-semibold text-rose-600">{highR.name}</span> is pricing “{highR.text}”
+              <span className="font-semibold text-rose-600 dark:text-rose-400">{highR.name}</span> is pricing “{highR.text}”
             </>
           )}
         </p>
@@ -219,7 +219,7 @@ export function TensionLine({
         </p>
       ) : (
         (waitingLow || waitingHigh) && (
-          <p className="mt-4 text-center text-xs text-slate-400">
+          <p className="mt-4 text-center text-xs text-slate-400 dark:text-slate-500">
             {waitingLow && waitingHigh
               ? `Waiting on the ${min} and the ${max} to say what they're pricing…`
               : `Waiting on the ${waitingLow ? min : max} to say what they're pricing…`}
@@ -230,7 +230,7 @@ export function TensionLine({
       {/* outlier prompt */}
       {youOutlier && !youHasRationale && (
         <div className="mx-auto mt-6 max-w-md">
-          <label className="text-xs font-semibold text-slate-500">
+          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
             In a few words — what are you pricing at {estimate.yourVote}?
           </label>
           <div className="mt-1.5 flex gap-2">
@@ -242,7 +242,7 @@ export function TensionLine({
               onFocus={() => client.typing(true)}
               onBlur={() => client.typing(false)}
               placeholder="e.g. the data migration"
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-iris-500"
+              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-600"
             />
             <button
               onClick={share}
@@ -255,7 +255,7 @@ export function TensionLine({
       )}
 
       {nonNumeric.length > 0 && (
-        <p className="mt-5 text-center text-xs text-slate-400">
+        <p className="mt-5 text-center text-xs text-slate-400 dark:text-slate-500">
           {nonNumeric.map(([id, c]) => `${nameOf(id)}: ${c}`).join(" · ")}
         </p>
       )}
@@ -285,13 +285,13 @@ function DecisionBar({
 
   if (decision) {
     return (
-      <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+      <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 dark:border-emerald-500/25 dark:bg-emerald-500/10">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-extrabold text-white">
           {decision.value}
         </span>
         <div className="min-w-0 flex-1 text-sm">
-          <span className="font-semibold text-emerald-700">Locked</span>
-          {decision.note && <span className="text-slate-600"> — {decision.note}</span>}
+          <span className="font-semibold text-emerald-700 dark:text-emerald-300">Locked</span>
+          {decision.note && <span className="text-slate-600 dark:text-slate-300"> — {decision.note}</span>}
         </div>
         {isFacil && (
           <button
@@ -306,13 +306,13 @@ function DecisionBar({
   }
   if (!isFacil) return null;
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <span className="text-xs font-semibold text-slate-500">Lock it at</span>
+    <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Lock it at</span>
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         aria-label="Agreed estimate"
-        className="w-12 rounded-lg border border-slate-300 px-2 py-1 text-center text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        className="w-12 rounded-lg border border-slate-300 px-2 py-1 text-center text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
       />
       <input
         value={note}
@@ -320,7 +320,7 @@ function DecisionBar({
         onKeyDown={(e) => e.key === "Enter" && value.trim() && client.lockDecision(value.trim(), note.trim())}
         placeholder="because… (optional)"
         aria-label="Reason"
-        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-600"
       />
       <button
         onClick={() => value.trim() && client.lockDecision(value.trim(), note.trim())}
@@ -336,20 +336,20 @@ function DecisionBar({
 function ConvergenceTrail({ history }: { history: { lo: number; hi: number; n: number }[] }) {
   return (
     <div className="mb-6 flex flex-wrap items-center justify-center gap-2 text-xs">
-      <span className="font-semibold uppercase tracking-wide text-slate-400">Converging</span>
+      <span className="font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Converging</span>
       {history.map((r, i) => {
         const consensus = r.lo === r.hi;
         const last = i === history.length - 1;
         return (
           <span key={i} className="inline-flex items-center gap-2">
-            {i > 0 && <span className="text-slate-300">→</span>}
+            {i > 0 && <span className="text-slate-300 dark:text-slate-600">→</span>}
             <span
               className={`rounded-full px-2 py-0.5 font-semibold ${
                 last
                   ? consensus
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-iris-100 text-iris-700"
-                  : "bg-slate-100 text-slate-500"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                    : "bg-iris-100 text-iris-700 dark:bg-iris-500/20 dark:text-iris-300"
+                  : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"
               }`}
             >
               {consensus ? `✓ ${r.lo}` : `${r.lo}–${r.hi}`}
@@ -383,7 +383,7 @@ function ReestimateBar({
       )}
       <button
         onClick={() => client.restart()}
-        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
       >
         New story
       </button>

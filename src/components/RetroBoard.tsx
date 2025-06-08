@@ -31,8 +31,8 @@ export function RetroBoard({
                 onClick={() => client.retroSetTemplate(id)}
                 className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold ${
                   retro.template === id
-                    ? "bg-iris-100 text-iris-700"
-                    : "text-slate-500 hover:bg-slate-100"
+                    ? "bg-iris-100 text-iris-700 dark:bg-iris-500/20 dark:text-iris-300"
+                    : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5"
                 }`}
               >
                 {t.label}
@@ -40,20 +40,20 @@ export function RetroBoard({
             ))}
           </div>
         ) : (
-          <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-500">
+          <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
             {RETRO_TEMPLATES[retro.template]?.label ?? "Retro"}
           </span>
         )}
         {isFacil && (
           <button
             onClick={() => client.retroSetAnonymous(!retro.anonymous)}
-            className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 hover:border-iris-300 hover:text-iris-600"
+            className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-400 dark:hover:text-iris-300"
             title={retro.anonymous ? "Currently anonymous — click to show names" : "Currently showing names — click to hide"}
           >
             {retro.anonymous ? "🕶 Anonymous" : "🙂 Names shown"}
           </button>
         )}
-        <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+        <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
           {retro.votesLeft} {retro.votesLeft === 1 ? "vote" : "votes"} left
         </span>
       </div>
@@ -89,20 +89,20 @@ export function RetroBoard({
       )}
 
       {spotlit && (
-        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-iris-200 bg-iris-50/70 px-5 py-4">
-          <span className="mt-0.5 text-iris-500">◎</span>
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-iris-200 bg-iris-50/70 px-5 py-4 dark:border-iris-500/25 dark:bg-iris-500/10">
+          <span className="mt-0.5 text-iris-500 dark:text-iris-300">◎</span>
           <div className="min-w-0 flex-1">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-iris-400">
               Spotlight — everyone’s looking here
             </div>
-            <div className="mt-0.5 whitespace-pre-wrap break-words text-sm font-medium text-slate-800">
+            <div className="mt-0.5 whitespace-pre-wrap break-words text-sm font-medium text-slate-800 dark:text-slate-100">
               {spotlit.text}
             </div>
           </div>
           {isFacil && (
             <button
               onClick={() => client.retroSpotlight(null)}
-              className="shrink-0 rounded-lg border border-iris-200 px-2.5 py-1 text-xs font-semibold text-iris-600 hover:bg-white"
+              className="shrink-0 rounded-lg border border-iris-200 px-2.5 py-1 text-xs font-semibold text-iris-600 hover:bg-white dark:border-iris-500/30 dark:text-iris-300 dark:hover:bg-white/5"
             >
               Done
             </button>
@@ -112,15 +112,15 @@ export function RetroBoard({
 
       {/* the themed wall — each format its own atmosphere */}
       <div
-        className={`relative overflow-hidden rounded-3xl border border-black/5 bg-gradient-to-br ${theme.panel} p-4 shadow-inner sm:p-6`}
+        className={`relative overflow-hidden rounded-3xl border border-black/5 bg-gradient-to-br ${theme.panel} ${theme.panelDark} p-4 shadow-inner sm:p-6 dark:border-white/10`}
       >
         <span
-          className="pointer-events-none absolute -right-6 -top-8 select-none text-[160px] leading-none opacity-[0.07]"
+          className="pointer-events-none absolute -right-6 -top-8 select-none text-[160px] leading-none opacity-[0.07] dark:opacity-[0.05]"
           aria-hidden
         >
           {theme.motif}
         </span>
-        <p className="relative mb-5 flex items-center gap-2 text-sm font-medium text-slate-600">
+        <p className="relative mb-5 flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
           <span className="text-lg" aria-hidden>{theme.motif}</span>
           {theme.blurb}
         </p>
@@ -141,7 +141,7 @@ export function RetroBoard({
         </div>
       </div>
 
-      <p className="mt-6 text-xs text-slate-400">
+      <p className="mt-6 text-xs text-slate-400 dark:text-slate-500">
         {retro.anonymous ? "Stickies are anonymous" : "Authors are shown"} · {retro.votesLeft}{" "}
         dot-votes each · react with emoji · nothing is stored after the room ends.
       </p>

@@ -33,34 +33,34 @@ export function ExportSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4"
+      className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4 dark:bg-black/70"
       role="dialog"
       aria-modal="true"
       aria-label="Export session"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-2xl bg-white p-5 shadow-xl"
+        className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-2xl bg-white p-5 shadow-xl dark:border dark:border-white/10 dark:bg-[#14141b]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Take the session with you</h2>
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">Take the session with you</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md px-2 text-slate-400 hover:bg-slate-100"
+            className="rounded-md px-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"
           >
             ✕
           </button>
         </div>
-        <p className="mb-3 text-xs text-slate-500">
+        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
           The room forgets when you leave — paste this into Slack, Jira, or a doc to keep what
           matters. Nothing is sent anywhere; this is built in your browser.
         </p>
         <textarea
           readOnly
           value={markdown}
-          className="mb-4 min-h-[220px] flex-1 resize-none rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700"
+          className="mb-4 min-h-[220px] flex-1 resize-none rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700 dark:border-white/10 dark:bg-black/30 dark:text-slate-300"
           onFocus={(e) => e.currentTarget.select()}
         />
         <div className="flex gap-2">
@@ -72,7 +72,7 @@ export function ExportSheet({
           </button>
           <button
             onClick={download}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
           >
             Download .md
           </button>

@@ -4,6 +4,7 @@ import { avatarColor, initials } from "../lib/colors";
 import { IconCrown } from "./icons";
 import { TimerChip } from "./TimerChip";
 import { LogoMark } from "./Logo";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function RoomHeader({
   room,
@@ -47,11 +48,11 @@ export function RoomHeader({
   }
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-2.5 shadow-soft backdrop-blur-sm">
+    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-2.5 shadow-soft backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
       <a href="/" title="Ephem — new room" className="shrink-0">
         <LogoMark size={22} />
       </a>
-      <span className="font-mono text-xs text-slate-400">{room}</span>
+      <span className="font-mono text-xs text-slate-400 dark:text-slate-500">{room}</span>
       <button
         onClick={copyLink}
         className="rounded-lg border border-iris-200 bg-iris-50 px-3 py-1.5 text-xs font-semibold text-iris-700 transition hover:bg-iris-100 focus-visible:ring-2 focus-visible:ring-iris-500"
@@ -68,13 +69,14 @@ export function RoomHeader({
         {connected ? "● live" : "connecting…"}
       </span>
       {facil && (
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-slate-500 dark:text-slate-400">
           facilitated by{" "}
-          <span className="font-semibold text-slate-700">{isFacil ? "you" : facil.name}</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-200">{isFacil ? "you" : facil.name}</span>
         </span>
       )}
 
       <div className="ml-auto flex items-center gap-3">
+        <ThemeToggle />
         <TimerChip
           endsAt={timerEndsAt}
           isFacil={isFacil}
@@ -83,7 +85,7 @@ export function RoomHeader({
         />
         <button
           onClick={onExport}
-          className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+          className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
           title="Copy/download the session before it's gone"
         >
           ⤓ Export
@@ -91,7 +93,7 @@ export function RoomHeader({
         {!isFacil && (
           <button
             onClick={onClaim}
-            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
             title="Become the facilitator (e.g. if they left)"
           >
             Take over

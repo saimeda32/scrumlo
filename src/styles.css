@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Toggleable dark mode: .dark on <html> wins over the OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ---- Ephem design system ----------------------------------------------------
    One cohesive identity: Inter for text, a single iris accent, layered soft
    shadows for premium depth, and a warm-neutral canvas instead of flat white. */
@@ -27,6 +30,9 @@
 :root {
   color-scheme: light;
 }
+html.dark {
+  color-scheme: dark;
+}
 
 html,
 body,
@@ -42,6 +48,11 @@ body {
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+html.dark body {
+  background-color: #0a0a0f; /* near-black ink canvas */
+  color: #e2e8f0;
 }
 
 /* Tighten display headings — the premium signal. */

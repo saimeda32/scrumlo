@@ -52,11 +52,11 @@ export default function Room() {
 
   if (ended) {
     return (
-      <div className="grid min-h-screen place-items-center px-6 text-center [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)]">
+      <div className="grid min-h-screen place-items-center px-6 text-center [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(50rem_30rem_at_50%_-8rem,#1b1838,transparent_60%)]">
         <div className="max-w-sm">
           <LogoMark size={48} className="mx-auto opacity-90 grayscale" />
-          <h2 className="mt-4 text-xl font-bold text-slate-900">This session has ended</h2>
-          <p className="mt-2 text-sm text-slate-500">
+          <h2 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">This session has ended</h2>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             The room expired and was deleted. Nothing was kept — that’s the point.
           </p>
           <a
@@ -72,7 +72,7 @@ export default function Room() {
 
   if (!estimate || !retro || !pick) {
     return (
-      <div className="grid min-h-screen place-items-center text-slate-400 [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)]">
+      <div className="grid min-h-screen place-items-center text-slate-400 [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(50rem_30rem_at_50%_-8rem,#1b1838,transparent_60%)]">
         <StatusTicker phrases={FLAVOR.connecting} />
       </div>
     );
@@ -84,7 +84,7 @@ export default function Room() {
   const canAct = joined;
 
   return (
-    <div className="flex min-h-screen flex-col [background:radial-gradient(54rem_32rem_at_50%_-10rem,var(--color-iris-100),transparent_55%)]">
+    <div className="flex min-h-screen flex-col [background:radial-gradient(54rem_32rem_at_50%_-10rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(54rem_32rem_at_50%_-10rem,#1b1838,transparent_60%)]">
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         {!connected && (
           <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
@@ -108,8 +108,8 @@ export default function Room() {
         />
 
         {!joined && (
-          <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-iris-200 bg-iris-50 px-4 py-3">
-            <span className="text-sm font-medium text-iris-900">
+          <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-iris-200 bg-iris-50 px-4 py-3 dark:border-iris-500/25 dark:bg-iris-500/10">
+            <span className="text-sm font-medium text-iris-900 dark:text-iris-200">
               You’re watching. Add your name to vote or add cards.
             </span>
             <div className="ml-auto flex items-center gap-2">
@@ -120,7 +120,7 @@ export default function Room() {
                 onKeyDown={(e) => e.key === "Enter" && join()}
                 placeholder="your name"
                 aria-label="Your name"
-                className="w-36 rounded-lg border border-iris-200 bg-white px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-iris-500"
+                className="w-36 rounded-lg border border-iris-200 bg-white px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
               <button
                 onClick={join}
@@ -137,12 +137,12 @@ export default function Room() {
           canSwitch={isFacil}
           onSwitch={(a) => client.switchActivity(a)}
         />
-        <p className="-mt-2 mb-5 text-xs text-slate-500">
+        <p className="-mt-2 mb-5 text-xs text-slate-500 dark:text-slate-400">
           One link runs your whole ceremony —{" "}
-          <span className="font-semibold text-slate-700">Estimate</span>,{" "}
-          <span className="font-semibold text-slate-700">Retro</span>, and{" "}
-          <span className="font-semibold text-slate-700">Pick</span> in the same room; the
-          facilitator switches and everyone follows.
+          <span className="font-semibold text-slate-700 dark:text-slate-200">Estimate</span>,{" "}
+          <span className="font-semibold text-slate-700 dark:text-slate-200">Retro</span>, and{" "}
+          <span className="font-semibold text-slate-700 dark:text-slate-200">Pick</span> in the same
+          room; the facilitator switches and everyone follows.
         </p>
 
         {activity === "estimate" ? (
@@ -168,7 +168,7 @@ export default function Room() {
           />
         )}
       </main>
-      <footer className="border-t border-slate-200/70 bg-white/40 py-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-200/70 bg-white/40 py-4 text-center text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-500">
         Nothing is stored — the room is deleted when everyone leaves.
       </footer>
     </div>

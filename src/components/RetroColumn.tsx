@@ -70,8 +70,8 @@ export function RetroColumn({
     <section className="flex min-h-[260px] flex-col">
       <h3 className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold">
         <span className={`h-2.5 w-2.5 rounded-full ${c.dot}`} aria-hidden />
-        <span className={c.text}>{column.title}</span>
-        <span className="ml-auto text-xs font-normal text-slate-400">{cards.length}</span>
+        <span className={`${c.text} dark:text-slate-100`}>{column.title}</span>
+        <span className="ml-auto text-xs font-normal text-slate-400 dark:text-slate-500">{cards.length}</span>
       </h3>
 
       <ul className="flex flex-col gap-3">
@@ -101,7 +101,7 @@ export function RetroColumn({
           placeholder="+ jot a sticky…"
           aria-label={`Add a card to ${column.title}`}
           rows={1}
-          className="mt-3 w-full resize-none rounded-lg border border-dashed border-slate-300 bg-white/50 px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400 focus:bg-white"
+          className="mt-3 w-full resize-none rounded-lg border border-dashed border-slate-300 bg-white/50 px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400 focus:bg-white dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-white/10"
         />
       )}
     </section>

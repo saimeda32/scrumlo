@@ -59,6 +59,7 @@ export function RetroColumn({
   client: RoomClient;
 }) {
   const [text, setText] = useState("");
+  const [adding, setAdding] = useState(false);
   const [dropEnd, setDropEnd] = useState(false);
   const color = SEMANTIC[column.id] ?? PALETTE[index % PALETTE.length];
   const c = C[color] ?? C.slate;
@@ -151,23 +152,38 @@ export function RetroColumn({
         )}
       </ul>
 
-      {canAct && (
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              add();
-            }
-          }}
-          placeholder="✍️  write a sticky…"
-          aria-label={`Add a card to ${column.title}`}
-          rows={2}
-          style={{ rotate: "-0.7deg" }}
-          className={`mt-3 w-full resize-none rounded-[10px] px-3.5 py-3 text-[15px] font-medium text-slate-800 shadow-[0_4px_10px_-6px_rgba(15,23,42,0.3)] outline-none transition-all duration-200 placeholder:text-slate-700/55 focus:-translate-y-0.5 focus:rotate-0 focus:shadow-[0_12px_22px_-8px_rgba(15,23,42,0.45)] focus:ring-2 focus:ring-white/60 ${c.note}`}
-        />
-      )}
+      {canAct &&
+        (adding ? (
+          <textarea
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                add(); // adds it and stays open, so the next sticky is one keystroke away
+              } else if (e.key === "Escape") {
+                setText("");
+                setAdding(false);
+              }
+            }}
+            onBlur={() => {
+              if (!text.trim()) setAdding(false);
+            }}
+            placeholder="Type it, Enter to add. Esc when done."
+            aria-label={`Add a card to ${column.title}`}
+            rows={2}
+            className={`mt-3 w-full resize-none rounded-[10px] px-3.5 py-3 text-[15px] font-medium text-slate-800 shadow-[0_6px_14px_-8px_rgba(15,23,42,0.4)] outline-none ${c.note}`}
+          />
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            aria-label={`Add a sticky to ${column.title}`}
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] border-2 border-dashed border-slate-300 py-2.5 text-sm font-semibold text-slate-400 transition hover:border-iris-400 hover:bg-iris-50/40 hover:text-iris-600 dark:border-white/15 dark:text-slate-500 dark:hover:border-iris-400/60 dark:hover:bg-iris-500/5 dark:hover:text-iris-300"
+          >
+            <span className="text-lg leading-none">+</span> Add a sticky
+          </button>
+        ))}
     </section>
   );
 }

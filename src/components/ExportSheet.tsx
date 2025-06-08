@@ -10,6 +10,56 @@ export function ExportSheet({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState<null | "png" | "pdf">(null);
+
+  // Render the live board to an image, entirely in the browser (nothing sent).
+  async function captureBoard(): Promise<{ dataUrl: string; w: number; h: number } | null> {
+    const node = document.getElementById("ephem-board");
+    if (!node) return null;
+    const { toPng } = await import("html-to-image"); // lazy — keep it out of the initial bundle
+    const dark = document.documentElement.classList.contains("dark");
+    const dataUrl = await toPng(node, {
+      pixelRatio: 2,
+      backgroundColor: dark ? "#0a0a0f" : "#fafafb",
+      cacheBust: true,
+    });
+    const img = new Image();
+    img.src = dataUrl;
+    await img.decode();
+    return { dataUrl, w: img.naturalWidth, h: img.naturalHeight };
+  }
+
+  async function downloadImage() {
+    setBusy("png");
+    try {
+      const cap = await captureBoard();
+      if (!cap) return;
+      const a = document.createElement("a");
+      a.href = cap.dataUrl;
+      a.download = `ephem-${room}.png`;
+      a.click();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function downloadPdf() {
+    setBusy("pdf");
+    try {
+      const cap = await captureBoard();
+      if (!cap) return;
+      const { jsPDF } = await import("jspdf"); // lazy
+      const pdf = new jsPDF({
+        orientation: cap.w >= cap.h ? "landscape" : "portrait",
+        unit: "px",
+        format: [cap.w, cap.h],
+      });
+      pdf.addImage(cap.dataUrl, "PNG", 0, 0, cap.w, cap.h);
+      pdf.save(`ephem-${room}.pdf`);
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function copy() {
     try {
@@ -76,6 +126,28 @@ export function ExportSheet({
           >
             Download .md
           </button>
+        </div>
+
+        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
+          <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+            Or grab a picture of the board, exactly as it looks now — so everyone keeps the same view.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={downloadImage}
+              disabled={busy !== null}
+              className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+            >
+              {busy === "png" ? "Rendering…" : "🖼 Board image (PNG)"}
+            </button>
+            <button
+              onClick={downloadPdf}
+              disabled={busy !== null}
+              className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+            >
+              {busy === "pdf" ? "Rendering…" : "📄 Board PDF"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -154,20 +154,22 @@ export default function Room() {
           room; the facilitator switches and everyone follows.
         </p>
 
-        {activity === "estimate" ? (
-          <EstimateBoard
-            estimate={estimate}
-            members={members}
-            you={you ?? ""}
-            isFacil={isFacil}
-            canAct={canAct}
-            client={client}
-          />
-        ) : activity === "retro" ? (
-          <RetroBoard retro={retro} isFacil={isFacil} canAct={canAct} client={client} />
-        ) : (
-          <PickerBoard pick={pick} members={members} isFacil={isFacil} client={client} />
-        )}
+        <div id="ephem-board">
+          {activity === "estimate" ? (
+            <EstimateBoard
+              estimate={estimate}
+              members={members}
+              you={you ?? ""}
+              isFacil={isFacil}
+              canAct={canAct}
+              client={client}
+            />
+          ) : activity === "retro" ? (
+            <RetroBoard retro={retro} isFacil={isFacil} canAct={canAct} client={client} />
+          ) : (
+            <PickerBoard pick={pick} members={members} isFacil={isFacil} client={client} />
+          )}
+        </div>
 
         {showExport && (
           <ExportSheet

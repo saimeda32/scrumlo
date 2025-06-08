@@ -1,5 +1,4 @@
 import type { RetroView } from "../../shared/protocol";
-import { RETRO_TEMPLATES } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { RetroColumn } from "./RetroColumn";
 import { retroTheme } from "../lib/retroThemes";
@@ -23,27 +22,9 @@ export function RetroBoard({
   return (
     <>
       <div className="mb-4 flex items-center gap-3">
-        {isFacil ? (
-          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-1">
-            {Object.entries(RETRO_TEMPLATES).map(([id, t]) => (
-              <button
-                key={id}
-                onClick={() => client.retroSetTemplate(id)}
-                className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold ${
-                  retro.template === id
-                    ? "bg-iris-100 text-iris-700 dark:bg-iris-500/20 dark:text-iris-300"
-                    : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
-            {RETRO_TEMPLATES[retro.template]?.label ?? "Retro"}
-          </span>
-        )}
+        {/* format is chosen via the Format picker (toolbar button); here we keep the
+            quick toggles. */}
+        <span className="min-w-0 flex-1" />
         {isFacil && (
           <button
             onClick={() => client.retroSetAnonymous(!retro.anonymous)}

@@ -202,9 +202,9 @@ export class RoomDO extends DurableObject<Env> {
         const deck = DECKS[this.estimate.deck] ?? DECKS.fib;
         if (!deck.includes(msg.card)) return;
         this.estimate.votes[me.id] = msg.card;
-        // Auto-reveal the moment everyone present has voted.
+        // Auto-reveal once everyone present has voted (needs a real group, not a solo).
         const present = this.membersFrom(this.ctx.getWebSockets());
-        if (present.length > 0 && present.every((m) => this.estimate.votes[m.id] !== undefined)) {
+        if (present.length >= 2 && present.every((m) => this.estimate.votes[m.id] !== undefined)) {
           this.recordReveal();
         }
         break;

@@ -115,33 +115,36 @@ export function EstimateBoard({
       )}
 
       {/* story bar */}
-      <div className="mb-4 flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-            Now estimating
-          </div>
-          {isFacil ? (
-            <input
-              value={estimate.story}
-              onChange={(e) => client.setStory(e.target.value)}
-              placeholder="What are we estimating?"
-              aria-label="Story"
-              className="w-full border-0 bg-transparent p-0 text-lg font-semibold text-slate-900 outline-none placeholder:text-slate-300 dark:text-white dark:placeholder:text-slate-600"
-            />
-          ) : (
-            <div className="truncate text-lg font-semibold text-slate-900 dark:text-white">
-              {estimate.story || <span className="text-slate-300 dark:text-slate-600">Waiting for a story…</span>}
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft dark:border-white/10 dark:bg-[#14141b]">
+        <div className="h-1 bg-gradient-to-r from-iris-500 via-violet-500 to-iris-500" />
+        <div className="flex items-center gap-4 px-6 py-5">
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-iris-500 dark:text-iris-400">
+              Now estimating
             </div>
+            {isFacil ? (
+              <input
+                value={estimate.story}
+                onChange={(e) => client.setStory(e.target.value)}
+                placeholder="What are we sizing?"
+                aria-label="Story"
+                className="mt-0.5 w-full border-0 bg-transparent p-0 text-2xl font-extrabold tracking-tight text-slate-900 outline-none placeholder:text-slate-300 dark:text-white dark:placeholder:text-slate-700"
+              />
+            ) : (
+              <div className="mt-0.5 truncate text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                {estimate.story || <span className="text-slate-300 dark:text-slate-700">Waiting for a story…</span>}
+              </div>
+            )}
+          </div>
+          {isFacil && !revealed && (
+            <button
+              onClick={() => client.reveal()}
+              className="shrink-0 rounded-xl bg-iris-600 px-5 py-2.5 text-base font-semibold text-white shadow-soft transition hover:bg-iris-500"
+            >
+              Reveal cards
+            </button>
           )}
         </div>
-        {isFacil && !revealed && (
-          <button
-            onClick={() => client.reveal()}
-            className="shrink-0 rounded-xl bg-iris-600 px-4 py-2 text-sm font-semibold text-white hover:bg-iris-500"
-          >
-            Reveal cards
-          </button>
-        )}
       </div>
 
       {/* re-vote context: last round's captured takes, so the room converges knowing why */}
@@ -170,31 +173,17 @@ export function EstimateBoard({
         <Seats members={members} estimate={estimate} />
       )}
 
-      {/* deck */}
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
-        <div className="mb-3 flex items-center gap-3">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-            Your card
+      {/* the card table */}
+      <div className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white px-4 pb-2 pt-4 shadow-soft sm:px-6 dark:border-white/10 dark:bg-[#14141b]">
+        <div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden
+          style={{ background: "radial-gradient(70% 90% at 50% 130%, rgba(99,102,241,0.12), transparent 62%)" }}
+        />
+        <div className="relative mb-1 flex items-center gap-3">
+          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+            Your hand · {DECK_LABELS[estimate.deck] ?? estimate.deck}
           </span>
-          {isFacil ? (
-            <div className="flex flex-wrap gap-1">
-              {Object.keys(DECKS).map((d) => (
-                <button
-                  key={d}
-                  onClick={() => client.setDeck(d)}
-                  className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                    estimate.deck === d
-                      ? "bg-iris-100 text-iris-700 dark:bg-iris-500/20 dark:text-iris-300"
-                      : "text-slate-400 hover:bg-slate-100 dark:text-slate-500 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {DECK_LABELS[d] ?? d}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <span className="text-xs text-slate-400 dark:text-slate-500">{DECK_LABELS[estimate.deck] ?? estimate.deck}</span>
-          )}
           {!revealed && (
             <StatusTicker
               phrases={FLAVOR.waiting}

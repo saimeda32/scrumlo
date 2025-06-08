@@ -15,6 +15,10 @@ const SEMANTIC: Record<string, string> = {
   wind: "sky", anchor: "slate", rocks: "amber", island: "emerald",
   more: "emerald", less: "amber", plus: "emerald", delta: "violet",
   straw: "amber", sticks: "orange", bricks: "rose",
+  // pop-culture
+  throne: "amber", wall: "sky", walkers: "slate", dragons: "rose",
+  assemble: "sky", stones: "violet", thanos: "rose", ultron: "slate",
+  force: "sky", rebels: "amber", darkside: "slate", empire: "rose",
 };
 const PALETTE = ["amber", "sky", "emerald", "rose", "violet", "teal"];
 

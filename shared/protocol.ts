@@ -143,6 +143,34 @@ export const RETRO_TEMPLATES: Record<string, { label: string; columns: RetroColu
       { id: "bricks", title: "House of Bricks", emoji: "🧱" },
     ],
   },
+  // ---- pop-culture formats (same retro mechanics, more fun) ----
+  got: {
+    label: "Game of Thrones",
+    columns: [
+      { id: "throne", title: "Iron Throne", emoji: "👑" }, // wins we're proud of
+      { id: "wall", title: "The Wall", emoji: "🧊" }, // what holds the line — keep
+      { id: "walkers", title: "White Walkers", emoji: "🧟" }, // threats marching toward us
+      { id: "dragons", title: "Dragons", emoji: "🐉" }, // our firepower — do more of
+    ],
+  },
+  avengers: {
+    label: "Avengers",
+    columns: [
+      { id: "assemble", title: "Assemble", emoji: "🦸" }, // what brought us together — wins
+      { id: "stones", title: "Infinity Stones", emoji: "💎" }, // what powered us — keep
+      { id: "thanos", title: "Thanos", emoji: "🫰" }, // the big blocker that snapped us
+      { id: "ultron", title: "Ultron", emoji: "🤖" }, // what we built that backfired — stop
+    ],
+  },
+  starwars: {
+    label: "Star Wars",
+    columns: [
+      { id: "force", title: "The Force", emoji: "✨" }, // strengths with us
+      { id: "rebels", title: "Rebellion", emoji: "🚀" }, // bold moves to start
+      { id: "darkside", title: "Dark Side", emoji: "🌑" }, // temptations / bad habits — stop
+      { id: "empire", title: "The Empire", emoji: "🪐" }, // blockers and risks
+    ],
+  },
 };
 
 export const RETRO_VOTE_BUDGET = 5;

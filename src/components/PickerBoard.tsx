@@ -103,12 +103,15 @@ export function PickerBoard({
               onChange={(e) => setItem(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && item.trim()) {
-                  client.pickAddItem(item.trim());
+                  // accept a whole comma- (or newline-) separated list at once
+                  for (const part of item.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)) {
+                    client.pickAddItem(part);
+                  }
                   setItem("");
                 }
               }}
-              placeholder="Add an option / topic, press Enter"
-              aria-label="Add a pick option"
+              placeholder="Add options — paste a comma-separated list, press Enter"
+              aria-label="Add pick options (comma-separated)"
               className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           )}

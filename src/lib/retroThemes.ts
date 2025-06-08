@@ -79,6 +79,24 @@ export const RETRO_THEMES: Record<string, RetroTheme> = {
     motif: "🐷",
     blurb: "Straw, sticks, or bricks — how solid is what we built?",
   },
+  got: {
+    panel: "from-slate-200 via-sky-50 to-rose-100",
+    panelDark: "dark:from-slate-900 dark:via-sky-950 dark:to-rose-950",
+    motif: "🐉",
+    blurb: "Winter is coming — our throne wins, the wall we hold, the walkers ahead, and our dragons.",
+  },
+  avengers: {
+    panel: "from-rose-100 via-amber-50 to-sky-100",
+    panelDark: "dark:from-rose-950 dark:via-slate-950 dark:to-sky-950",
+    motif: "🦸",
+    blurb: "Earth's mightiest sprint — what we assembled, the stones that powered us, our Thanos.",
+  },
+  starwars: {
+    panel: "from-slate-200 via-amber-50 to-sky-100",
+    panelDark: "dark:from-slate-950 dark:via-amber-950 dark:to-sky-950",
+    motif: "✨",
+    blurb: "A long time ago, this sprint… the Force with us, the rebellion to start, the Dark Side to drop.",
+  },
 };
 
 export function retroTheme(template: string): RetroTheme {

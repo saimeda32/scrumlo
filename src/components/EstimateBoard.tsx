@@ -108,7 +108,10 @@ export function EstimateBoard({
             <span className="text-xs text-slate-400 dark:text-slate-500">{DECK_LABELS[estimate.deck] ?? estimate.deck}</span>
           )}
           {!revealed && (
-            <StatusTicker phrases={FLAVOR.waiting} className="ml-auto text-xs text-slate-300 dark:text-slate-600" />
+            <StatusTicker
+              phrases={FLAVOR.waiting}
+              className="ml-auto hidden max-w-[45%] truncate text-[11px] italic text-slate-300 sm:block dark:text-slate-600"
+            />
           )}
         </div>
         <Deck

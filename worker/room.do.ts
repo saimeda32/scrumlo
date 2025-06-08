@@ -46,6 +46,7 @@ type RetroCard = {
   voters: string[]; // memberIds who dot-voted this card
   reactions: Record<string, string[]>; // emoji -> memberIds
   order: number; // position within its column (drag-to-rearrange)
+  groupId: string | null; // cards sharing a groupId are clustered
 };
 
 type RetroState = {
@@ -119,6 +120,7 @@ export class RoomDO extends DurableObject<Env> {
         this.retro.cards.forEach((c, i) => {
           c.reactions ??= {};
           c.order ??= i; // tolerate cards persisted before drag-ordering
+          if (c.groupId === undefined) c.groupId = null;
         });
       }
       const p = await ctx.storage.get<PickState>("pick");
@@ -335,23 +337,48 @@ export class RoomDO extends DurableObject<Env> {
           voters: [],
           reactions: {},
           order: maxOrder + 1,
+          groupId: null,
         });
         break;
       }
       case "retroMoveCard": {
         // Collaborative rearrange: any participant can drag a sticky within or across columns.
+        // Moving to a column also pulls the card OUT of any group it was in.
         if (!me) return;
         const tpl = RETRO_TEMPLATES[this.retro.template];
         if (!tpl || !tpl.columns.some((c) => c.id === msg.toColumn)) return;
         const card = this.retro.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
+        const wasGroup = card.groupId;
         card.column = msg.toColumn;
+        card.groupId = null;
         const col = this.retro.cards
           .filter((c) => c.column === msg.toColumn && c.id !== card.id)
           .sort((a, b) => a.order - b.order);
         const idx = Math.max(0, Math.min(Math.trunc(Number(msg.toIndex)) || 0, col.length));
         col.splice(idx, 0, card);
         col.forEach((c, i) => (c.order = i)); // renumber the target column
+        this.dissolveSingletonGroups(wasGroup);
+        break;
+      }
+      case "retroGroupCard": {
+        // Stack one sticky onto another → they share a groupId (votes display summed client-side).
+        if (!me) return;
+        if (msg.cardId === msg.ontoCardId) return;
+        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        const onto = this.retro.cards.find((c) => c.id === msg.ontoCardId);
+        if (!card || !onto) return;
+        const gid = onto.groupId ?? crypto.randomUUID();
+        onto.groupId = gid;
+        const wasGroup = card.groupId;
+        card.groupId = gid;
+        card.column = onto.column; // a group lives in one column
+        card.order = onto.order + 0.5; // sit next to its new groupmate
+        const col = this.retro.cards
+          .filter((c) => c.column === onto.column)
+          .sort((a, b) => a.order - b.order);
+        col.forEach((c, i) => (c.order = i));
+        this.dissolveSingletonGroups(wasGroup);
         break;
       }
       case "retroVote": {
@@ -526,6 +553,13 @@ export class RoomDO extends DurableObject<Env> {
     return !!me && me.id === this.facilitatorId;
   }
 
+  /** A group of one isn't a group — clear its lone member's groupId. */
+  private dissolveSingletonGroups(gid: string | null): void {
+    if (!gid) return;
+    const members = this.retro.cards.filter((c) => c.groupId === gid);
+    if (members.length === 1) members[0].groupId = null;
+  }
+
   private membersFrom(sockets: WebSocket[]): Member[] {
     return sockets
       .map((w) => w.deserializeAttachment() as Member | null)
@@ -596,6 +630,7 @@ export class RoomDO extends DurableObject<Env> {
           })),
           discussed: this.retro.discussed.includes(c.id),
           order: c.order ?? 0,
+          groupId: c.groupId ?? null,
         })),
         votesLeft: me
           ? RETRO_VOTE_BUDGET - this.retro.cards.filter((c) => c.voters.includes(me.id)).length

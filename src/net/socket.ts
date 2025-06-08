@@ -27,6 +27,7 @@ export type RoomClient = {
   retroReact: (cardId: string, emoji: string) => void;
   retroMoveCard: (cardId: string, toColumn: string, toIndex: number) => void;
   retroEditCard: (cardId: string, text: string) => void;
+  retroGroupCard: (cardId: string, ontoCardId: string) => void;
   retroSetAnonymous: (on: boolean) => void;
   retroSpotlight: (cardId: string | null) => void;
   retroPickRandom: () => void;
@@ -127,6 +128,7 @@ export function createRoomClient(
     retroMoveCard: (cardId, toColumn, toIndex) =>
       send({ t: "retroMoveCard", v: 1, cardId, toColumn, toIndex }),
     retroEditCard: (cardId, text) => send({ t: "retroEditCard", v: 1, cardId, text }),
+    retroGroupCard: (cardId, ontoCardId) => send({ t: "retroGroupCard", v: 1, cardId, ontoCardId }),
     retroSetAnonymous: (on) => send({ t: "retroSetAnonymous", v: 1, on }),
     retroSpotlight: (cardId) => send({ t: "retroSpotlight", v: 1, cardId }),
     retroPickRandom: () => send({ t: "retroPickRandom", v: 1 }),

@@ -67,13 +67,29 @@ export function RetroColumn({
     setText("");
   }
 
-  // Drop in the column's open area → append to the end.
+  // Drop in the column's open area → append to the end (and pull out of any group).
   function onColumnDrop(e: React.DragEvent) {
     if (!canAct) return;
     e.preventDefault();
     setDropEnd(false);
     const cardId = e.dataTransfer.getData("text/cardId");
     if (cardId) client.retroMoveCard(cardId, column.id, sorted.length);
+  }
+
+  // Cluster consecutive same-group cards; a group shows once, at its first member's position.
+  type Item =
+    | { type: "card"; card: RetroCardView }
+    | { type: "group"; gid: string; members: RetroCardView[] };
+  const items: Item[] = [];
+  const seenGroups = new Set<string>();
+  for (const card of sorted) {
+    if (card.groupId) {
+      if (seenGroups.has(card.groupId)) continue;
+      seenGroups.add(card.groupId);
+      items.push({ type: "group", gid: card.groupId, members: sorted.filter((c) => c.groupId === card.groupId) });
+    } else {
+      items.push({ type: "card", card });
+    }
   }
 
   return (
@@ -98,25 +114,33 @@ export function RetroColumn({
       </h3>
 
       <ul className="flex flex-col gap-3">
-        {sorted.map((card, i) => (
-          <RetroCard
-            key={card.id}
-            card={card}
-            canAct={canAct}
-            isFacil={isFacil}
-            spotlit={spotlightId === card.id}
-            c={c}
-            client={client}
-            onDropBefore={(e) => {
-              if (!canAct) return;
-              e.preventDefault();
-              e.stopPropagation();
-              setDropEnd(false);
-              const cardId = e.dataTransfer.getData("text/cardId");
-              if (cardId && cardId !== card.id) client.retroMoveCard(cardId, column.id, i);
-            }}
-          />
-        ))}
+        {items.map((item) =>
+          item.type === "group" ? (
+            <RetroGroup
+              key={item.gid}
+              members={item.members}
+              canAct={canAct}
+              isFacil={isFacil}
+              spotlightId={spotlightId}
+              c={c}
+              client={client}
+            />
+          ) : (
+            <RetroCard
+              key={item.card.id}
+              card={item.card}
+              canAct={canAct}
+              isFacil={isFacil}
+              spotlit={spotlightId === item.card.id}
+              c={c}
+              client={client}
+              onGroup={(draggedId) => {
+                setDropEnd(false);
+                client.retroGroupCard(draggedId, item.card.id);
+              }}
+            />
+          ),
+        )}
       </ul>
 
       {canAct && (
@@ -146,7 +170,7 @@ function RetroCard({
   spotlit,
   c,
   client,
-  onDropBefore,
+  onGroup,
 }: {
   card: RetroCardView;
   canAct: boolean;
@@ -154,7 +178,7 @@ function RetroCard({
   spotlit: boolean;
   c: { note: string; edge: string; dot: string; text: string };
   client: RoomClient;
-  onDropBefore: (e: React.DragEvent) => void;
+  onGroup: (draggedId: string) => void;
 }) {
   const [pickReaction, setPickReaction] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -187,15 +211,24 @@ function RetroCard({
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {
         setOver(false);
-        onDropBefore(e);
+        if (!canAct) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const id = e.dataTransfer.getData("text/cardId");
+        if (id && id !== card.id) onGroup(id);
       }}
       style={{ rotate: spotlit || dragging ? "0deg" : `${tilt}deg` }}
       className={`group relative rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_14px_-6px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:rotate-0 hover:shadow-[0_12px_22px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
         canAct ? "cursor-grab active:cursor-grabbing" : ""
       } ${spotlit ? "z-10 scale-[1.03] shadow-[0_16px_30px_-10px_rgba(79,70,229,0.55)] ring-2 ring-iris-400 ring-offset-2" : ""} ${
-        over ? "ring-2 ring-iris-400" : ""
+        over ? "scale-[1.02] ring-2 ring-emerald-400" : ""
       } ${dragging ? "opacity-40" : ""} ${card.discussed && !spotlit ? "opacity-65 saturate-50" : ""}`}
     >
+      {over && (
+        <span className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-[10px] bg-emerald-400/10 text-xs font-bold text-emerald-700">
+          + group
+        </span>
+      )}
       {/* peeled corner */}
       <span
         className={`pointer-events-none absolute bottom-0 right-0 h-4 w-4 rounded-br-[10px] ${c.edge}`}
@@ -337,6 +370,70 @@ function RetroCard({
           )}
         </div>
       </div>
+    </li>
+  );
+}
+
+/** A cluster of stacked stickies. Shows the summed votes; drag a card out to ungroup. */
+function RetroGroup({
+  members,
+  canAct,
+  isFacil,
+  spotlightId,
+  c,
+  client,
+}: {
+  members: RetroCardView[];
+  canAct: boolean;
+  isFacil: boolean;
+  spotlightId: string | null;
+  c: { note: string; edge: string; dot: string; text: string };
+  client: RoomClient;
+}) {
+  const [over, setOver] = useState(false);
+  const sumVotes = members.reduce((s, m) => s + m.votes, 0);
+
+  return (
+    <li
+      onDragOver={(e) => {
+        if (canAct) {
+          e.preventDefault();
+          setOver(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(false);
+      }}
+      onDrop={(e) => {
+        setOver(false);
+        if (!canAct) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const id = e.dataTransfer.getData("text/cardId");
+        if (id && !members.some((m) => m.id === id)) client.retroGroupCard(id, members[0].id);
+      }}
+      className={`rounded-2xl border-2 border-dashed p-2 transition ${
+        over ? "border-emerald-400 bg-emerald-400/5" : "border-slate-300/70 dark:border-white/15"
+      }`}
+    >
+      <div className="mb-1.5 flex items-center gap-2 px-1 text-xs font-semibold">
+        <span className="rounded-full bg-slate-900 px-2 py-0.5 text-white dark:bg-white/15">▲ {sumVotes}</span>
+        <span className="text-slate-400 dark:text-slate-500">· {members.length} grouped — drag one out to split</span>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {members.map((m) => (
+          <RetroCard
+            key={m.id}
+            card={m}
+            canAct={canAct}
+            isFacil={isFacil}
+            spotlit={spotlightId === m.id}
+            c={c}
+            client={client}
+            onGroup={(draggedId) => client.retroGroupCard(draggedId, m.id)}
+          />
+        ))}
+      </ul>
     </li>
   );
 }

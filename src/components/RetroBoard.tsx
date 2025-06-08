@@ -110,12 +110,10 @@ export function RetroBoard({
         </div>
       )}
 
-      {/* the themed wall — each format its own atmosphere */}
-      <div
-        className={`relative overflow-hidden rounded-3xl border border-black/5 bg-gradient-to-br ${theme.panel} ${theme.panelDark} p-4 shadow-inner sm:p-6 dark:border-white/10`}
-      >
+      {/* the board — a clean dot-grid workspace; the theme motif keeps each format's identity */}
+      <div className="dot-grid relative overflow-hidden rounded-3xl border border-slate-200/80 p-4 shadow-inner sm:p-6 dark:border-white/10">
         <span
-          className="pointer-events-none absolute -right-6 -top-8 select-none text-[160px] leading-none opacity-[0.07] dark:opacity-[0.05]"
+          className="pointer-events-none absolute -right-6 -top-8 select-none text-[170px] leading-none opacity-[0.06] dark:opacity-[0.06]"
           aria-hidden
         >
           {theme.motif}

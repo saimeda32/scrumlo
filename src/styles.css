@@ -96,3 +96,15 @@ h2 {
     animation: none;
   }
 }
+
+/* ---- retro board: a clean dot-grid workspace (the stickies are the stars) ---- */
+.dot-grid {
+  background-color: #f6f7f9;
+  background-image: radial-gradient(circle, #d2d7e0 1.1px, transparent 1.1px);
+  background-size: 22px 22px;
+  background-position: -11px -11px;
+}
+html.dark .dot-grid {
+  background-color: #0b0b10;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1.1px, transparent 1.1px);
+}

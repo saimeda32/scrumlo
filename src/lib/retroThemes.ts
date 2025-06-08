@@ -56,7 +56,7 @@ export const RETRO_THEMES: Record<string, RetroTheme> = {
     blurb: "What was a plus, and what would we change next time?",
   },
   kalm: {
-    panel: "from-indigo-50 via-slate-50 to-sky-50",
+    panel: "from-iris-50 via-slate-50 to-sky-50",
     motif: "🔊",
     blurb: "Keep, Add, do Less, do More — turn the dials.",
   },

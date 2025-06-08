@@ -9,7 +9,7 @@ import { RetroBoard } from "../components/RetroBoard";
 import { PickerBoard } from "../components/PickerBoard";
 import { ExportSheet } from "../components/ExportSheet";
 import { StatusTicker } from "../components/StatusTicker";
-import { IconMoon } from "../components/icons";
+import { LogoMark } from "../components/Logo";
 import { FLAVOR } from "../lib/flavor";
 import { buildSessionMarkdown } from "../lib/exportMarkdown";
 
@@ -52,16 +52,16 @@ export default function Room() {
 
   if (ended) {
     return (
-      <div className="grid min-h-screen place-items-center bg-slate-50 px-6 text-center">
+      <div className="grid min-h-screen place-items-center px-6 text-center [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)]">
         <div className="max-w-sm">
-          <IconMoon className="mx-auto h-12 w-12 text-slate-400" />
-          <h2 className="mt-3 text-xl font-bold text-slate-900">This session has ended</h2>
+          <LogoMark size={48} className="mx-auto opacity-90 grayscale" />
+          <h2 className="mt-4 text-xl font-bold text-slate-900">This session has ended</h2>
           <p className="mt-2 text-sm text-slate-500">
             The room expired and was deleted. Nothing was kept — that’s the point.
           </p>
           <a
             href="/"
-            className="mt-6 inline-block rounded-xl bg-indigo-600 px-5 py-2.5 font-semibold text-white hover:bg-indigo-500"
+            className="mt-6 inline-block rounded-xl bg-iris-600 px-5 py-2.5 font-semibold text-white shadow-soft transition hover:bg-iris-500"
           >
             Start a new room
           </a>
@@ -72,7 +72,7 @@ export default function Room() {
 
   if (!estimate || !retro || !pick) {
     return (
-      <div className="grid min-h-screen place-items-center bg-slate-50 text-slate-400">
+      <div className="grid min-h-screen place-items-center text-slate-400 [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)]">
         <StatusTicker phrases={FLAVOR.connecting} />
       </div>
     );
@@ -84,7 +84,7 @@ export default function Room() {
   const canAct = joined;
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col [background:radial-gradient(54rem_32rem_at_50%_-10rem,var(--color-iris-100),transparent_55%)]">
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         {!connected && (
           <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
@@ -108,8 +108,8 @@ export default function Room() {
         />
 
         {!joined && (
-          <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
-            <span className="text-sm font-medium text-indigo-900">
+          <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-iris-200 bg-iris-50 px-4 py-3">
+            <span className="text-sm font-medium text-iris-900">
               You’re watching. Add your name to vote or add cards.
             </span>
             <div className="ml-auto flex items-center gap-2">
@@ -120,11 +120,11 @@ export default function Room() {
                 onKeyDown={(e) => e.key === "Enter" && join()}
                 placeholder="your name"
                 aria-label="Your name"
-                className="w-36 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="w-36 rounded-lg border border-iris-200 bg-white px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-iris-500"
               />
               <button
                 onClick={join}
-                className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500"
+                className="rounded-lg bg-iris-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-iris-500"
               >
                 Join
               </button>

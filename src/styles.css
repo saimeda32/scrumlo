@@ -1,8 +1,30 @@
 @import "tailwindcss";
 
+/* ---- Ephem design system ----------------------------------------------------
+   One cohesive identity: Inter for text, a single iris accent, layered soft
+   shadows for premium depth, and a warm-neutral canvas instead of flat white. */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Iris — the brand accent (indigo→violet). Used for primary actions + focus. */
+  --color-iris-50: #eef1ff;
+  --color-iris-100: #e0e5ff;
+  --color-iris-200: #c7cdfe;
+  --color-iris-300: #a5acfb;
+  --color-iris-400: #828bf6;
+  --color-iris-500: #6366f1;
+  --color-iris-600: #5249e6;
+  --color-iris-700: #463bcb;
+  --color-iris-800: #3a32a3;
+  --color-iris-900: #312e81;
+
+  /* Layered, soft, premium depth (not the default hard ring). */
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lift: 0 2px 6px rgba(15, 23, 42, 0.05), 0 16px 32px -12px rgba(15, 23, 42, 0.22);
+  --shadow-float: 0 8px 40px -8px rgba(99, 102, 241, 0.4);
+}
+
 :root {
-  /* Light-only until the Room's dark theme is fully built (UX board B4) — avoids
-     a dark landing then a blinding light room. Full dark mode is a deferred pass. */
   color-scheme: light;
 }
 
@@ -14,9 +36,22 @@ body,
 
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-family: var(--font-sans);
+  /* a warm, almost-white canvas so cards have something to sit on */
+  background-color: #fafafb;
+  color: #0f172a;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tighten display headings — the premium signal. */
+h1,
+h2 {
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-iris-500) 22%, transparent);
 }
 
 /* ---- reveal motion: the cards flip, the line draws taut, the camps settle ---- */

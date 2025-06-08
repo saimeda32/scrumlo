@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { StatusTicker } from "../components/StatusTicker";
 import { FLAVOR } from "../lib/flavor";
 import { IconEstimate, IconRetro, IconPick } from "../components/icons";
+import { Logo } from "../components/Logo";
 
 // Mock reveal for the hero. Deck index positions (fib): 3→0.43, 5→0.57, 8→0.71, 13→0.86.
 // avg = (3+5+8+13)/4 = 7.25 — computed below, never hardcoded.
@@ -36,13 +37,10 @@ export default function Landing() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-indigo-50/60 via-slate-50 to-slate-50 text-slate-900">
+    <main className="min-h-screen bg-gradient-to-b from-iris-50/60 via-slate-50 to-slate-50 text-slate-900">
       {/* nav */}
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-2">
-          <span className="h-6 w-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500" />
-          <span className="font-bold tracking-tight">Ephem</span>
-        </div>
+        <Logo />
         <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500">
           Open source · AGPL-3.0
         </span>
@@ -51,13 +49,13 @@ export default function Landing() {
       {/* hero */}
       <section className="mx-auto grid max-w-5xl items-center gap-12 px-6 pb-8 pt-8 lg:grid-cols-2 lg:pt-16">
         <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-iris-100 px-3 py-1 text-xs font-semibold text-iris-700">
             No login · Nothing stored · Deleted when you leave
           </span>
           <h1 className="mt-5 text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
             Estimate. Retro.
             <br />
-            <span className="text-indigo-600">Forgotten.</span>
+            <span className="text-iris-600">Forgotten.</span>
           </h1>
           <p className="mt-5 max-w-md text-lg text-slate-600">
             Every planning-poker tool flips the cards and goes quiet. Ephem turns the spread into a
@@ -70,7 +68,7 @@ export default function Landing() {
               onClick={createRoom}
               disabled={busy}
               aria-busy={busy}
-              className="rounded-xl bg-indigo-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:opacity-50"
+              className="rounded-xl bg-iris-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-iris-600/20 transition hover:bg-iris-500 focus-visible:ring-2 focus-visible:ring-iris-500 focus-visible:ring-offset-2 disabled:opacity-50"
             >
               {busy ? <StatusTicker phrases={FLAVOR.creating} /> : "Create a room →"}
             </button>
@@ -81,11 +79,11 @@ export default function Landing() {
                 onKeyDown={(e) => e.key === "Enter" && joinRoom()}
                 placeholder="or enter a room code"
                 aria-label="Room code to join"
-                className="w-40 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus-visible:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="w-40 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus-visible:border-iris-500 focus-visible:ring-2 focus-visible:ring-iris-500"
               />
               <button
                 onClick={joinRoom}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-iris-500"
               >
                 Join
               </button>
@@ -95,10 +93,10 @@ export default function Landing() {
 
         {/* product window */}
         <div className="relative">
-          <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-tr from-indigo-200/40 to-violet-200/30 blur-2xl" />
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-indigo-900/10">
+          <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-tr from-iris-200/40 to-violet-200/30 blur-2xl" />
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-iris-900/10">
             <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5">
-              <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+              <span className="rounded-md bg-iris-50 px-2 py-0.5 text-[10px] font-semibold text-iris-700">
                 Copy invite link
               </span>
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -153,7 +151,7 @@ export default function Landing() {
                 <span>
                   avg <b className="text-slate-700">{AVG}</b> · two camps
                 </span>
-                <span className="rounded-md bg-indigo-600 px-2 py-1 text-[10px] font-semibold text-white">
+                <span className="rounded-md bg-iris-600 px-2 py-1 text-[10px] font-semibold text-white">
                   ↻ Re-estimate
                 </span>
               </div>
@@ -174,8 +172,8 @@ export default function Landing() {
             { Icon: IconRetro, t: "Retro", d: "10 real formats. Anonymous cards, dot-voting." },
             { Icon: IconPick, t: "Pick", d: "Random person, order, or topic. Who goes first?" },
           ].map(({ Icon, t, d }) => (
-            <div key={t} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+            <div key={t} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-iris-50 text-iris-600">
                 <Icon className="h-5 w-5" />
               </div>
               <div className="mt-3 font-semibold">{t}</div>
@@ -193,7 +191,7 @@ export default function Landing() {
         <div className="mx-auto max-w-2xl px-6">
           <h2 className="text-2xl font-bold sm:text-3xl">
             Other tools keep your boards. Ephem keeps{" "}
-            <span className="text-indigo-400">nothing</span> — on purpose.
+            <span className="text-iris-400">nothing</span> — on purpose.
           </h2>
           <p className="mt-4 text-slate-300">
             No database to leak, no account to manage. Each room is one little server that holds your

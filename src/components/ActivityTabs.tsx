@@ -20,9 +20,9 @@ export function ActivityTabs({
         onClick={() => canSwitch && onSwitch(a)}
         className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
           active
-            ? "bg-indigo-50 text-indigo-700"
+            ? "bg-white text-iris-700 shadow-soft"
             : canSwitch
-              ? "text-slate-400 hover:bg-slate-100"
+              ? "text-slate-500 hover:text-slate-800"
               : "cursor-default text-slate-300"
         }`}
       >
@@ -33,7 +33,7 @@ export function ActivityTabs({
   };
 
   return (
-    <div className="mb-5 inline-flex gap-1 rounded-xl border border-slate-200 bg-white p-1">
+    <div className="mb-5 inline-flex gap-1 rounded-xl border border-slate-200/70 bg-slate-100/70 p-1 backdrop-blur-sm">
       {tab("estimate", "Estimate", <IconEstimate className="h-4 w-4" />)}
       {tab("retro", "Retro", <IconRetro className="h-4 w-4" />)}
       {tab("pick", "Pick", <IconPick className="h-4 w-4" />)}

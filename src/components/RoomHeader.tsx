@@ -3,6 +3,7 @@ import type { Member } from "../../shared/protocol";
 import { avatarColor, initials } from "../lib/colors";
 import { IconCrown } from "./icons";
 import { TimerChip } from "./TimerChip";
+import { LogoMark } from "./Logo";
 
 export function RoomHeader({
   room,
@@ -46,15 +47,18 @@ export function RoomHeader({
   }
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-2.5 shadow-soft backdrop-blur-sm">
+      <a href="/" title="Ephem — new room" className="shrink-0">
+        <LogoMark size={22} />
+      </a>
+      <span className="font-mono text-xs text-slate-400">{room}</span>
       <button
         onClick={copyLink}
-        className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="rounded-lg border border-iris-200 bg-iris-50 px-3 py-1.5 text-xs font-semibold text-iris-700 transition hover:bg-iris-100 focus-visible:ring-2 focus-visible:ring-iris-500"
         title="Copy the invite link to share this room"
       >
         {copied ? "Link copied ✓" : "Copy invite link"}
       </button>
-      <span className="font-mono text-xs text-slate-400">{room}</span>
       <span
         data-testid="conn"
         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${

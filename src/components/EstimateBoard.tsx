@@ -27,7 +27,7 @@ export function EstimateBoard({
   return (
     <>
       {/* story bar */}
-      <div className="mb-4 flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+      <div className="mb-4 flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-soft">
         <div className="min-w-0 flex-1">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             Now estimating
@@ -49,7 +49,7 @@ export function EstimateBoard({
         {isFacil && !revealed && (
           <button
             onClick={() => client.reveal()}
-            className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+            className="shrink-0 rounded-xl bg-iris-600 px-4 py-2 text-sm font-semibold text-white hover:bg-iris-500"
           >
             Reveal cards
           </button>
@@ -58,8 +58,8 @@ export function EstimateBoard({
 
       {/* re-vote context: last round's captured takes, so the room converges knowing why */}
       {!revealed && estimate.rationales && Object.keys(estimate.rationales).length > 0 && (
-        <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-indigo-400">
+        <div className="mb-4 rounded-xl border border-iris-100 bg-iris-50/50 px-4 py-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-iris-400">
             Re-voting — last round
           </div>
           <div className="mt-1 text-sm text-slate-600">
@@ -83,7 +83,7 @@ export function EstimateBoard({
       )}
 
       {/* deck */}
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
         <div className="mb-3 flex items-center gap-3">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             Your card
@@ -96,7 +96,7 @@ export function EstimateBoard({
                   onClick={() => client.setDeck(d)}
                   className={`rounded-md px-2 py-1 text-xs font-semibold ${
                     estimate.deck === d
-                      ? "bg-indigo-100 text-indigo-700"
+                      ? "bg-iris-100 text-iris-700"
                       : "text-slate-400 hover:bg-slate-100"
                   }`}
                 >

@@ -68,7 +68,7 @@ export function TimerChip({
     <div className="relative">
       <button
         onClick={() => setMenu((m) => !m)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-iris-500"
       >
         <IconClock className="h-3.5 w-3.5" />
         Timer
@@ -82,7 +82,7 @@ export function TimerChip({
                 onStart(p.s);
                 setMenu(false);
               }}
-              className="rounded px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+              className="rounded px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-iris-50 hover:text-iris-700"
             >
               {p.label}
             </button>

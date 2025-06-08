@@ -51,7 +51,7 @@ export function PickerBoard({
       onClick={() => isFacil && client.pickSetMode(m)}
       className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold ${
         pick.mode === m
-          ? "bg-indigo-100 text-indigo-700"
+          ? "bg-iris-100 text-iris-700"
           : isFacil
             ? "text-slate-400 hover:bg-slate-100"
             : "text-slate-300"
@@ -86,7 +86,7 @@ export function PickerBoard({
             <button
               onClick={() => client.pickSpin()}
               disabled={spinning}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-iris-600 px-5 py-2 text-sm font-semibold text-white hover:bg-iris-500 disabled:opacity-50"
             >
               <IconPick className="h-4 w-4" />
               {spinLabel}
@@ -96,7 +96,7 @@ export function PickerBoard({
       </div>
 
       {pick.mode === "list" && (
-        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
           {isFacil && (
             <input
               value={item}
@@ -109,7 +109,7 @@ export function PickerBoard({
               }}
               placeholder="Add an option / topic, press Enter"
               aria-label="Add a pick option"
-              className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+              className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-iris-500"
             />
           )}
           <div className="flex flex-wrap gap-2">
@@ -135,7 +135,7 @@ export function PickerBoard({
         </div>
       )}
 
-      <div className="grid min-h-[180px] place-items-center rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="grid min-h-[180px] place-items-center rounded-2xl border border-slate-200 bg-white p-8 shadow-soft">
         {spinning ? (
           <div className="text-3xl font-extrabold text-slate-300">{flicker ?? "…"}</div>
         ) : pick.result.length === 0 ? (
@@ -149,7 +149,7 @@ export function PickerBoard({
           <ol className="space-y-1 text-lg font-semibold text-slate-800">
             {pick.result.map((r, i) => (
               <li key={i} className="flex items-center gap-3">
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-indigo-100 text-sm text-indigo-700">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-iris-100 text-sm text-iris-700">
                   {i + 1}
                 </span>
                 {r}
@@ -161,7 +161,7 @@ export function PickerBoard({
             <div className="text-xs uppercase tracking-wide text-slate-400">
               {pick.mode === "person" ? "It’s" : "Picked"}
             </div>
-            <div className="mt-1 text-4xl font-extrabold text-indigo-600">{pick.result[0]}</div>
+            <div className="mt-1 text-4xl font-extrabold text-iris-600">{pick.result[0]}</div>
           </div>
         )}
       </div>

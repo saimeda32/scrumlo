@@ -66,7 +66,7 @@ export function ExportSheet({
         <div className="flex gap-2">
           <button
             onClick={copy}
-            className="flex-1 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+            className="flex-1 rounded-xl bg-iris-600 px-4 py-2 text-sm font-semibold text-white hover:bg-iris-500"
           >
             {copied ? "Copied ✓" : "Copy Markdown"}
           </button>

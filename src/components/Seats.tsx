@@ -41,7 +41,7 @@ export function Seats({
         return (
           <li
             key={m.id}
-            className="relative rounded-2xl border border-slate-200 bg-white p-3 text-center shadow-sm"
+            className="relative rounded-2xl border border-slate-200 bg-white p-3 text-center shadow-soft"
           >
             {!revealed && (
               <span className="absolute right-2 top-2">

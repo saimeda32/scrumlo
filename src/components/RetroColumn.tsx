@@ -130,7 +130,7 @@ function RetroCard({
     <li
       style={{ rotate: spotlit ? "0deg" : `${tilt}deg` }}
       className={`group relative rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_14px_-6px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:rotate-0 hover:shadow-[0_12px_22px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
-        spotlit ? "z-10 scale-[1.03] shadow-[0_16px_30px_-10px_rgba(79,70,229,0.55)] ring-2 ring-indigo-400 ring-offset-2" : ""
+        spotlit ? "z-10 scale-[1.03] shadow-[0_16px_30px_-10px_rgba(79,70,229,0.55)] ring-2 ring-iris-400 ring-offset-2" : ""
       } ${card.discussed && !spotlit ? "opacity-65 saturate-50" : ""}`}
     >
       {/* peeled corner */}
@@ -226,8 +226,8 @@ function RetroCard({
               title={spotlit ? "Stop spotlight" : "Spotlight — focus the room here"}
               className={`text-xs transition ${
                 spotlit
-                  ? "text-indigo-600"
-                  : "text-slate-500/60 opacity-0 hover:text-indigo-600 group-focus-within:opacity-100 group-hover:opacity-100"
+                  ? "text-iris-600"
+                  : "text-slate-500/60 opacity-0 hover:text-iris-600 group-focus-within:opacity-100 group-hover:opacity-100"
               }`}
             >
               ◎

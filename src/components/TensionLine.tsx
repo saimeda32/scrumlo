@@ -165,7 +165,7 @@ export function TensionLine({
               style={{ left: `${c.pos * 100}%` }}
             >
               <div
-                className={`animate-pop flex items-center justify-center rounded-full border-2 border-white shadow-sm ${color}`}
+                className={`animate-pop flex items-center justify-center rounded-full border-2 border-white  shadow-soft ${color}`}
                 style={{ height: size, width: size, animationDelay: `${0.15 + i * 0.08}s` }}
                 title={c.ids.map(nameOf).join(", ")}
               >
@@ -214,7 +214,7 @@ export function TensionLine({
         </p>
       )}
       {typingNames.length > 0 ? (
-        <p className="animate-pulse-soft mt-4 text-center text-xs font-medium text-indigo-500">
+        <p className="animate-pulse-soft mt-4 text-center text-xs font-medium text-iris-500">
           {typingNames.join(" & ")} {typingNames.length > 1 ? "are" : "is"} explaining…
         </p>
       ) : (
@@ -242,11 +242,11 @@ export function TensionLine({
               onFocus={() => client.typing(true)}
               onBlur={() => client.typing(false)}
               placeholder="e.g. the data migration"
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-iris-500"
             />
             <button
               onClick={share}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+              className="rounded-lg bg-iris-600 px-4 py-2 text-sm font-semibold text-white hover:bg-iris-500"
             >
               Share
             </button>
@@ -348,7 +348,7 @@ function ConvergenceTrail({ history }: { history: { lo: number; hi: number; n: n
                 last
                   ? consensus
                     ? "bg-emerald-100 text-emerald-700"
-                    : "bg-indigo-100 text-indigo-700"
+                    : "bg-iris-100 text-iris-700"
                   : "bg-slate-100 text-slate-500"
               }`}
             >
@@ -376,7 +376,7 @@ function ReestimateBar({
       {!fresh && (
         <button
           onClick={() => client.reestimate()}
-          className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 hover:bg-indigo-500"
+          className="rounded-xl bg-iris-600 px-5 py-2.5 text-sm font-semibold text-white  shadow-soft shadow-iris-600/20 hover:bg-iris-500"
         >
           ↻ Re-estimate — keep the conversation
         </button>

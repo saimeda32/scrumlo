@@ -71,9 +71,17 @@ export function createRoomClient(
   );
 
   // Render-first: connect as a spectator immediately. We only send "hello" (become
-  // a participant who can act) once the user picks a name. Stored so reconnects
-  // re-announce automatically.
-  let joinedName: string | null = null;
+  // a participant who can act) once the user picks a name. The name is persisted in
+  // sessionStorage so a PAGE REFRESH auto-rejoins (the clientId restores the same
+  // seat/votes/baton) instead of dropping the user back to spectating.
+  const nameKey = `ephem-name-${room}`;
+  let joinedName: string | null = (() => {
+    try {
+      return sessionStorage.getItem(nameKey);
+    } catch {
+      return null;
+    }
+  })();
 
   const send = (m: ClientMsg) => {
     if (ws.readyState === ReconnectingWebSocket.OPEN) ws.send(JSON.stringify(m));
@@ -103,6 +111,11 @@ export function createRoomClient(
   return {
     join: (name) => {
       joinedName = name;
+      try {
+        sessionStorage.setItem(nameKey, name);
+      } catch {
+        /* private mode — still works for this session in memory */
+      }
       send({ t: "hello", v: 1, name, clientId });
     },
     vote: (card) => send({ t: "vote", v: 1, card }),

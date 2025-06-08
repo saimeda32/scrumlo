@@ -45,6 +45,7 @@ type RetroCard = {
   authorId: string; // server-only; sent as a name only when the room is non-anonymous
   voters: string[]; // memberIds who dot-voted this card
   reactions: Record<string, string[]>; // emoji -> memberIds
+  order: number; // position within its column (drag-to-rearrange)
 };
 
 type RetroState = {
@@ -115,7 +116,10 @@ export class RoomDO extends DurableObject<Env> {
         this.retro.anonymous ??= true; // tolerate state from before authorship/reactions
         this.retro.spotlightId ??= null;
         this.retro.discussed ??= [];
-        for (const c of this.retro.cards) c.reactions ??= {};
+        this.retro.cards.forEach((c, i) => {
+          c.reactions ??= {};
+          c.order ??= i; // tolerate cards persisted before drag-ordering
+        });
       }
       const p = await ctx.storage.get<PickState>("pick");
       if (p) this.pick = p;
@@ -320,6 +324,9 @@ export class RoomDO extends DurableObject<Env> {
         const text = String(msg.text ?? "").trim().slice(0, 280);
         if (!text) return;
         if (this.retro.cards.length >= 300) return; // hard cap
+        const maxOrder = this.retro.cards
+          .filter((c) => c.column === msg.column)
+          .reduce((m, c) => Math.max(m, c.order ?? 0), -1);
         this.retro.cards.push({
           id: crypto.randomUUID(),
           column: msg.column,
@@ -327,7 +334,24 @@ export class RoomDO extends DurableObject<Env> {
           authorId: me.id,
           voters: [],
           reactions: {},
+          order: maxOrder + 1,
         });
+        break;
+      }
+      case "retroMoveCard": {
+        // Collaborative rearrange: any participant can drag a sticky within or across columns.
+        if (!me) return;
+        const tpl = RETRO_TEMPLATES[this.retro.template];
+        if (!tpl || !tpl.columns.some((c) => c.id === msg.toColumn)) return;
+        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        if (!card) return;
+        card.column = msg.toColumn;
+        const col = this.retro.cards
+          .filter((c) => c.column === msg.toColumn && c.id !== card.id)
+          .sort((a, b) => a.order - b.order);
+        const idx = Math.max(0, Math.min(Math.trunc(Number(msg.toIndex)) || 0, col.length));
+        col.splice(idx, 0, card);
+        col.forEach((c, i) => (c.order = i)); // renumber the target column
         break;
       }
       case "retroVote": {
@@ -562,6 +586,7 @@ export class RoomDO extends DurableObject<Env> {
             mine: me ? c.reactions[e].includes(me.id) : false,
           })),
           discussed: this.retro.discussed.includes(c.id),
+          order: c.order ?? 0,
         })),
         votesLeft: me
           ? RETRO_VOTE_BUDGET - this.retro.cards.filter((c) => c.voters.includes(me.id)).length

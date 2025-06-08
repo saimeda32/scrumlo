@@ -55,9 +55,10 @@ export function RetroColumn({
   client: RoomClient;
 }) {
   const [text, setText] = useState("");
+  const [dropEnd, setDropEnd] = useState(false);
   const color = SEMANTIC[column.id] ?? PALETTE[index % PALETTE.length];
   const c = C[color] ?? C.slate;
-  const sorted = [...cards].sort((a, b) => b.votes - a.votes);
+  const sorted = [...cards].sort((a, b) => a.order - b.order);
 
   function add() {
     const t = text.trim();
@@ -66,8 +67,30 @@ export function RetroColumn({
     setText("");
   }
 
+  // Drop in the column's open area → append to the end.
+  function onColumnDrop(e: React.DragEvent) {
+    if (!canAct) return;
+    e.preventDefault();
+    setDropEnd(false);
+    const cardId = e.dataTransfer.getData("text/cardId");
+    if (cardId) client.retroMoveCard(cardId, column.id, sorted.length);
+  }
+
   return (
-    <section className="flex min-h-[260px] flex-col">
+    <section
+      className={`flex min-h-[260px] flex-col rounded-2xl p-1 transition ${
+        dropEnd ? "bg-iris-500/10 ring-2 ring-iris-400/60" : ""
+      }`}
+      onDragOver={(e) => {
+        if (!canAct) return;
+        e.preventDefault();
+        setDropEnd(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropEnd(false);
+      }}
+      onDrop={onColumnDrop}
+    >
       <h3 className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold">
         <span className={`h-2.5 w-2.5 rounded-full ${c.dot}`} aria-hidden />
         <span className={`${c.text} dark:text-slate-100`}>{column.title}</span>
@@ -75,7 +98,7 @@ export function RetroColumn({
       </h3>
 
       <ul className="flex flex-col gap-3">
-        {sorted.map((card) => (
+        {sorted.map((card, i) => (
           <RetroCard
             key={card.id}
             card={card}
@@ -84,6 +107,14 @@ export function RetroColumn({
             spotlit={spotlightId === card.id}
             c={c}
             client={client}
+            onDropBefore={(e) => {
+              if (!canAct) return;
+              e.preventDefault();
+              e.stopPropagation();
+              setDropEnd(false);
+              const cardId = e.dataTransfer.getData("text/cardId");
+              if (cardId && cardId !== card.id) client.retroMoveCard(cardId, column.id, i);
+            }}
           />
         ))}
       </ul>
@@ -115,6 +146,7 @@ function RetroCard({
   spotlit,
   c,
   client,
+  onDropBefore,
 }: {
   card: RetroCardView;
   canAct: boolean;
@@ -122,16 +154,39 @@ function RetroCard({
   spotlit: boolean;
   c: { note: string; edge: string; dot: string; text: string };
   client: RoomClient;
+  onDropBefore: (e: React.DragEvent) => void;
 }) {
   const [pickReaction, setPickReaction] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [over, setOver] = useState(false);
   const tilt = tiltOf(card.id);
 
   return (
     <li
-      style={{ rotate: spotlit ? "0deg" : `${tilt}deg` }}
+      draggable={canAct}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/cardId", card.id);
+        e.dataTransfer.effectAllowed = "move";
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
+      onDragOver={(e) => {
+        if (canAct) {
+          e.preventDefault();
+          setOver(true);
+        }
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        setOver(false);
+        onDropBefore(e);
+      }}
+      style={{ rotate: spotlit || dragging ? "0deg" : `${tilt}deg` }}
       className={`group relative rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_14px_-6px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:rotate-0 hover:shadow-[0_12px_22px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
-        spotlit ? "z-10 scale-[1.03] shadow-[0_16px_30px_-10px_rgba(79,70,229,0.55)] ring-2 ring-iris-400 ring-offset-2" : ""
-      } ${card.discussed && !spotlit ? "opacity-65 saturate-50" : ""}`}
+        canAct ? "cursor-grab active:cursor-grabbing" : ""
+      } ${spotlit ? "z-10 scale-[1.03] shadow-[0_16px_30px_-10px_rgba(79,70,229,0.55)] ring-2 ring-iris-400 ring-offset-2" : ""} ${
+        over ? "ring-2 ring-iris-400" : ""
+      } ${dragging ? "opacity-40" : ""} ${card.discussed && !spotlit ? "opacity-65 saturate-50" : ""}`}
     >
       {/* peeled corner */}
       <span

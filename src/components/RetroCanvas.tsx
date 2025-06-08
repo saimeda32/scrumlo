@@ -207,7 +207,7 @@ function CanvasCard({
       style={{ left: x, top: y, width: CARD_W, rotate: spotlit || drag ? "0deg" : `${tiltOf(card.id)}deg` }}
       className={`group absolute select-none rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_16px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
         canAct ? "cursor-grab active:cursor-grabbing" : ""
-      } ${drag ? "z-30 scale-[1.03] shadow-[0_18px_30px_-10px_rgba(15,23,42,0.5)]" : "z-10"} ${
+      } ${drag ? "z-30 scale-[1.03] shadow-[0_18px_30px_-10px_rgba(15,23,42,0.5)]" : "z-10 hover:z-20"} ${
         spotlit ? "ring-2 ring-iris-500 ring-offset-2" : ""
       } ${card.discussed && !spotlit ? "opacity-65 saturate-50" : ""}`}
     >
@@ -279,12 +279,28 @@ function CanvasCard({
             )}
           </div>
         )}
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1">
           {isFacil && (
-            <button onClick={() => client.retroSpotlight(spotlit ? null : card.id)} title="Spotlight" className={`text-xs ${spotlit ? "text-iris-600" : "text-slate-500/60 opacity-0 hover:text-iris-600 group-hover:opacity-100"}`}>◎</button>
+            <button
+              onClick={() => client.retroSpotlight(spotlit ? null : card.id)}
+              title={spotlit ? "Stop spotlight" : "Spotlight — focus the room here"}
+              aria-label="Spotlight this sticky"
+              className={`grid h-7 w-7 place-items-center rounded-full text-sm transition ${
+                spotlit ? "bg-iris-500 text-white shadow" : "bg-white/70 text-slate-500 hover:bg-white hover:text-iris-600"
+              }`}
+            >
+              ◎
+            </button>
           )}
           {card.mine && (
-            <button onClick={() => client.retroDeleteCard(card.id)} aria-label="Delete" className="text-xs text-slate-500/50 opacity-0 transition hover:text-rose-600 group-hover:opacity-100">✕</button>
+            <button
+              onClick={() => client.retroDeleteCard(card.id)}
+              aria-label="Delete sticky"
+              title="Delete"
+              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 text-sm text-slate-400 transition hover:bg-white hover:text-rose-600"
+            >
+              ✕
+            </button>
           )}
         </div>
       </div>

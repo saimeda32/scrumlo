@@ -12,6 +12,7 @@ import { StatusTicker } from "../components/StatusTicker";
 import { LogoMark } from "../components/Logo";
 import { TimerBanner } from "../components/TimerBanner";
 import { FormatPicker } from "../components/FormatPicker";
+import { RetroGlyph } from "../components/RetroGlyph";
 import { RETRO_TEMPLATES, DECK_LABELS } from "../../shared/protocol";
 import { retroTheme } from "../lib/retroThemes";
 import { FLAVOR } from "../lib/flavor";
@@ -107,8 +108,6 @@ export default function Room() {
           : pick.mode === "order"
             ? "Shuffle order"
             : "Pick from list";
-  const formatIcon =
-    activity === "retro" ? retroTheme(retro.template).motif : activity === "estimate" ? "🃏" : "🎲";
 
   return (
     <div className="flex min-h-screen flex-col [background:radial-gradient(54rem_32rem_at_50%_-10rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(54rem_32rem_at_50%_-10rem,#1b1838,transparent_60%)]">
@@ -177,7 +176,13 @@ export default function Room() {
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-300 dark:hover:text-iris-300"
             title="Browse formats with previews"
           >
-            <span aria-hidden>{formatIcon}</span>
+            {activity === "retro" && (
+              <RetroGlyph
+                template={retro.template}
+                className="h-4 w-4"
+                style={{ color: retroTheme(retro.template).glow }}
+              />
+            )}
             {formatLabel}
             <span className="text-slate-400">▾</span>
           </button>

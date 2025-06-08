@@ -1,6 +1,7 @@
 import type { Activity, PickMode } from "../../shared/protocol";
 import { RETRO_TEMPLATES, DECKS, DECK_LABELS } from "../../shared/protocol";
 import { retroTheme } from "../lib/retroThemes";
+import { RetroGlyph } from "./RetroGlyph";
 import type { RoomClient } from "../net/socket";
 import { IconPerson, IconOrder, IconList } from "./icons";
 
@@ -78,17 +79,24 @@ export function FormatPicker({
                     if (isFacil && !active) client.retroSetTemplate(id);
                     onClose();
                   }}
-                  className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${theme.panel} ${theme.panelDark} p-3 text-left transition enabled:hover:scale-[1.02] disabled:cursor-default ${
+                  className={`group relative overflow-hidden rounded-2xl border bg-white p-3 text-left transition enabled:hover:scale-[1.02] disabled:cursor-default dark:bg-white/5 ${
                     active
                       ? "border-iris-500 ring-2 ring-iris-400"
                       : "border-slate-200/70 dark:border-white/10"
                   }`}
                 >
-                  <span className="pointer-events-none absolute -right-3 -top-4 select-none text-6xl opacity-20">
-                    {theme.motif}
-                  </span>
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    aria-hidden
+                    style={{ background: `radial-gradient(75% 85% at 88% -12%, ${theme.glow}24, transparent 62%)` }}
+                  />
+                  <RetroGlyph
+                    template={id}
+                    className="pointer-events-none absolute -right-2 -top-3 h-16 w-16 opacity-25"
+                    style={{ color: theme.glow }}
+                  />
                   <div className="relative flex items-center gap-1.5">
-                    <span className="text-base">{theme.motif}</span>
+                    <RetroGlyph template={id} className="h-4 w-4 shrink-0" style={{ color: theme.glow }} />
                     <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{tpl.label}</span>
                     {active && <span className="ml-auto text-xs font-bold text-iris-600 dark:text-iris-300">current</span>}
                   </div>
@@ -96,9 +104,9 @@ export function FormatPicker({
                     {tpl.columns.map((col) => (
                       <span
                         key={col.id}
-                        className="rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-black/30 dark:text-slate-300"
+                        className="rounded-full bg-black/5 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-300"
                       >
-                        {col.emoji} {col.title}
+                        {col.title}
                       </span>
                     ))}
                   </div>

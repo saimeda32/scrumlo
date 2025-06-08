@@ -33,8 +33,10 @@ export default function Room() {
     pick,
     timerEndsAt,
     timerDurationMs,
+    cursors,
     setConnected,
     setEnded,
+    setCursors,
     apply,
   } = useRoom();
   const [name, setName] = useState("");
@@ -45,7 +47,7 @@ export default function Room() {
   // Render-first: connect as a spectator on mount; the user names themselves
   // (becomes a participant) only when they want to act.
   useEffect(() => {
-    const client = createRoomClient(room, apply, setConnected, () => setEnded(true));
+    const client = createRoomClient(room, apply, setConnected, () => setEnded(true), setCursors);
     clientRef.current = client;
     return () => client.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -207,7 +209,14 @@ export default function Room() {
               client={client}
             />
           ) : activity === "retro" ? (
-            <RetroBoard retro={retro} isFacil={isFacil} canAct={canAct} client={client} />
+            <RetroBoard
+              retro={retro}
+              isFacil={isFacil}
+              canAct={canAct}
+              client={client}
+              cursors={cursors}
+              you={you ?? ""}
+            />
           ) : (
             <PickerBoard pick={pick} members={members} isFacil={isFacil} client={client} />
           )}

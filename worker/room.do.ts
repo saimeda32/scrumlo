@@ -5,6 +5,7 @@ import type {
   ClientMsg,
   ServerMsg,
   EndedMsg,
+  CursorsMsg,
   Member,
   EstimateView,
   RetroView,
@@ -103,6 +104,8 @@ export class RoomDO extends DurableObject<Env> {
   };
   // Transient presence — who is mid-typing a rationale. Never persisted (it's live-only).
   private typing = new Set<string>();
+  // Live cursor positions on the retro canvas (memberId -> board coords). Live-only.
+  private cursors = new Map<string, { x: number; y: number }>();
   private retro: RetroState = {
     template: "ssc",
     cards: [],
@@ -193,6 +196,15 @@ export class RoomDO extends DurableObject<Env> {
     }
 
     const me = ws.deserializeAttachment() as Member | null;
+
+    // Live cursors: high-frequency + ephemeral, so they bypass the persist/snapshot
+    // path entirely and fan out as a tiny dedicated message.
+    if (msg.t === "cursor") {
+      if (!me) return;
+      this.cursors.set(me.id, { x: Math.round(Number(msg.x) || 0), y: Math.round(Number(msg.y) || 0) });
+      await this.broadcastCursors();
+      return;
+    }
 
     switch (msg.t) {
       case "hello": {
@@ -598,7 +610,10 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
+    const gone = ws.deserializeAttachment() as Member | null;
+    if (gone) this.cursors.delete(gone.id);
     await this.broadcast(ws);
+    await this.broadcastCursors(); // their cursor disappears for everyone
     const remaining = this.ctx.getWebSockets().filter((w) => w !== ws).length;
     // Empty room → short grace (reconnect window) then evaporate; otherwise idle TTL.
     await this.ctx.storage.setAlarm(Date.now() + (remaining === 0 ? EMPTY_GRACE_MS : IDLE_MS));
@@ -631,6 +646,27 @@ export class RoomDO extends DurableObject<Env> {
 
   private isFacilitator(me: Member | null): boolean {
     return !!me && me.id === this.facilitatorId;
+  }
+
+  /** Fan out live cursors as a tiny dedicated message (never a full snapshot). */
+  private async broadcastCursors(): Promise<void> {
+    const sockets = this.ctx.getWebSockets();
+    const nameById = new Map(this.membersFrom(sockets).map((m) => [m.id, m.name]));
+    const cursors = [...this.cursors.entries()]
+      .filter(([id]) => nameById.has(id))
+      .map(([id, p]) => ({ id, name: nameById.get(id)!, x: p.x, y: p.y }));
+    // Send each socket everyone ELSE's cursor — never its own (a client should
+    // see only the native OS pointer for itself, not a duplicated colored one).
+    for (const w of sockets) {
+      const me = w.deserializeAttachment() as Member | null;
+      const mine = me?.id;
+      const forThem = mine ? cursors.filter((c) => c.id !== mine) : cursors;
+      try {
+        w.send(JSON.stringify({ t: "cursors", v: 1, cursors: forThem } satisfies CursorsMsg));
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   /** Flip to revealed and append this round's spread to the convergence trail. */

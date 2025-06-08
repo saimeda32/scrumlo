@@ -14,15 +14,24 @@ export function ExportSheet({
 
   // Render the live board to an image, entirely in the browser (nothing sent).
   async function captureBoard(): Promise<{ dataUrl: string; w: number; h: number } | null> {
-    const node = document.getElementById("ephem-board");
+    // Prefer the full retro canvas (the whole wall) over the clipped viewport.
+    const canvas = document.getElementById("ephem-canvas");
+    const node = canvas ?? document.getElementById("ephem-board");
     if (!node) return null;
     const { toPng } = await import("html-to-image"); // lazy · keep it out of the initial bundle
     const dark = document.documentElement.classList.contains("dark");
-    const dataUrl = await toPng(node, {
+    const opts: Record<string, unknown> = {
       pixelRatio: 2,
       backgroundColor: dark ? "#0a0a0f" : "#fafafb",
       cacheBust: true,
-    });
+    };
+    if (canvas) {
+      // Capture the whole board unscaled, not just the zoomed viewport slice.
+      opts.width = (node as HTMLElement).offsetWidth;
+      opts.height = (node as HTMLElement).offsetHeight;
+      opts.style = { transform: "none" };
+    }
+    const dataUrl = await toPng(node, opts);
     const img = new Image();
     img.src = dataUrl;
     await img.decode();

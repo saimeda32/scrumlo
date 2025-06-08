@@ -17,18 +17,36 @@ export function RetroCanvas({
   canAct,
   isFacil,
   client,
+  cursors,
+  you,
 }: {
   retro: RetroView;
   canAct: boolean;
   isFacil: boolean;
   client: RoomClient;
+  cursors: { id: string; name: string; x: number; y: number }[];
+  you: string;
 }) {
   const [zoom, setZoom] = useState(0.8);
   const [addingZone, setAddingZone] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const viewportRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const lastCursor = useRef(0);
+
+  // Broadcast my cursor (board coords), lightly throttled.
+  function onBoardMove(e: React.PointerEvent) {
+    if (!canAct || !boardRef.current) return;
+    const now = e.timeStamp;
+    if (now - lastCursor.current < 50) return;
+    lastCursor.current = now;
+    const r = boardRef.current.getBoundingClientRect();
+    client.cursor((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom);
+  }
   const cols = retro.columns;
   const W = cols.length * ZONE_W;
+  // Board height fits the content (no giant empty scroll), capped at the canvas max.
+  const boardH = Math.min(CANVAS_H, Math.max(720, ...retro.cards.map((c) => c.y + 200)));
 
   // Fit-to-width on first mount.
   useEffect(() => {
@@ -62,8 +80,8 @@ export function RetroCanvas({
 
       {/* pannable viewport (native scroll) */}
       <div ref={viewportRef} className="dot-grid h-[600px] overflow-auto">
-        <div style={{ width: W * zoom, height: CANVAS_H * zoom }}>
-          <div className="relative origin-top-left" style={{ width: W, height: CANVAS_H, transform: `scale(${zoom})` }}>
+        <div style={{ width: W * zoom, height: boardH * zoom }}>
+          <div ref={boardRef} onPointerMove={onBoardMove} id="ephem-canvas" className="relative origin-top-left dot-grid" style={{ width: W, height: boardH, transform: `scale(${zoom})` }}>
             {/* zone bands */}
             {cols.map((col, i) => {
               const c = columnColor(col.id, i);
@@ -131,6 +149,27 @@ export function RetroCanvas({
                 idx={i}
               />
             ))}
+
+            {/* live cursors — everyone else's pointer, in board coords */}
+            {cursors
+              .filter((cu) => cu.id !== you && cu.x >= 0 && cu.x <= W && cu.y >= 0 && cu.y <= boardH)
+              .map((cu) => (
+                <div
+                  key={cu.id}
+                  className="pointer-events-none absolute z-40 transition-[left,top] duration-75 ease-linear"
+                  style={{ left: cu.x, top: cu.y }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ color: avatarColor(cu.id) }}>
+                    <path d="M2 2 L2 15 L6 11 L9 17 L11.5 16 L8.5 10 L14 10 Z" fill="currentColor" stroke="white" strokeWidth="1.2" strokeLinejoin="round" />
+                  </svg>
+                  <span
+                    className="absolute left-4 top-3 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold text-white shadow"
+                    style={{ background: avatarColor(cu.id) }}
+                  >
+                    {cu.name}
+                  </span>
+                </div>
+              ))}
           </div>
         </div>
       </div>

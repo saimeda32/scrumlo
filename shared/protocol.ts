@@ -241,6 +241,7 @@ export type ClientMsg =
   | { t: "lockDecision"; v: 1; value: string; note: string } // facilitator locks the outcome ("" value = unlock)
   | { t: "estimateQueueAdd"; v: 1; stories: string[] } // queue stories to estimate
   | { t: "estimateNextStory"; v: 1 } // log current decision, advance to the next story
+  | { t: "cursor"; v: 1; x: number; y: number } // live cursor position on the retro canvas
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
   | { t: "endRoom"; v: 1 } // facilitator kills the room now
@@ -290,4 +291,11 @@ export type Snapshot = {
 /** server -> client: the room has expired and been deleted. */
 export type EndedMsg = { t: "ended"; v: 1 };
 
-export type ServerMsg = Snapshot | EndedMsg;
+/** server -> client: lightweight live cursors (not a full snapshot, sent often). */
+export type CursorsMsg = {
+  t: "cursors";
+  v: 1;
+  cursors: { id: string; name: string; x: number; y: number }[];
+};
+
+export type ServerMsg = Snapshot | EndedMsg | CursorsMsg;

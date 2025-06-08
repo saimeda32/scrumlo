@@ -11,8 +11,8 @@ const PICK_MODES: { mode: PickMode; label: string; desc: string; Icon: typeof Ic
 ];
 
 /**
- * A visual chooser for the current activity — retro format, estimation deck, or
- * picker mode — with a small preview of each. The facilitator picks; everyone
+ * A visual chooser for the current activity · retro format, estimation deck, or
+ * picker mode · with a small preview of each. The facilitator picks; everyone
  * else can browse. Makes the formats discoverable instead of buried in a toolbar.
  */
 export function FormatPicker({

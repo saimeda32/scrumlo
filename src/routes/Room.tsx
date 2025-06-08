@@ -71,7 +71,7 @@ export default function Room() {
           <LogoMark size={48} className="mx-auto opacity-90 grayscale" />
           <h2 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">This session has ended</h2>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            The room expired and was deleted. Nothing was kept — that’s the point.
+            The room expired and was deleted. Nothing was kept · that’s the point.
           </p>
           <a
             href="/"
@@ -183,7 +183,7 @@ export default function Room() {
           </button>
         </div>
         <p className="mt-2 mb-5 text-xs text-slate-500 dark:text-slate-400">
-          One link runs your whole ceremony —{" "}
+          One link runs your whole ceremony:{" "}
           <span className="font-semibold text-slate-700 dark:text-slate-200">Estimate</span>,{" "}
           <span className="font-semibold text-slate-700 dark:text-slate-200">Retro</span>, and{" "}
           <span className="font-semibold text-slate-700 dark:text-slate-200">Pick</span> in the same
@@ -228,7 +228,7 @@ export default function Room() {
         )}
       </main>
       <footer className="border-t border-slate-200/70 bg-white/40 py-4 text-center text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-500">
-        Nothing is stored — the room is deleted when everyone leaves.
+        Nothing is stored · the room is deleted when everyone leaves.
       </footer>
     </div>
   );

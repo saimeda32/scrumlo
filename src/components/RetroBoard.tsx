@@ -2,6 +2,16 @@ import type { RetroView } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { RetroColumn } from "./RetroColumn";
 import { retroTheme } from "../lib/retroThemes";
+import { RetroGlyph } from "./RetroGlyph";
+
+// Fixed scatter slots for the themed scene props (faint, behind the content).
+const SCENE_SLOTS = [
+  { top: "9%", left: "2%", size: 60, rot: -10, op: 0.1 },
+  { top: "56%", left: "91%", size: 104, rot: 12, op: 0.09 },
+  { top: "82%", left: "7%", size: 54, rot: 8, op: 0.09 },
+  { top: "30%", left: "60%", size: 46, rot: -7, op: 0.07 },
+  { top: "72%", left: "46%", size: 76, rot: 5, op: 0.06 },
+];
 
 export function RetroBoard({
   retro,
@@ -19,6 +29,11 @@ export function RetroBoard({
   const discussedCount = retro.cards.filter((c) => c.discussed).length;
   const anyLeft = discussedCount < total;
   const theme = retroTheme(retro.template);
+  // Lay the board out to the format's own column count, so a 4-zone format (Avengers,
+  // GOT, Sailboat…) fills one row of 4 instead of dropping the 4th onto a second row.
+  const n = retro.columns.length;
+  const lgCols =
+    n >= 5 ? "lg:grid-cols-5" : n === 4 ? "lg:grid-cols-4" : n === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3";
   return (
     <>
       <div className="mb-4 flex items-center gap-3">
@@ -29,7 +44,7 @@ export function RetroBoard({
           <button
             onClick={() => client.retroSetAnonymous(!retro.anonymous)}
             className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-400 dark:hover:text-iris-300"
-            title={retro.anonymous ? "Currently anonymous — click to show names" : "Currently showing names — click to hide"}
+            title={retro.anonymous ? "Currently anonymous · click to show names" : "Currently showing names · click to hide"}
           >
             {retro.anonymous ? "🕶 Anonymous" : "🙂 Names shown"}
           </button>
@@ -51,7 +66,7 @@ export function RetroBoard({
           ) : (
             <>
               <span className="rounded-xl bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
-                ✓ Every sticky discussed — nice work
+                ✓ Every sticky discussed · nice work
               </span>
               <button
                 onClick={() => client.retroResetDiscussed()}
@@ -74,7 +89,7 @@ export function RetroBoard({
           <span className="mt-0.5 text-iris-500 dark:text-iris-300">◎</span>
           <div className="min-w-0 flex-1">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-iris-400">
-              Spotlight — everyone’s looking here
+              Spotlight · everyone’s looking here
             </div>
             <div className="mt-0.5 whitespace-pre-wrap break-words text-sm font-medium text-slate-800 dark:text-slate-100">
               {spotlit.text}
@@ -91,20 +106,44 @@ export function RetroBoard({
         </div>
       )}
 
-      {/* the board — a clean dot-grid workspace; the theme motif keeps each format's identity */}
+      {/* the board · a dot-grid workspace with the theme's color mood + scene motif */}
       <div className="dot-grid relative overflow-hidden rounded-3xl border border-slate-200/80 p-4 shadow-inner sm:p-6 dark:border-white/10">
-        <span
-          className="pointer-events-none absolute -right-6 -top-8 select-none text-[170px] leading-none opacity-[0.06] dark:opacity-[0.06]"
+        {/* theme color wash · gives each format a mood instead of flat grey */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-70 dark:opacity-50"
           aria-hidden
-        >
-          {theme.motif}
-        </span>
-        <p className="relative mb-5 flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-          <span className="text-lg" aria-hidden>{theme.motif}</span>
+          style={{
+            background: `radial-gradient(80% 70% at 82% -8%, ${theme.glow}2e, transparent 60%), radial-gradient(55% 55% at 6% 112%, ${theme.glow}1f, transparent 60%)`,
+          }}
+        />
+        {/* bespoke glyph art · custom marks, tinted with the theme accent (no stock emoji) */}
+        <RetroGlyph
+          template={retro.template}
+          className="pointer-events-none absolute -bottom-16 -right-12 h-[320px] w-[320px] opacity-[0.12]"
+          style={{ color: theme.glow }}
+        />
+        {SCENE_SLOTS.slice(0, 3).map((s, i) => (
+          <RetroGlyph
+            key={i}
+            template={retro.template}
+            className="pointer-events-none absolute"
+            style={{
+              top: s.top,
+              left: s.left,
+              width: s.size,
+              height: s.size,
+              opacity: s.op,
+              transform: `rotate(${s.rot}deg)`,
+              color: theme.glow,
+            }}
+          />
+        ))}
+        <p className="relative mb-5 flex items-center gap-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+          <RetroGlyph template={retro.template} className="h-5 w-5 shrink-0" style={{ color: theme.glow }} />
           {theme.blurb}
         </p>
 
-        <div className="relative grid gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`relative grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 ${lgCols}`}>
           {retro.columns.map((col, i) => (
             <RetroColumn
               key={col.id}

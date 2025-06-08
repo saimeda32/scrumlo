@@ -16,7 +16,7 @@ export function ExportSheet({
   async function captureBoard(): Promise<{ dataUrl: string; w: number; h: number } | null> {
     const node = document.getElementById("ephem-board");
     if (!node) return null;
-    const { toPng } = await import("html-to-image"); // lazy — keep it out of the initial bundle
+    const { toPng } = await import("html-to-image"); // lazy · keep it out of the initial bundle
     const dark = document.documentElement.classList.contains("dark");
     const dataUrl = await toPng(node, {
       pixelRatio: 2,
@@ -104,7 +104,7 @@ export function ExportSheet({
           </button>
         </div>
         <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
-          The room forgets when you leave — paste this into Slack, Jira, or a doc to keep what
+          The room forgets when you leave · paste this into Slack, Jira, or a doc to keep what
           matters. Nothing is sent anywhere; this is built in your browser.
         </p>
         <textarea
@@ -130,7 +130,7 @@ export function ExportSheet({
 
         <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
           <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-            Or grab a picture of the board, exactly as it looks now — so everyone keeps the same view.
+            Or grab a picture of the board, exactly as it looks now · so everyone keeps the same view.
           </p>
           <div className="flex gap-2">
             <button

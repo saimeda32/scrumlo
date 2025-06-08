@@ -1,4 +1,4 @@
-// Monoline icon set (1.75px stroke, currentColor) — replaces full-color OS emoji
+// Monoline icon set (1.75px stroke, currentColor) · replaces full-color OS emoji
 // that render inconsistently per-OS and pull the brand toward "toy".
 
 type IconProps = { className?: string };

@@ -1,4 +1,4 @@
-// Ephem's mark: a crescent moon in the iris badge — the ephemeral motif
+// Ephem's mark: a crescent moon in the iris badge · the ephemeral motif
 // ("estimate, retro, forgotten"; the room fades when everyone leaves).
 
 export function LogoMark({ size = 26, className = "" }: { size?: number; className?: string }) {

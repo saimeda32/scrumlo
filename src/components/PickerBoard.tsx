@@ -110,7 +110,7 @@ export function PickerBoard({
                   setItem("");
                 }
               }}
-              placeholder="Add options — paste a comma-separated list, press Enter"
+              placeholder="Add options · paste a comma-separated list, press Enter"
               aria-label="Add pick options (comma-separated)"
               className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
@@ -170,7 +170,7 @@ export function PickerBoard({
       </div>
 
       <p className="mt-8 text-xs text-slate-400 dark:text-slate-500">
-        A fair random picker for “who goes first?” — fast, and forgotten when the room ends.
+        A fair random picker for “who goes first?” · fast, and forgotten when the room ends.
       </p>
     </div>
   );

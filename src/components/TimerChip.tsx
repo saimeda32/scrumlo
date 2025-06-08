@@ -20,7 +20,7 @@ export function TimerChip({
 }) {
   const [menu, setMenu] = useState(false);
 
-  // A running timer is shown by the prominent TimerBanner — and only the
+  // A running timer is shown by the prominent TimerBanner · and only the
   // facilitator gets the start control here.
   if (endsAt !== null || !isFacil) return null;
 

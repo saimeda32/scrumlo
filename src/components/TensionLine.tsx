@@ -6,7 +6,7 @@ import { numericValue } from "../lib/colors";
 
 /**
  * Reveal-to-Resolution. The protagonist of the reveal: a single axis showing the
- * whole distribution — every camp, not just the two extremes. On agreement it's
+ * whole distribution · every camp, not just the two extremes. On agreement it's
  * calm; on a spread it pulls taut between the low and high camps, asks each outlier
  * one line ("what are you pricing?"), and offers a one-tap re-vote so the round
  * converges in place instead of going silent.
@@ -82,7 +82,7 @@ export function TensionLine({
   const median = sorted[Math.floor((sorted.length - 1) / 2)];
   const medianCard = scale.find((c) => numericValue(c) === median) ?? String(median);
 
-  // Text alternative — the distribution in words (color is not the only signal).
+  // Text alternative · the distribution in words (color is not the only signal).
   const distText =
     `Vote distribution: ${numeric.length} votes from ${min} to ${max}, median ${median}. ` +
     clusters.map((c) => `${c.card} (${c.ids.map(nameOf).join(", ")})`).join("; ") + ".";
@@ -91,7 +91,7 @@ export function TensionLine({
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-8 text-center shadow-soft dark:border-emerald-500/25 dark:bg-emerald-500/10">
         <div className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-300">Everyone said {clusters[0].card}</div>
-        <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">No tension — that's a clean estimate. Lock it in.</div>
+        <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">No tension · that's a clean estimate. Lock it in.</div>
         <div className="mx-auto mt-5 max-w-md text-left">
           <DecisionBar
             decision={estimate.decision}
@@ -142,7 +142,7 @@ export function TensionLine({
         client={client}
       />
 
-      {/* convergence trail — the spread shrinking, round over round */}
+      {/* convergence trail · the spread shrinking, round over round */}
       {estimate.history.length >= 2 && <ConvergenceTrail history={estimate.history} />}
 
       {/* the taut line with every camp */}
@@ -194,7 +194,7 @@ export function TensionLine({
             {c.ids.map(nameOf).join(", ")}
           </span>
         ))}
-        <span className="text-slate-400 dark:text-slate-500"> — median {median}</span>
+        <span className="text-slate-400 dark:text-slate-500"> · median {median}</span>
       </div>
 
       {/* the captured "why" */}
@@ -231,7 +231,7 @@ export function TensionLine({
       {youOutlier && !youHasRationale && (
         <div className="mx-auto mt-6 max-w-md">
           <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            In a few words — what are you pricing at {estimate.yourVote}?
+            In a few words · what are you pricing at {estimate.yourVote}?
           </label>
           <div className="mt-1.5 flex gap-2">
             <input
@@ -266,7 +266,7 @@ export function TensionLine({
   );
 }
 
-/** Lock the outcome — the agreed number + the reason. The artifact the team keeps. */
+/** Lock the outcome · the agreed number + the reason. The artifact the team keeps. */
 function DecisionBar({
   decision,
   isFacil,
@@ -291,7 +291,7 @@ function DecisionBar({
         </span>
         <div className="min-w-0 flex-1 text-sm">
           <span className="font-semibold text-emerald-700 dark:text-emerald-300">Locked</span>
-          {decision.note && <span className="text-slate-600 dark:text-slate-300"> — {decision.note}</span>}
+          {decision.note && <span className="text-slate-600 dark:text-slate-300"> · {decision.note}</span>}
         </div>
         {isFacil && (
           <button
@@ -332,7 +332,7 @@ function DecisionBar({
   );
 }
 
-/** The spread shrinking, round over round — the room visibly converging. */
+/** The spread shrinking, round over round · the room visibly converging. */
 function ConvergenceTrail({ history }: { history: { lo: number; hi: number; n: number }[] }) {
   return (
     <div className="mb-6 flex flex-wrap items-center justify-center gap-2 text-xs">
@@ -361,7 +361,7 @@ function ConvergenceTrail({ history }: { history: { lo: number; hi: number; n: n
   );
 }
 
-/** The action that turns "interesting chart" into "the round resolves" — re-vote in place. */
+/** The action that turns "interesting chart" into "the round resolves" · re-vote in place. */
 function ReestimateBar({
   client,
   className = "",
@@ -378,7 +378,7 @@ function ReestimateBar({
           onClick={() => client.reestimate()}
           className="rounded-xl bg-iris-600 px-5 py-2.5 text-sm font-semibold text-white  shadow-soft shadow-iris-600/20 hover:bg-iris-500"
         >
-          ↻ Re-estimate — keep the conversation
+          ↻ Re-estimate · keep the conversation
         </button>
       )}
       <button

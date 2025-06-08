@@ -111,10 +111,14 @@ export function RetroColumn({
       }}
       onDrop={onColumnDrop}
     >
-      <h3 className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold">
-        <span className={`h-2.5 w-2.5 rounded-full ${c.dot}`} aria-hidden />
-        <span className={`${c.text} dark:text-slate-100`}>{column.title}</span>
-        <span className="ml-auto text-xs font-normal text-slate-400 dark:text-slate-500">{cards.length}</span>
+      <h3 className="mb-3 flex items-center gap-2 px-1">
+        <span className={`h-3 w-3 rounded-full ${c.dot} shadow-sm ring-2 ring-white/70 dark:ring-white/10`} aria-hidden />
+        <span className={`text-lg font-extrabold tracking-tight ${c.text} dark:text-slate-100`}>
+          {column.title}
+        </span>
+        <span className="ml-auto grid h-5 min-w-[20px] place-items-center rounded-full bg-black/5 px-1.5 text-xs font-bold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+          {cards.length}
+        </span>
       </h3>
 
       <ul className="flex flex-col gap-3">
@@ -157,10 +161,11 @@ export function RetroColumn({
               add();
             }
           }}
-          placeholder="+ jot a sticky…"
+          placeholder="✍️  write a sticky…"
           aria-label={`Add a card to ${column.title}`}
-          rows={1}
-          className="mt-3 w-full resize-none rounded-lg border border-dashed border-slate-300 bg-white/50 px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400 focus:bg-white dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-white/10"
+          rows={2}
+          style={{ rotate: "-0.7deg" }}
+          className={`mt-3 w-full resize-none rounded-[10px] px-3.5 py-3 text-[15px] font-medium text-slate-800 shadow-[0_4px_10px_-6px_rgba(15,23,42,0.3)] outline-none transition-all duration-200 placeholder:text-slate-700/55 focus:-translate-y-0.5 focus:rotate-0 focus:shadow-[0_12px_22px_-8px_rgba(15,23,42,0.45)] focus:ring-2 focus:ring-white/60 ${c.note}`}
         />
       )}
     </section>
@@ -353,7 +358,7 @@ function RetroCard({
             <button
               onClick={() => client.retroSpotlight(spotlit ? null : card.id)}
               aria-label={spotlit ? "Stop spotlight" : "Spotlight this card"}
-              title={spotlit ? "Stop spotlight" : "Spotlight — focus the room here"}
+              title={spotlit ? "Stop spotlight" : "Spotlight · focus the room here"}
               className={`text-xs transition ${
                 spotlit
                   ? "text-iris-600"
@@ -422,7 +427,7 @@ function RetroGroup({
     >
       <div className="mb-1.5 flex items-center gap-2 px-1 text-xs font-semibold">
         <span className="rounded-full bg-slate-900 px-2 py-0.5 text-white dark:bg-white/15">▲ {sumVotes}</span>
-        <span className="text-slate-400 dark:text-slate-500">· {members.length} grouped — drag one out to split</span>
+        <span className="text-slate-400 dark:text-slate-500">· {members.length} grouped · drag one out to split</span>
       </div>
       <ul className="flex flex-col gap-2">
         {members.map((m) => (

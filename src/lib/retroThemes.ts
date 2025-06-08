@@ -1,101 +1,48 @@
-// Each retro format is its own little world — not the same wall with a new heading.
-// A theme gives the board its atmosphere (gradient + motif + a one-line scene-setter)
-// so Sailboat feels like the sea and Three Little Pigs feels like the houses.
-// `panelDark` keeps that per-theme tint alive in dark mode (dark: classes are literal
-// so Tailwind generates them).
+// Each retro format is its own world. A theme gives the board its mood (an accent
+// glow), and a one-line scene-setter. The visual mark is drawn in RetroGlyph (custom,
+// not emoji). `motif` stays for small contextual chips (e.g. the format picker).
 
 export type RetroTheme = {
-  panel: string; // light gradient for the board surface
-  panelDark: string; // dark-mode gradient (dark: prefixed, same hue, deep)
-  motif: string; // big faint emoji watermark
+  glow: string; // accent hex for the board's color wash + glyph tint
+  motif: string; // small emoji used only in compact chips
   blurb: string; // scene-setting line under the title
 };
 
 const FALLBACK: RetroTheme = {
-  panel: "from-slate-100 to-slate-50",
-  panelDark: "dark:from-slate-900 dark:via-slate-950 dark:to-slate-900",
+  glow: "#94a3b8",
   motif: "🗒️",
   blurb: "Drop a sticky in the column it belongs to.",
 };
 
 export const RETRO_THEMES: Record<string, RetroTheme> = {
-  ssc: {
-    panel: "from-emerald-50 via-slate-50 to-rose-50",
-    panelDark: "dark:from-emerald-950 dark:via-slate-950 dark:to-rose-950",
-    motif: "🚦",
-    blurb: "Green to start, red to stop, blue to keep — like a traffic light for the team.",
-  },
-  msg: {
-    panel: "from-rose-100 via-amber-50 to-emerald-100",
-    panelDark: "dark:from-rose-950 dark:via-slate-950 dark:to-emerald-950",
-    motif: "🎭",
-    blurb: "How did the sprint feel? Mad on the left, glad on the right.",
-  },
-  wlww: {
-    panel: "from-emerald-50 via-slate-50 to-violet-50",
-    panelDark: "dark:from-emerald-950 dark:via-slate-950 dark:to-violet-950",
-    motif: "📋",
-    blurb: "What went well, what didn’t, and what we’ll actually do about it.",
-  },
-  fourls: {
-    panel: "from-sky-50 via-slate-50 to-violet-50",
-    panelDark: "dark:from-sky-950 dark:via-slate-950 dark:to-violet-950",
-    motif: "💡",
-    blurb: "Liked, Learned, Lacked, Longed for — the four Ls of the sprint.",
-  },
-  daki: {
-    panel: "from-rose-50 via-slate-50 to-sky-50",
-    panelDark: "dark:from-rose-950 dark:via-slate-950 dark:to-sky-950",
-    motif: "⚙️",
-    blurb: "Tune the machine: Drop, Add, Keep, Improve.",
-  },
+  ssc: { glow: "#34d399", motif: "🚦", blurb: "Green to go, red to halt, blue to hold the line." },
+  msg: { glow: "#fbbf24", motif: "🎭", blurb: "How did the sprint feel? Mad on the left, glad on the right." },
+  wlww: { glow: "#34d399", motif: "📋", blurb: "What worked, what didn’t, and what we’ll actually do next." },
+  fourls: { glow: "#38bdf8", motif: "💡", blurb: "Liked, Learned, Lacked, Longed for. The four Ls." },
+  daki: { glow: "#38bdf8", motif: "⚙️", blurb: "Tune the machine: Drop, Add, Keep, Improve." },
   sailboat: {
-    panel: "from-sky-200 via-sky-50 to-amber-100",
-    panelDark: "dark:from-sky-950 dark:via-slate-950 dark:to-amber-950",
+    glow: "#38bdf8",
     motif: "⛵",
-    blurb: "Wind pushes us forward · anchors hold us back · rocks are the risks ahead · the island is the goal.",
+    blurb: "Wind moves us, anchors hold us, rocks are the risk, the island is the goal.",
   },
-  starfish: {
-    panel: "from-amber-50 via-orange-50 to-sky-100",
-    panelDark: "dark:from-amber-950 dark:via-slate-950 dark:to-sky-950",
-    motif: "🌟",
-    blurb: "Keep, more, less, start, stop — five arms of the starfish.",
-  },
-  plusdelta: {
-    panel: "from-emerald-50 via-slate-50 to-violet-50",
-    panelDark: "dark:from-emerald-950 dark:via-slate-950 dark:to-violet-950",
-    motif: "➕",
-    blurb: "What was a plus, and what would we change next time?",
-  },
-  kalm: {
-    panel: "from-iris-50 via-slate-50 to-sky-50",
-    panelDark: "dark:from-sky-950 dark:via-slate-950 dark:to-sky-950",
-    motif: "🔊",
-    blurb: "Keep, Add, do Less, do More — turn the dials.",
-  },
-  pigs: {
-    panel: "from-amber-100 via-orange-50 to-rose-100",
-    panelDark: "dark:from-amber-950 dark:via-slate-950 dark:to-rose-950",
-    motif: "🐷",
-    blurb: "Straw, sticks, or bricks — how solid is what we built?",
-  },
+  starfish: { glow: "#fbbf24", motif: "🌟", blurb: "Keep, more, less, start, stop. Five arms, one team." },
+  plusdelta: { glow: "#34d399", motif: "➕", blurb: "What was a plus, and what would you change?" },
+  kalm: { glow: "#818cf8", motif: "🔊", blurb: "Keep, Add, Less, More. Turn the dials." },
+  pigs: { glow: "#fb923c", motif: "🐷", blurb: "Straw, sticks, or bricks. How solid is what we built?" },
   got: {
-    panel: "from-slate-200 via-sky-50 to-rose-100",
-    panelDark: "dark:from-slate-900 dark:via-sky-950 dark:to-rose-950",
+    glow: "#60a5fa",
     motif: "🐉",
-    blurb: "Winter is coming — our throne wins, the wall we hold, the walkers ahead, and our dragons.",
+    blurb: "Winter is coming. Hold the wall, name the walkers, count your dragons.",
   },
   avengers: {
-    panel: "from-rose-100 via-amber-50 to-sky-100",
-    panelDark: "dark:from-rose-950 dark:via-slate-950 dark:to-sky-950",
+    glow: "#f87171",
     motif: "🦸",
-    blurb: "Earth's mightiest sprint — what we assembled, the stones that powered us, our Thanos.",
+    blurb: "Earth’s mightiest sprint. What we assembled, what powered us, our Thanos.",
   },
   starwars: {
-    panel: "from-slate-200 via-amber-50 to-sky-100",
-    panelDark: "dark:from-slate-950 dark:via-amber-950 dark:to-sky-950",
+    glow: "#818cf8",
     motif: "✨",
-    blurb: "A long time ago, this sprint… the Force with us, the rebellion to start, the Dark Side to drop.",
+    blurb: "The Force with us, the rebellion to start, the Dark Side to drop.",
   },
 };
 

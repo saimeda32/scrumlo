@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { StatusTicker } from "../components/StatusTicker";
 import { FLAVOR } from "../lib/flavor";
@@ -6,8 +6,58 @@ import { IconEstimate, IconRetro, IconPick } from "../components/icons";
 import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
 
+// A live, count-up tally of rooms ever run (one global integer on the edge · no DB).
+function RoomsCounter() {
+  const [target, setTarget] = useState<number | null>(null);
+  const [val, setVal] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      fetch("/api/stats")
+        .then((r) => r.json())
+        .then((d: { count: number }) => alive && setTarget(d.count))
+        .catch(() => {});
+    load();
+    const id = setInterval(load, 15000); // gently live
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (target === null) return;
+    const start = Math.max(0, target - 60);
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - t0) / 1100);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setVal(Math.round(start + (target - start) * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+
+  if (target === null) return null;
+  return (
+    <div className="mt-6 inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+      </span>
+      <span className="font-bold tabular-nums text-slate-900 dark:text-white">
+        {val.toLocaleString()}
+      </span>
+      sprint rooms run, then forgotten.
+    </div>
+  );
+}
+
 // Mock reveal for the hero. Deck index positions (fib): 3→0.43, 5→0.57, 8→0.71, 13→0.86.
-// avg = (3+5+8+13)/4 = 7.25 — computed below, never hardcoded.
+// avg = (3+5+8+13)/4 = 7.25 · computed below, never hardcoded.
 const SEATS = [
   { v: 3, n: "Priya", pos: 0.43, kind: "low" as const },
   { v: 5, n: "Sai", pos: 0.57, kind: "mid" as const },
@@ -63,7 +113,7 @@ export default function Landing() {
           </h1>
           <p className="mt-5 max-w-md text-lg text-slate-600 dark:text-slate-300">
             Every planning-poker tool flips the cards and goes quiet. Ephem turns the spread into a
-            conversation — the outliers say what they're pricing, then you re-vote. Plus retro and a
+            conversation · the outliers say what they're pricing, then you re-vote. Plus retro and a
             name-picker, all in one no-login link that deletes itself when everyone leaves.
           </p>
 
@@ -93,6 +143,8 @@ export default function Landing() {
               </button>
             </div>
           </div>
+
+          <RoomsCounter />
         </div>
 
         {/* product window */}
@@ -171,7 +223,7 @@ export default function Landing() {
             {
               Icon: IconEstimate,
               t: "Estimate",
-              d: "Blind-reveal poker that doesn’t go quiet — the spread becomes a conversation, then you re-vote.",
+              d: "Blind-reveal poker that doesn’t go quiet · the spread becomes a conversation, then you re-vote.",
             },
             { Icon: IconRetro, t: "Retro", d: "10 real formats. Anonymous cards, dot-voting." },
             { Icon: IconPick, t: "Pick", d: "Random person, order, or topic. Who goes first?" },
@@ -186,21 +238,21 @@ export default function Landing() {
           ))}
         </div>
         <p className="mt-5 text-center text-sm text-slate-500 dark:text-slate-400">
-          All three in one room — the facilitator switches live and everyone follows.
+          All three in one room · the facilitator switches live and everyone follows.
         </p>
       </section>
 
-      {/* the wedge — contrasting dark band */}
+      {/* the wedge · contrasting dark band */}
       <section className="bg-slate-900 py-16 text-center text-white">
         <div className="mx-auto max-w-2xl px-6">
           <h2 className="text-2xl font-bold sm:text-3xl">
             Other tools keep your boards. Ephem keeps{" "}
-            <span className="text-iris-400">nothing</span> — on purpose.
+            <span className="text-iris-400">nothing</span> · on purpose.
           </h2>
           <p className="mt-4 text-slate-300">
             No database to leak, no account to manage. Each room is one little server that holds your
             votes and cards only while you're there, then deletes itself. It's open-source, so you
-            can read exactly how — it's not a promise in a privacy policy, it's the architecture.
+            can read exactly how · it's not a promise in a privacy policy, it's the architecture.
           </p>
           <button
             onClick={createRoom}
@@ -212,7 +264,7 @@ export default function Landing() {
       </section>
 
       <footer className="mx-auto max-w-3xl px-6 py-10 text-center text-xs leading-relaxed text-slate-500 dark:text-slate-500">
-        Free, open-source planning poker and sprint retrospectives — no login, no database,
+        Free, open-source planning poker and sprint retrospectives · no login, no database,
         anonymous, ephemeral, self-hostable. Estimate. Retro. Forgotten.
       </footer>
     </main>

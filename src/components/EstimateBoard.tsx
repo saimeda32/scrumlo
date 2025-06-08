@@ -60,7 +60,7 @@ export function EstimateBoard({
       {!revealed && estimate.rationales && Object.keys(estimate.rationales).length > 0 && (
         <div className="mb-4 rounded-xl border border-iris-100 bg-iris-50/50 px-4 py-3 dark:border-iris-500/20 dark:bg-iris-500/5">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-iris-400">
-            Re-voting — last round
+            Re-voting · last round
           </div>
           <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             {Object.entries(estimate.rationales).map(([id, text], i) => {
@@ -124,8 +124,8 @@ export function EstimateBoard({
 
       <p className="mt-8 text-xs text-slate-400">
         {isFacil
-          ? "You’re the facilitator — you control reveal, restart, story and deck."
-          : "Blind reveal — nobody sees a number until the facilitator reveals."}
+          ? "You’re the facilitator · you control reveal, restart, story and deck."
+          : "Blind reveal · nobody sees a number until the facilitator reveals."}
       </p>
     </>
   );

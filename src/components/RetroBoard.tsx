@@ -1,17 +1,8 @@
 import type { RetroView } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
-import { RetroColumn } from "./RetroColumn";
+import { RetroCanvas } from "./RetroCanvas";
 import { retroTheme } from "../lib/retroThemes";
 import { RetroGlyph } from "./RetroGlyph";
-
-// Fixed scatter slots for the themed scene props (faint, behind the content).
-const SCENE_SLOTS = [
-  { top: "9%", left: "2%", size: 60, rot: -10, op: 0.1 },
-  { top: "56%", left: "91%", size: 104, rot: 12, op: 0.09 },
-  { top: "82%", left: "7%", size: 54, rot: 8, op: 0.09 },
-  { top: "30%", left: "60%", size: 46, rot: -7, op: 0.07 },
-  { top: "72%", left: "46%", size: 76, rot: 5, op: 0.06 },
-];
 
 export function RetroBoard({
   retro,
@@ -29,11 +20,6 @@ export function RetroBoard({
   const discussedCount = retro.cards.filter((c) => c.discussed).length;
   const anyLeft = discussedCount < total;
   const theme = retroTheme(retro.template);
-  // Lay the board out to the format's own column count, so a 4-zone format (Avengers,
-  // GOT, Sailboat…) fills one row of 4 instead of dropping the 4th onto a second row.
-  const n = retro.columns.length;
-  const lgCols =
-    n >= 5 ? "lg:grid-cols-5" : n === 4 ? "lg:grid-cols-4" : n === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3";
   return (
     <>
       <div className="mb-4 flex items-center gap-3">
@@ -106,62 +92,16 @@ export function RetroBoard({
         </div>
       )}
 
-      {/* the board · a dot-grid workspace with the theme's color mood + scene motif */}
-      <div className="dot-grid relative overflow-hidden rounded-3xl border border-slate-200/80 p-4 shadow-inner sm:p-6 dark:border-white/10">
-        {/* theme color wash · gives each format a mood instead of flat grey */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-70 dark:opacity-50"
-          aria-hidden
-          style={{
-            background: `radial-gradient(80% 70% at 82% -8%, ${theme.glow}2e, transparent 60%), radial-gradient(55% 55% at 6% 112%, ${theme.glow}1f, transparent 60%)`,
-          }}
-        />
-        {/* bespoke glyph art · custom marks, tinted with the theme accent (no stock emoji) */}
-        <RetroGlyph
-          template={retro.template}
-          className="pointer-events-none absolute -bottom-16 -right-12 h-[320px] w-[320px] opacity-[0.12]"
-          style={{ color: theme.glow }}
-        />
-        {SCENE_SLOTS.slice(0, 3).map((s, i) => (
-          <RetroGlyph
-            key={i}
-            template={retro.template}
-            className="pointer-events-none absolute"
-            style={{
-              top: s.top,
-              left: s.left,
-              width: s.size,
-              height: s.size,
-              opacity: s.op,
-              transform: `rotate(${s.rot}deg)`,
-              color: theme.glow,
-            }}
-          />
-        ))}
-        <p className="relative mb-5 flex items-center gap-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-          <RetroGlyph template={retro.template} className="h-5 w-5 shrink-0" style={{ color: theme.glow }} />
-          {theme.blurb}
-        </p>
+      <p className="mb-3 flex items-center gap-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <RetroGlyph template={retro.template} className="h-5 w-5 shrink-0" style={{ color: theme.glow }} />
+        {theme.blurb}
+      </p>
 
-        <div className={`relative grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 ${lgCols}`}>
-          {retro.columns.map((col, i) => (
-            <RetroColumn
-              key={col.id}
-              column={col}
-              index={i}
-              cards={retro.cards.filter((c) => c.column === col.id)}
-              canAct={canAct}
-              isFacil={isFacil}
-              spotlightId={retro.spotlightId}
-              client={client}
-            />
-          ))}
-        </div>
-      </div>
+      <RetroCanvas retro={retro} canAct={canAct} isFacil={isFacil} client={client} />
 
       <p className="mt-6 text-xs text-slate-400 dark:text-slate-500">
-        {retro.anonymous ? "Anonymous by default" : "Authors shown"}. Five dot-votes each. React,
-        drag, group. The wall forgets when you go.
+        {retro.anonymous ? "Anonymous by default" : "Authors shown"}. Five dot-votes each. Drag a
+        sticky anywhere, zoom to fit, react. The wall forgets when you go.
       </p>
     </>
   );

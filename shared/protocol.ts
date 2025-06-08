@@ -192,9 +192,15 @@ export type RetroCardView = {
   youVoted: boolean;
   reactions: { emoji: string; count: number; mine: boolean }[]; // only non-zero, in RETRO_REACTIONS order
   discussed: boolean; // already picked by the random picker → marked done, won't be re-picked
-  order: number; // position within its column (drag-to-rearrange)
+  order: number; // legacy column ordering
   groupId: string | null; // cards sharing a groupId are stacked into a cluster
+  x: number; // free position on the canvas (board coords)
+  y: number;
 };
+
+/** Canvas layout shared by client + server: zones are vertical bands of this width. */
+export const RETRO_ZONE_W = 360;
+export const RETRO_CANVAS_H = 1600;
 
 export type RetroView = {
   template: string;
@@ -249,7 +255,8 @@ export type ClientMsg =
   | { t: "retroVote"; v: 1; cardId: string }
   | { t: "retroDeleteCard"; v: 1; cardId: string }
   | { t: "retroReact"; v: 1; cardId: string; emoji: string } // toggle an emoji reaction
-  | { t: "retroMoveCard"; v: 1; cardId: string; toColumn: string; toIndex: number } // drag to rearrange
+  | { t: "retroMoveCard"; v: 1; cardId: string; toColumn: string; toIndex: number } // legacy column move
+  | { t: "retroMoveXY"; v: 1; cardId: string; x: number; y: number } // free-canvas placement
   | { t: "retroEditCard"; v: 1; cardId: string; text: string } // edit a sticky's text in place
   | { t: "retroGroupCard"; v: 1; cardId: string; ontoCardId: string } // stack cardId onto onto's group
   | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors

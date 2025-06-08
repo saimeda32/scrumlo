@@ -13,7 +13,14 @@ import type {
   Phase,
   Activity,
 } from "../shared/protocol";
-import { DECKS, RETRO_TEMPLATES, RETRO_VOTE_BUDGET, RETRO_REACTIONS } from "../shared/protocol";
+import {
+  DECKS,
+  RETRO_TEMPLATES,
+  RETRO_VOTE_BUDGET,
+  RETRO_REACTIONS,
+  RETRO_ZONE_W as ZONE_W,
+  RETRO_CANVAS_H as CANVAS_H,
+} from "../shared/protocol";
 
 const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
 const EMPTY_GRACE_MS = 2 * 60 * 1000; // 2 min after the last person leaves (reconnect grace)
@@ -48,8 +55,10 @@ type RetroCard = {
   authorId: string; // server-only; sent as a name only when the room is non-anonymous
   voters: string[]; // memberIds who dot-voted this card
   reactions: Record<string, string[]>; // emoji -> memberIds
-  order: number; // position within its column (drag-to-rearrange)
+  order: number; // legacy column ordering (kept for tolerance)
   groupId: string | null; // cards sharing a groupId are clustered
+  x: number; // free position on the canvas (board coords)
+  y: number;
 };
 
 type RetroState = {
@@ -126,10 +135,16 @@ export class RoomDO extends DurableObject<Env> {
         this.retro.anonymous ??= true; // tolerate state from before authorship/reactions
         this.retro.spotlightId ??= null;
         this.retro.discussed ??= [];
+        const htpl = RETRO_TEMPLATES[this.retro.template] ?? RETRO_TEMPLATES.ssc;
         this.retro.cards.forEach((c, i) => {
           c.reactions ??= {};
-          c.order ??= i; // tolerate cards persisted before drag-ordering
+          c.order ??= i;
           if (c.groupId === undefined) c.groupId = null;
+          if (typeof c.x !== "number" || typeof c.y !== "number") {
+            const zi = Math.max(0, htpl.columns.findIndex((z) => z.id === c.column));
+            c.x = zi * ZONE_W + 22;
+            c.y = 96 + ((c.order ?? i) % 12) * 88;
+          }
         });
       }
       const p = await ctx.storage.get<PickState>("pick");
@@ -370,9 +385,9 @@ export class RoomDO extends DurableObject<Env> {
         const text = String(msg.text ?? "").trim().slice(0, 280);
         if (!text) return;
         if (this.retro.cards.length >= 300) return; // hard cap
-        const maxOrder = this.retro.cards
-          .filter((c) => c.column === msg.column)
-          .reduce((m, c) => Math.max(m, c.order ?? 0), -1);
+        const tplA = RETRO_TEMPLATES[this.retro.template] ?? RETRO_TEMPLATES.ssc;
+        const inZone = this.retro.cards.filter((c) => c.column === msg.column).length;
+        const zi = Math.max(0, tplA.columns.findIndex((c) => c.id === msg.column));
         this.retro.cards.push({
           id: crypto.randomUUID(),
           column: msg.column,
@@ -380,9 +395,24 @@ export class RoomDO extends DurableObject<Env> {
           authorId: me.id,
           voters: [],
           reactions: {},
-          order: maxOrder + 1,
+          order: inZone,
           groupId: null,
+          x: zi * ZONE_W + 22 + (inZone % 3) * 14,
+          y: 96 + (inZone % 12) * 88,
         });
+        break;
+      }
+      case "retroMoveXY": {
+        // Free placement on the canvas. The sticky's zone (column) follows its x band.
+        if (!me) return;
+        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        if (!card) return;
+        const tplM = RETRO_TEMPLATES[this.retro.template] ?? RETRO_TEMPLATES.ssc;
+        card.x = Math.max(0, Math.min(Math.round(Number(msg.x) || 0), tplM.columns.length * ZONE_W));
+        card.y = Math.max(0, Math.min(Math.round(Number(msg.y) || 0), CANVAS_H));
+        const zi2 = Math.max(0, Math.min(Math.floor(card.x / ZONE_W), tplM.columns.length - 1));
+        card.column = tplM.columns[zi2].id;
+        card.groupId = null; // free placement ungroups
         break;
       }
       case "retroMoveCard": {
@@ -694,6 +724,8 @@ export class RoomDO extends DurableObject<Env> {
           discussed: this.retro.discussed.includes(c.id),
           order: c.order ?? 0,
           groupId: c.groupId ?? null,
+          x: c.x ?? 0,
+          y: c.y ?? 0,
         })),
         votesLeft: me
           ? RETRO_VOTE_BUDGET - this.retro.cards.filter((c) => c.voters.includes(me.id)).length

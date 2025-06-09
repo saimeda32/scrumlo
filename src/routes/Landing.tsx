@@ -5,6 +5,7 @@ import { FLAVOR } from "../lib/flavor";
 import { IconEstimate, IconRetro, IconPick } from "../components/icons";
 import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { DemoTheater } from "../components/DemoTheater";
 
 // A live, count-up tally of rooms ever run (one global integer on the edge · no DB).
 function RoomsCounter() {
@@ -56,16 +57,6 @@ function RoomsCounter() {
   );
 }
 
-// Mock reveal for the hero. Deck index positions (fib): 3→0.43, 5→0.57, 8→0.71, 13→0.86.
-// avg = (3+5+8+13)/4 = 7.25 · computed below, never hardcoded.
-const SEATS = [
-  { v: 3, n: "Priya", pos: 0.43, kind: "low" as const },
-  { v: 5, n: "Sai", pos: 0.57, kind: "mid" as const },
-  { v: 8, n: "Dana", pos: 0.71, kind: "mid" as const },
-  { v: 13, n: "Jo", pos: 0.86, kind: "high" as const },
-];
-const AVG = (SEATS.reduce((s, x) => s + x.v, 0) / SEATS.length).toFixed(2).replace(/\.?0+$/, "");
-
 export default function Landing() {
   const [, navigate] = useLocation();
   const [busy, setBusy] = useState(false);
@@ -112,7 +103,7 @@ export default function Landing() {
             <span className="text-iris-600">Forgotten.</span>
           </h1>
           <p className="mt-5 max-w-md text-lg text-slate-600 dark:text-slate-300">
-            Most tools flip the cards and go quiet. Ephem turns that silence into a real conversation,
+            Most tools flip the cards and go quiet. Scrumlo turns that silence into a real conversation,
             then a number everyone owns. Retro and a name-picker ride the same link. When the last
             person leaves, the room forgets it ever happened.
           </p>
@@ -131,9 +122,9 @@ export default function Landing() {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && joinRoom()}
-                placeholder="or enter a room code"
+                placeholder="enter room code"
                 aria-label="Room code to join"
-                className="w-40 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus-visible:border-iris-500 focus-visible:ring-2 focus-visible:ring-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
+                className="w-44 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus-visible:border-iris-500 focus-visible:ring-2 focus-visible:ring-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
               <button
                 onClick={joinRoom}
@@ -147,73 +138,8 @@ export default function Landing() {
           <RoomsCounter />
         </div>
 
-        {/* product window */}
-        <div className="relative">
-          <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-tr from-iris-200/40 to-violet-200/30 blur-2xl" />
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-iris-900/10 dark:border-white/10 dark:bg-[#14141b] dark:shadow-black/40">
-            <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-white/10">
-              <span className="rounded-md bg-iris-50 px-2 py-0.5 text-[10px] font-semibold text-iris-700 dark:bg-iris-500/15 dark:text-iris-300">
-                Copy invite link
-              </span>
-              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                ● live
-              </span>
-              <span className="ml-auto text-[10px] font-medium text-slate-400 dark:text-slate-500">cards revealed</span>
-            </div>
-            <div className="p-4">
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Add CSV export to billing</span>
-                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600">
-                  ↔ spread 3–13
-                </span>
-              </div>
-
-              {/* the tension line */}
-              <div className="relative mx-1 my-7 h-1 rounded-full bg-slate-100 dark:bg-white/10">
-                <div
-                  className="absolute top-0 h-1 rounded-full bg-gradient-to-r from-sky-400 to-rose-400"
-                  style={{ left: "43%", width: "43%" }}
-                />
-                {SEATS.map((s) => (
-                  <div
-                    key={s.n}
-                    className="absolute -top-1 -translate-x-1/2"
-                    style={{ left: `${s.pos * 100}%` }}
-                  >
-                    <div
-                      className={`h-3 w-3 rounded-full border-2 border-white ${
-                        s.kind === "low"
-                          ? "scale-110 bg-sky-500"
-                          : s.kind === "high"
-                            ? "scale-110 bg-rose-500"
-                            : "bg-slate-300"
-                      }`}
-                    />
-                  </div>
-                ))}
-                <span className="absolute -bottom-6 -translate-x-1/2 text-sm font-extrabold text-sky-600" style={{ left: "43%" }}>
-                  3
-                </span>
-                <span className="absolute -bottom-6 -translate-x-1/2 text-sm font-extrabold text-rose-600" style={{ left: "86%" }}>
-                  13
-                </span>
-              </div>
-
-              <p className="mt-7 text-center text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-                <b className="text-sky-600 dark:text-sky-400">Priya</b> is pricing “just the endpoint” ·{" "}
-                <b className="text-rose-600 dark:text-rose-400">Jo</b> is pricing “pagination + permissions”
-              </p>
-              <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                <span>
-                  avg <b className="text-slate-700 dark:text-slate-200">{AVG}</b> · two camps
-                </span>
-                <span className="rounded-md bg-iris-600 px-2 py-1 text-[10px] font-semibold text-white">
-                  ↻ Re-estimate
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* live demo theater — a looping mini-session */}
+        <DemoTheater />
       </section>
 
       {/* three activities band */}
@@ -250,7 +176,7 @@ export default function Landing() {
       <section className="bg-slate-900 py-16 text-center text-white">
         <div className="mx-auto max-w-2xl px-6">
           <h2 className="text-2xl font-bold sm:text-3xl">
-            Other tools keep your boards. Ephem keeps{" "}
+            Other tools keep your boards. Scrumlo keeps{" "}
             <span className="text-iris-400">nothing</span>. On purpose.
           </h2>
           <p className="mt-4 text-slate-300">

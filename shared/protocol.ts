@@ -1,4 +1,4 @@
-// Single source of truth for the Ephem wire protocol.
+// Single source of truth for the Scrumlo wire protocol.
 // Imported by both the Worker (worker/) and the web client (src/).
 // Versioned from commit #1 so old clients/exports never silently rot.
 

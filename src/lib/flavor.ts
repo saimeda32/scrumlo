@@ -1,4 +1,4 @@
-// Ephem's voice: dry, on-brand, quietly true. Every line reinforces the product
+// Scrumlo's voice: dry, on-brand, quietly true. Every line reinforces the product
 // (ephemeral, no-database, blind-reveal) instead of generic whimsy. Personality
 // the brand strategist would actually allow.
 

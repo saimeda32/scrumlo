@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * A quiet, Claude-style cycling status line · Ephem's bit of personality.
+ * A quiet, Claude-style cycling status line · Scrumlo's bit of personality.
  * Rotates phrases with a soft fade. Respects prefers-reduced-motion (no fade,
  * just swaps). Keep it muted and small; it's a mutter, not a billboard.
  */

@@ -49,7 +49,7 @@ export function RoomHeader({
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-2.5 shadow-soft backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
-      <a href="/" title="Ephem · new room" className="shrink-0">
+      <a href="/" title="Scrumlo · new room" className="shrink-0">
         <LogoMark size={22} />
       </a>
       <span className="font-mono text-xs text-slate-400 dark:text-slate-500">{room}</span>

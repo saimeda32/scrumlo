@@ -49,7 +49,7 @@ export type RoomClient = {
 // (seat, facilitator baton, votes). sessionStorage = lives for the tab session,
 // cleared when the tab closes — on-ethos with "no durable identity".
 function clientIdFor(room: string): string {
-  const key = `ephem-cid-${room}`;
+  const key = `scrumlo-cid-${room}`;
   try {
     const existing = sessionStorage.getItem(key);
     if (existing) return existing;
@@ -79,7 +79,7 @@ export function createRoomClient(
   // a participant who can act) once the user picks a name. The name is persisted in
   // sessionStorage so a PAGE REFRESH auto-rejoins (the clientId restores the same
   // seat/votes/baton) instead of dropping the user back to spectating.
-  const nameKey = `ephem-name-${room}`;
+  const nameKey = `scrumlo-name-${room}`;
   let joinedName: string | null = (() => {
     try {
       return sessionStorage.getItem(nameKey);

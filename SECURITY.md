@@ -1,6 +1,6 @@
 # Security Policy
 
-Ephem is a no-login, no-database, ephemeral tool — room state lives only in a Cloudflare Durable Object while the room is active and is deleted when everyone leaves. There is no user database and no stored credentials to breach.
+Scrumlo is a no-login, no-database, ephemeral tool — room state lives only in a Cloudflare Durable Object while the room is active and is deleted when everyone leaves. There is no user database and no stored credentials to breach.
 
 ## Reporting a vulnerability
 
@@ -13,5 +13,5 @@ Please include steps to reproduce and the impact. We'll acknowledge as soon as w
 
 ## Scope notes
 
-- Ephem is intended for **trusted shared links** among colleagues, not anonymous public boards. Abuse on a hosted instance is mitigated by: per-IP rate-limited room creation, a facilitator "end room" kill switch, and a "report" path (two reports end a room). The room itself is ephemeral and stores nothing across sessions.
+- Scrumlo is intended for **trusted shared links** among colleagues, not anonymous public boards. Abuse on a hosted instance is mitigated by: per-IP rate-limited room creation, a facilitator "end room" kill switch, and a "report" path (two reports end a room). The room itself is ephemeral and stores nothing across sessions.
 - The hosted instance is best-effort with no SLA.

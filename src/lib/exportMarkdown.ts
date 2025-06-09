@@ -16,7 +16,7 @@ export function buildSessionMarkdown(args: {
 }): string {
   const { room, members, estimate, retro, pick } = args;
   const nameById = new Map(members.map((m) => [m.id, m.name]));
-  const out: string[] = [`# Ephem — ${room}`, `_Exported ${new Date().toLocaleString()}_`];
+  const out: string[] = [`# Scrumlo — ${room}`, `_Exported ${new Date().toLocaleString()}_`];
 
   // Estimation
   out.push("", "## Estimation");
@@ -81,6 +81,6 @@ export function buildSessionMarkdown(args: {
     out.push("", "## Picker", `Picked: ${pick.result.join(pick.mode === "order" ? " → " : ", ")}`);
   }
 
-  out.push("", "_Made with Ephem — no account, no database, deleted when the room ends._");
+  out.push("", "_Made with Scrumlo — no account, no database, deleted when the room ends._");
   return out.join("\n");
 }

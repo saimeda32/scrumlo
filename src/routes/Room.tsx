@@ -198,7 +198,7 @@ export default function Room() {
           room; the facilitator switches and everyone follows.
         </p>
 
-        <div id="ephem-board">
+        <div id="scrumlo-board">
           {activity === "estimate" ? (
             <EstimateBoard
               estimate={estimate}

@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 // Device-level UI preference (not user data): a tiny localStorage flag, falling
 // back to the OS setting. Toggling flips `.dark` on <html>.
 type Mode = "light" | "dark";
-const KEY = "ephem-theme";
+const KEY = "scrumlo-theme";
 
 function systemPref(): Mode {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";

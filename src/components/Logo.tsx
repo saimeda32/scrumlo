@@ -1,5 +1,7 @@
-// Ephem's mark: a crescent moon in the iris badge · the ephemeral motif
-// ("estimate, retro, forgotten"; the room fades when everyone leaves).
+// Scrumlo's mark: a sprint-cycle loop in the iris badge. The agile loop that
+// comes around each sprint and clears when the room ends ("estimate, retro,
+// forgotten"). One clean arrow reads as scrum/cycle at any size; the dot at its
+// heart is the moment you capture before it poofs.
 
 export function LogoMark({ size = 26, className = "" }: { size?: number; className?: string }) {
   return (
@@ -8,12 +10,14 @@ export function LogoMark({ size = 26, className = "" }: { size?: number; classNa
       style={{ width: size, height: size }}
       aria-hidden
     >
-      <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none">
-        <path
-          d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-          fill="white"
-          fillOpacity="0.95"
-        />
+      <svg width={size * 0.66} height={size * 0.66} viewBox="0 0 24 24" fill="none">
+        {/* sprint loop + arrowhead */}
+        <g stroke="white" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20.5 12a8.5 8.5 0 1 1-8.5-8.5c2.4 0 4.66.95 6.36 2.6L20.5 8" />
+          <path d="M20.5 3v5h-5" />
+        </g>
+        {/* the captured moment at the center */}
+        <circle cx="12" cy="12" r="2.4" fill="white" />
       </svg>
     </span>
   );
@@ -23,7 +27,7 @@ export function Logo({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>
       <LogoMark />
-      <span className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white">Ephem</span>
+      <span className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white">Scrumlo</span>
     </span>
   );
 }

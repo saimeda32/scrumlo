@@ -81,7 +81,7 @@ export function RetroCanvas({
       {/* pannable viewport (native scroll) */}
       <div ref={viewportRef} className="dot-grid h-[600px] overflow-auto">
         <div style={{ width: W * zoom, height: boardH * zoom }}>
-          <div ref={boardRef} onPointerMove={onBoardMove} id="ephem-canvas" className="relative origin-top-left dot-grid" style={{ width: W, height: boardH, transform: `scale(${zoom})` }}>
+          <div ref={boardRef} onPointerMove={onBoardMove} id="scrumlo-canvas" className="relative origin-top-left dot-grid" style={{ width: W, height: boardH, transform: `scale(${zoom})` }}>
             {/* zone bands */}
             {cols.map((col, i) => {
               const c = columnColor(col.id, i);

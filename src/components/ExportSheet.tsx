@@ -15,8 +15,8 @@ export function ExportSheet({
   // Render the live board to an image, entirely in the browser (nothing sent).
   async function captureBoard(): Promise<{ dataUrl: string; w: number; h: number } | null> {
     // Prefer the full retro canvas (the whole wall) over the clipped viewport.
-    const canvas = document.getElementById("ephem-canvas");
-    const node = canvas ?? document.getElementById("ephem-board");
+    const canvas = document.getElementById("scrumlo-canvas");
+    const node = canvas ?? document.getElementById("scrumlo-board");
     if (!node) return null;
     const { toPng } = await import("html-to-image"); // lazy · keep it out of the initial bundle
     const dark = document.documentElement.classList.contains("dark");
@@ -45,7 +45,7 @@ export function ExportSheet({
       if (!cap) return;
       const a = document.createElement("a");
       a.href = cap.dataUrl;
-      a.download = `ephem-${room}.png`;
+      a.download = `scrumlo-${room}.png`;
       a.click();
     } finally {
       setBusy(null);
@@ -64,7 +64,7 @@ export function ExportSheet({
         format: [cap.w, cap.h],
       });
       pdf.addImage(cap.dataUrl, "PNG", 0, 0, cap.w, cap.h);
-      pdf.save(`ephem-${room}.pdf`);
+      pdf.save(`scrumlo-${room}.pdf`);
     } finally {
       setBusy(null);
     }
@@ -85,7 +85,7 @@ export function ExportSheet({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ephem-${room}.md`;
+    a.download = `scrumlo-${room}.md`;
     a.click();
     URL.revokeObjectURL(url);
   }

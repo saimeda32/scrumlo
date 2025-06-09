@@ -1,6 +1,6 @@
-# Contributing to Ephem
+# Contributing to Scrumlo
 
-Thanks for wanting to help. Ephem is intentionally tiny — one Worker, one Durable Object per room, no database. Please keep PRs small and focused.
+Thanks for wanting to help. Scrumlo is intentionally tiny — one Worker, one Durable Object per room, no database. Please keep PRs small and focused.
 
 ## Setup
 
@@ -16,7 +16,7 @@ pnpm build && pnpm dev:worker   # http://localhost:8787
 
 ## Non-goals (please don't PR these)
 
-Accounts, a database, persistent history, integrations/OAuth, or anything that makes Ephem keep data across sessions. The whole point is that the room forgets. New ceremony tools must reuse the existing engines (blind-reveal, cards, dot-vote, presence) and survive being ephemeral.
+Accounts, a database, persistent history, integrations/OAuth, or anything that makes Scrumlo keep data across sessions. The whole point is that the room forgets. New ceremony tools must reuse the existing engines (blind-reveal, cards, dot-vote, presence) and survive being ephemeral.
 
 ## Ground rules
 

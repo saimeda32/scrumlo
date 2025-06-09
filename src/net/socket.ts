@@ -12,7 +12,7 @@ export type RoomClient = {
   setDeck: (deck: string) => void;
   setRationale: (text: string) => void;
   typing: (on: boolean) => void;
-  cursor: (x: number, y: number) => void;
+  cursor: (x: number, y: number, drag?: { cardId: string; x: number; y: number } | null) => void;
   lockDecision: (value: string, note: string) => void;
   estimateQueueAdd: (stories: string[]) => void;
   estimateNextStory: () => void;
@@ -66,7 +66,9 @@ export function createRoomClient(
   onSnapshot: (snapshot: Snapshot) => void,
   onStatus: (connected: boolean) => void,
   onEnded: () => void,
-  onCursors?: (cursors: { id: string; name: string; x: number; y: number }[]) => void,
+  onCursors?: (
+    cursors: { id: string; name: string; x: number; y: number; drag?: { cardId: string; x: number; y: number } }[],
+  ) => void,
 ): RoomClient {
   const clientId = clientIdFor(room);
   const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -132,7 +134,7 @@ export function createRoomClient(
     setDeck: (deck) => send({ t: "setDeck", v: 1, deck }),
     setRationale: (text) => send({ t: "setRationale", v: 1, text }),
     typing: (on) => send({ t: "typing", v: 1, on }),
-    cursor: (x, y) => send({ t: "cursor", v: 1, x, y }),
+    cursor: (x, y, drag) => send({ t: "cursor", v: 1, x, y, drag: drag ?? null }),
     lockDecision: (value, note) => send({ t: "lockDecision", v: 1, value, note }),
     estimateQueueAdd: (stories) => send({ t: "estimateQueueAdd", v: 1, stories }),
     estimateNextStory: () => send({ t: "estimateNextStory", v: 1 }),

@@ -16,7 +16,7 @@ export function RetroBoard({
   isFacil: boolean;
   canAct: boolean;
   client: RoomClient;
-  cursors: { id: string; name: string; x: number; y: number }[];
+  cursors: { id: string; name: string; x: number; y: number; drag?: { cardId: string; x: number; y: number } }[];
   you: string;
 }) {
   const spotlit = retro.cards.find((c) => c.id === retro.spotlightId) ?? null;

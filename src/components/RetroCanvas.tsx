@@ -24,7 +24,7 @@ export function RetroCanvas({
   canAct: boolean;
   isFacil: boolean;
   client: RoomClient;
-  cursors: { id: string; name: string; x: number; y: number }[];
+  cursors: { id: string; name: string; x: number; y: number; drag?: { cardId: string; x: number; y: number } }[];
   you: string;
 }) {
   const [zoom, setZoom] = useState(0.8);
@@ -47,6 +47,11 @@ export function RetroCanvas({
   const W = cols.length * ZONE_W;
   // Board height fits the content (no giant empty scroll), capped at the canvas max.
   const boardH = Math.min(CANVAS_H, Math.max(720, ...retro.cards.map((c) => c.y + 200)));
+
+  // Cards other people are dragging right now (live, pre-drop) — render them at
+  // the in-flight position so they glide for everyone, not just jump on release.
+  const liveDrag = new Map<string, { x: number; y: number }>();
+  for (const cu of cursors) if (cu.drag) liveDrag.set(cu.drag.cardId, { x: cu.drag.x, y: cu.drag.y });
 
   // Fit-to-width on first mount.
   useEffect(() => {
@@ -146,6 +151,7 @@ export function RetroCanvas({
                 isFacil={isFacil}
                 spotlit={retro.spotlightId === card.id}
                 client={client}
+                live={liveDrag.get(card.id) ?? null}
                 idx={i}
               />
             ))}
@@ -191,6 +197,7 @@ function CanvasCard({
   isFacil,
   spotlit,
   client,
+  live,
 }: {
   card: RetroCardView;
   c: ColC;
@@ -199,6 +206,7 @@ function CanvasCard({
   isFacil: boolean;
   spotlit: boolean;
   client: RoomClient;
+  live: { x: number; y: number } | null;
   idx: number;
 }) {
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
@@ -207,9 +215,11 @@ function CanvasCard({
   const [pick, setPick] = useState(false);
   const start = useRef({ px: 0, py: 0, cx: 0, cy: 0 });
   const moved = useRef(false);
+  const lastLive = useRef(0);
 
-  const x = drag?.x ?? card.x;
-  const y = drag?.y ?? card.y;
+  // Local drag wins; otherwise follow a teammate's live drag; else the resting spot.
+  const x = drag?.x ?? live?.x ?? card.x;
+  const y = drag?.y ?? live?.y ?? card.y;
 
   function onDown(e: React.PointerEvent) {
     if (!canAct || editing) return;
@@ -224,12 +234,29 @@ function CanvasCard({
     if (!drag) return;
     const s = start.current;
     moved.current = true;
-    setDrag({ x: s.cx + (e.clientX - s.px) / zoom, y: s.cy + (e.clientY - s.py) / zoom });
+    const nx = s.cx + (e.clientX - s.px) / zoom;
+    const ny = s.cy + (e.clientY - s.py) / zoom;
+    setDrag({ x: nx, y: ny });
+    // Broadcast the in-flight position so others see it glide (throttled ~20/s).
+    if (e.timeStamp - lastLive.current >= 50) {
+      lastLive.current = e.timeStamp;
+      client.cursor(nx, ny, { cardId: card.id, x: Math.round(nx), y: Math.round(ny) });
+    }
   }
   function onUp(e: React.PointerEvent) {
     if (!drag) return;
     (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    if (moved.current) client.retroMoveXY(card.id, Math.round(drag.x), Math.round(drag.y));
+    if (moved.current) {
+      // Dropped on top of another sticky? Cluster them. Otherwise free-place.
+      const onto = document
+        .elementsFromPoint(e.clientX, e.clientY)
+        .map((el) => (el as HTMLElement).closest?.("[data-card-id]") as HTMLElement | null)
+        .find((el) => el && el.dataset.cardId && el.dataset.cardId !== card.id);
+      const ontoId = onto?.dataset.cardId;
+      if (ontoId) client.retroGroupCard(card.id, ontoId);
+      else client.retroMoveXY(card.id, Math.round(drag.x), Math.round(drag.y));
+      client.cursor(drag.x, drag.y); // clear the live-drag flag for everyone
+    }
     setDrag(null);
   }
   function saveEdit() {
@@ -240,18 +267,39 @@ function CanvasCard({
 
   return (
     <div
+      data-card-id={card.id}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
-      style={{ left: x, top: y, width: CARD_W, rotate: spotlit || drag ? "0deg" : `${tiltOf(card.id)}deg` }}
+      style={{ left: x, top: y, width: CARD_W, rotate: spotlit || drag || live ? "0deg" : `${tiltOf(card.id)}deg` }}
       className={`group absolute select-none rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_16px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
         canAct ? "cursor-grab active:cursor-grabbing" : ""
-      } ${drag ? "z-30 scale-[1.03] shadow-[0_18px_30px_-10px_rgba(15,23,42,0.5)]" : "z-10 hover:z-20"} ${
+      } ${
+        drag
+          ? "z-30 scale-[1.03] shadow-[0_18px_30px_-10px_rgba(15,23,42,0.5)]"
+          : live
+            ? "z-20 scale-[1.02] ring-2 ring-violet-400/70 shadow-[0_14px_26px_-10px_rgba(15,23,42,0.45)] transition-[left,top] duration-75 ease-linear"
+            : "z-10 hover:z-20"
+      } ${
         spotlit ? "ring-2 ring-iris-500 ring-offset-2" : ""
-      } ${card.discussed && !spotlit ? "opacity-65 saturate-50" : ""}`}
+      } ${card.groupId && !spotlit && !drag && !live ? "ring-1 ring-violet-300" : ""} ${
+        card.discussed && !spotlit ? "opacity-65 saturate-50" : ""
+      }`}
     >
       {card.discussed && !spotlit && (
         <span className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow">✓</span>
+      )}
+      {card.groupId && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (canAct) client.retroMoveXY(card.id, Math.round(card.x + 30), Math.round(card.y + 30));
+          }}
+          title="Grouped · click to pull this one out"
+          className="absolute -left-1.5 -top-2 inline-flex items-center gap-0.5 rounded-full bg-violet-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow hover:bg-violet-600"
+        >
+          ⧉ group
+        </button>
       )}
       {card.author && (
         <div className="mb-1.5 flex items-center gap-1.5">

@@ -241,7 +241,9 @@ export type ClientMsg =
   | { t: "lockDecision"; v: 1; value: string; note: string } // facilitator locks the outcome ("" value = unlock)
   | { t: "estimateQueueAdd"; v: 1; stories: string[] } // queue stories to estimate
   | { t: "estimateNextStory"; v: 1 } // log current decision, advance to the next story
-  | { t: "cursor"; v: 1; x: number; y: number } // live cursor position on the retro canvas
+  // live cursor position on the retro canvas; `drag` carries a sticky being moved
+  // right now (live, pre-drop) so everyone sees it glide, not just jump on release.
+  | { t: "cursor"; v: 1; x: number; y: number; drag?: { cardId: string; x: number; y: number } | null }
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
   | { t: "endRoom"; v: 1 } // facilitator kills the room now
@@ -295,7 +297,14 @@ export type EndedMsg = { t: "ended"; v: 1 };
 export type CursorsMsg = {
   t: "cursors";
   v: 1;
-  cursors: { id: string; name: string; x: number; y: number }[];
+  cursors: {
+    id: string;
+    name: string;
+    x: number;
+    y: number;
+    /** a sticky this person is dragging right now (board coords), if any */
+    drag?: { cardId: string; x: number; y: number };
+  }[];
 };
 
 export type ServerMsg = Snapshot | EndedMsg | CursorsMsg;

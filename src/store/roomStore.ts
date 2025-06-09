@@ -20,7 +20,7 @@ type RoomState = {
   pick: PickView | null;
   timerEndsAt: number | null;
   timerDurationMs: number | null;
-  cursors: { id: string; name: string; x: number; y: number }[];
+  cursors: { id: string; name: string; x: number; y: number; drag?: { cardId: string; x: number; y: number } }[];
   setConnected: (connected: boolean) => void;
   setEnded: (ended: boolean) => void;
   setCursors: (cursors: { id: string; name: string; x: number; y: number }[]) => void;

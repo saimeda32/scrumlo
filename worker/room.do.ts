@@ -105,7 +105,7 @@ export class RoomDO extends DurableObject<Env> {
   // Transient presence — who is mid-typing a rationale. Never persisted (it's live-only).
   private typing = new Set<string>();
   // Live cursor positions on the retro canvas (memberId -> board coords). Live-only.
-  private cursors = new Map<string, { x: number; y: number }>();
+  private cursors = new Map<string, { x: number; y: number; drag?: { cardId: string; x: number; y: number } }>();
   private retro: RetroState = {
     template: "ssc",
     cards: [],
@@ -201,7 +201,11 @@ export class RoomDO extends DurableObject<Env> {
     // path entirely and fan out as a tiny dedicated message.
     if (msg.t === "cursor") {
       if (!me) return;
-      this.cursors.set(me.id, { x: Math.round(Number(msg.x) || 0), y: Math.round(Number(msg.y) || 0) });
+      const drag =
+        msg.drag && typeof msg.drag.cardId === "string"
+          ? { cardId: msg.drag.cardId, x: Math.round(Number(msg.drag.x) || 0), y: Math.round(Number(msg.drag.y) || 0) }
+          : undefined;
+      this.cursors.set(me.id, { x: Math.round(Number(msg.x) || 0), y: Math.round(Number(msg.y) || 0), drag });
       await this.broadcastCursors();
       return;
     }
@@ -464,6 +468,11 @@ export class RoomDO extends DurableObject<Env> {
           .filter((c) => c.column === onto.column)
           .sort((a, b) => a.order - b.order);
         col.forEach((c, i) => (c.order = i));
+        // Snap the dropped sticky into a tidy cascade on top of its new group so
+        // the cluster reads as a stack on the free canvas, not a random overlap.
+        const stackN = this.retro.cards.filter((c) => c.groupId === gid && c.id !== card.id).length;
+        card.x = Math.round(onto.x + 16 * stackN);
+        card.y = Math.round(onto.y + 16 * stackN);
         this.dissolveSingletonGroups(wasGroup);
         break;
       }
@@ -654,7 +663,7 @@ export class RoomDO extends DurableObject<Env> {
     const nameById = new Map(this.membersFrom(sockets).map((m) => [m.id, m.name]));
     const cursors = [...this.cursors.entries()]
       .filter(([id]) => nameById.has(id))
-      .map(([id, p]) => ({ id, name: nameById.get(id)!, x: p.x, y: p.y }));
+      .map(([id, p]) => ({ id, name: nameById.get(id)!, x: p.x, y: p.y, ...(p.drag ? { drag: p.drag } : {}) }));
     // Send each socket everyone ELSE's cursor — never its own (a client should
     // see only the native OS pointer for itself, not a duplicated colored one).
     for (const w of sockets) {

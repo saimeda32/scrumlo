@@ -12,6 +12,14 @@ export function Seats({
   const revealed = estimate.phase === "revealed";
   const votedSet = new Set(estimate.voted);
 
+  if (members.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-400 dark:border-white/10 dark:text-slate-500">
+        Waiting for the first teammate to drop a name…
+      </div>
+    );
+  }
+
   return (
     <ul
       data-testid="seats"

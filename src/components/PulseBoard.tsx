@@ -88,9 +88,9 @@ export function PulseBoard({
         {pulse.dimensions.map((dim) => {
           const mine = pulse.yourVotes?.[dim];
           return (
-            <div key={dim} className="flex flex-wrap items-center gap-3">
-              <span className="w-32 shrink-0 text-sm font-semibold text-slate-700 dark:text-slate-200">{dim}</span>
-              <div className="flex gap-1.5">
+            <div key={dim} className="flex items-center gap-3">
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700 dark:text-slate-200">{dim}</span>
+              <div className="flex shrink-0 gap-1.5">
                 {[1, 2, 3, 4, 5].map((v) => (
                   <button
                     key={v}

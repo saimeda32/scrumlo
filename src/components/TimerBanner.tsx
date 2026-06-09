@@ -136,23 +136,23 @@ function TimeUpDialog({
       onClick={onGotIt}
     >
       <div
-        className="animate-pop max-w-sm rounded-3xl border border-white/10 bg-[#14141b] p-10 text-center shadow-2xl"
+        className="animate-pop max-w-sm rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-2xl dark:border-white/10 dark:bg-[#14141b]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="animate-pulse-soft text-6xl">⏰</div>
-        <div className="mt-4 text-3xl font-extrabold text-white">Time’s up</div>
-        <p className="mt-2 text-sm text-slate-400">{fmt(total)} is done. Wrap up and move on.</p>
+        <div className="mt-4 text-3xl font-extrabold text-slate-900 dark:text-white">Time’s up</div>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{fmt(total)} is done. Wrap up and move on.</p>
         <div className="mt-6 flex justify-center gap-2">
           <button
             onClick={onGotIt}
-            className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            className="rounded-xl bg-iris-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-iris-500"
           >
             Got it
           </button>
           {isFacil && (
             <button
               onClick={onClear}
-              className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/5"
+              className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
             >
               Clear timer
             </button>

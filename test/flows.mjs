@@ -354,7 +354,7 @@ await flow("retro: delete card", async (t) => {
   eq(a.snap.retro.cards.length, 0, "card removed");
 });
 
-await flow("retro: anonymous hides author until discuss", async (t) => {
+await flow("retro: anonymous stays anonymous in every phase, including discuss", async (t) => {
   const [a, b] = t(await room(["Alice", "Bob"]));
   a.send({ t: "switchActivity", v: 1, activity: "retro" });
   await sleep(150);
@@ -369,7 +369,20 @@ await flow("retro: anonymous hides author until discuss", async (t) => {
   a.send({ t: "retroSetPhase", v: 1, phase: "discuss" });
   await sleep(200);
   card = a.snap.retro.cards.find((c) => c.text === "anon note");
-  eq(card.author, "Bob", "author revealed in discuss");
+  eq(card.author, null, "author stays hidden in discuss (badge says Anonymous, so it must mean it)");
+});
+
+await flow("estimate: changing the story after a reveal resets the round", async (t) => {
+  const [a, b] = t(await room(["Alice", "Bob"]));
+  a.send({ t: "vote", v: 1, card: "5" });
+  b.send({ t: "vote", v: 1, card: "5" });
+  await sleep(300); // auto-revealed
+  eq(a.est.phase, "revealed", "revealed");
+  a.send({ t: "setStory", v: 1, story: "A different story" });
+  await sleep(250);
+  eq(a.est.story, "A different story", "story changed");
+  eq(a.est.phase, "voting", "fresh round");
+  eq(a.est.yourVote, null, "old votes cleared under the new story");
 });
 
 // ============================ ROADMAP (board) ============================
@@ -386,30 +399,44 @@ await flow("roadmap: board cards are independent from retro and never masked", a
 
 // ============================ PULSE ============================
 await flow("pulse: votes blind until reveal, then aggregates", async (t) => {
-  const [a, b] = t(await room(["Alice", "Bob"]));
+  const [a, b, c] = t(await room(["Alice", "Bob", "Cara"]));
   a.send({ t: "switchActivity", v: 1, activity: "pulse" });
   await sleep(200);
   const dims = a.snap.pulse.dimensions;
-  for (const d of dims) { a.send({ t: "pulseVote", v: 1, dim: d, value: 4 }); }
-  for (const d of dims) { b.send({ t: "pulseVote", v: 1, dim: d, value: 2 }); }
-  await sleep(300);
+  for (const d of dims) a.send({ t: "pulseVote", v: 1, dim: d, value: 4 });
+  for (const d of dims) b.send({ t: "pulseVote", v: 1, dim: d, value: 2 });
+  for (const d of dims) c.send({ t: "pulseVote", v: 1, dim: d, value: 3 });
+  await sleep(350);
   eq(b.snap.pulse.results, null, "no results object before reveal");
-  assert(a.snap.pulse.voted.length === 2, "both counted as voted");
+  assert(a.snap.pulse.voted.length === 3, "all three counted as voted");
   a.send({ t: "pulseReveal", v: 1 });
   await sleep(250);
   eq(a.snap.pulse.phase, "revealed", "revealed");
   const morale = a.snap.pulse.results.find((r) => r.dim === dims[0]);
-  eq(morale.avg, 3, "avg of 4 and 2 is 3");
+  eq(morale.avg, 3, "avg of 4, 2, 3 is 3");
+});
+
+await flow("pulse: reveal is blocked below the anonymity minimum", async (t) => {
+  const [a, b] = t(await room(["Alice", "Bob"]));
+  a.send({ t: "switchActivity", v: 1, activity: "pulse" });
+  await sleep(150);
+  for (const d of a.snap.pulse.dimensions) a.send({ t: "pulseVote", v: 1, dim: d, value: 4 });
+  for (const d of a.snap.pulse.dimensions) b.send({ t: "pulseVote", v: 1, dim: d, value: 4 });
+  await sleep(250);
+  a.send({ t: "pulseReveal", v: 1 }); // only 2 voters, must not reveal
+  await sleep(200);
+  eq(a.snap.pulse.phase, "voting", "stays hidden until at least three have submitted");
 });
 
 await flow("pulse: reset clears votes and phase", async (t) => {
-  const [a] = t(await room(["Alice"]));
+  const [a, b, c] = t(await room(["Alice", "Bob", "Cara"]));
   a.send({ t: "switchActivity", v: 1, activity: "pulse" });
   await sleep(150);
-  for (const d of a.snap.pulse.dimensions) a.send({ t: "pulseVote", v: 1, dim: d, value: 5 });
-  await sleep(200);
+  for (const x of [a, b, c]) for (const d of a.snap.pulse.dimensions) x.send({ t: "pulseVote", v: 1, dim: d, value: 5 });
+  await sleep(250);
   a.send({ t: "pulseReveal", v: 1 });
   await sleep(150);
+  eq(a.snap.pulse.phase, "revealed", "revealed with three voters");
   a.send({ t: "pulseReset", v: 1 });
   await sleep(200);
   eq(a.snap.pulse.phase, "voting", "back to voting");

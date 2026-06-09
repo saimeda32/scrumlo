@@ -36,6 +36,7 @@ const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
 const EMPTY_GRACE_MS = 2 * 60 * 1000; // 2 min after the last person leaves (reconnect grace)
 const MAX_ROOM_MS = 12 * 60 * 60 * 1000; // absolute cap: a room can't outlive 12h even with a keep-alive trickle
 const MAX_CONNECTIONS = 60; // hard cap on concurrent sockets per room (DoS guard; targets ~20)
+const PULSE_MIN_REVEAL = 3; // a health check needs >=3 submitters to stay anonymous when revealed
 
 /** Numeric value of a deck card, or null for ?/☕/t-shirt sizes. "½" → 0.5.
  *  Only plain decimals count, so a custom-deck label like "1e3", "0x10", or
@@ -528,7 +529,18 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "setStory": {
         if (!this.isFacilitator(me)) return;
-        this.estimate.story = String(msg.story ?? "").trim().slice(0, 200);
+        const next = String(msg.story ?? "").trim().slice(0, 200);
+        // Changing the story starts a fresh round, so the old votes/decision don't
+        // linger under a different title.
+        if (next !== this.estimate.story) {
+          this.estimate.votes = {};
+          this.estimate.rationales = {};
+          this.estimate.history = [];
+          this.estimate.decision = null;
+          this.estimate.phase = "voting";
+          this.typing.clear();
+        }
+        this.estimate.story = next;
         break;
       }
       case "setDeck": {
@@ -906,6 +918,13 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "pulseReveal": {
         if (!this.isFacilitator(me)) return;
+        // Don't de-anonymize: only reveal once enough people have fully submitted that
+        // individual scores can't be inferred from the aggregate.
+        const dims = this.pulse.dimensions;
+        const fully = Object.keys(this.pulse.votes).filter((id) =>
+          dims.every((d) => this.pulse.votes[id]?.[d] !== undefined),
+        );
+        if (fully.length < PULSE_MIN_REVEAL) return;
         this.pulse.phase = "revealed";
         break;
       }
@@ -1216,9 +1235,20 @@ export class RoomDO extends DurableObject<Env> {
   private broadcastCursors(): void {
     const sockets = this.ctx.getWebSockets();
     const nameById = new Map(this.membersFrom(sockets).map((m) => [m.id, m.name]));
+    // During a blind round the drag payload (a card id + live position) would leak a
+    // masked note's position, so strip it; the pointer itself is fine.
+    const surface = this.activity === "board" ? this.board : this.retro;
+    const hideDrag =
+      (this.activity === "retro" || this.activity === "board") && surface.blind;
     const cursors = [...this.cursors.entries()]
       .filter(([id]) => nameById.has(id))
-      .map(([id, p]) => ({ id, name: nameById.get(id)!, x: p.x, y: p.y, ...(p.drag ? { drag: p.drag } : {}) }));
+      .map(([id, p]) => ({
+        id,
+        name: nameById.get(id)!,
+        x: p.x,
+        y: p.y,
+        ...(p.drag && !hideDrag ? { drag: p.drag } : {}),
+      }));
     // Send each socket everyone ELSE's cursor · never its own (a client should
     // see only the native OS pointer for itself, not a duplicated colored one).
     for (const w of sockets) {
@@ -1270,13 +1300,15 @@ export class RoomDO extends DurableObject<Env> {
   private buildPollView(meId: string | null): PollView {
     const total = this.poll.entries.length;
     if (this.poll.mode === "cloud") {
-      const counts = new Map<string, number>();
+      // Count DISTINCT submitters per word, so the cloud measures how many people
+      // feel a thing, not who typed the most. One person spamming a word counts once.
+      const submitters = new Map<string, Set<string>>();
       for (const e of this.poll.entries) {
         const w = e.text.toLowerCase();
-        counts.set(w, (counts.get(w) ?? 0) + 1);
+        (submitters.get(w) ?? submitters.set(w, new Set()).get(w)!).add(e.authorId);
       }
-      const cloud = [...counts.entries()]
-        .map(([word, count]) => ({ word, count }))
+      const cloud = [...submitters.entries()]
+        .map(([word, authors]) => ({ word, count: authors.size }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 80);
       return { mode: "cloud", prompt: this.poll.prompt, answers: [], cloud, total };
@@ -1306,7 +1338,9 @@ export class RoomDO extends DurableObject<Env> {
       yourVotes: meId ? (this.pulse.votes[meId] ?? {}) : null,
       results: revealed
         ? dims.map((d) => {
-            const vals = ids
+            // Aggregate only over members who FULLY submitted, so a partial vote can't
+            // make one dimension's count differ from the "N submitted" the room saw.
+            const vals = voted
               .map((id) => this.pulse.votes[id]?.[d])
               .filter((v): v is number => typeof v === "number");
             const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
@@ -1341,7 +1375,7 @@ export class RoomDO extends DurableObject<Env> {
       const youVoted = meId ? c.voters.includes(meId) : false;
       if (youVoted) used++;
       const author =
-        state.anonymous && state.phase !== "discuss" ? null : (nameById.get(c.authorId) ?? null);
+        state.anonymous ? null : (nameById.get(c.authorId) ?? null);
       return {
         id: c.id,
         column: c.column,
@@ -1365,8 +1399,10 @@ export class RoomDO extends DurableObject<Env> {
         action: masked ? false : !!c.action,
         owner: masked ? null : (c.owner ?? null),
         masked,
-        x: c.x ?? 0,
-        y: c.y ?? 0,
+        // A masked card reveals nothing, not even its position, so a blind round
+        // can't be reverse-engineered from where notes sit.
+        x: masked ? 0 : (c.x ?? 0),
+        y: masked ? 0 : (c.y ?? 0),
       };
     });
     return {

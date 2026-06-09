@@ -143,7 +143,9 @@ export function createRoomClient(
   let tokenAt = performance.now();
   const send = (m: ClientMsg) => {
     if (ws.readyState !== ReconnectingWebSocket.OPEN) return;
-    if (m.t !== "hello" && m.t !== "sync" && m.t !== "endRoom") {
+    // Cursors are already rate-limited at the source and coalesced server-side, so
+    // they bypass this bucket; otherwise a long drag could drain it and drop a vote.
+    if (m.t !== "hello" && m.t !== "sync" && m.t !== "endRoom" && m.t !== "cursor") {
       const now = performance.now();
       tokens = Math.min(CAP, tokens + ((now - tokenAt) / 1000) * REFILL);
       tokenAt = now;

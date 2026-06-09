@@ -605,7 +605,7 @@ export class RoomDO extends DurableObject<Env> {
       case "reportRoom": {
         if (!me) return;
         if (this.isFacilitator(me)) {
-          await this.terminate(); // facilitator report = end the room
+          await this.terminate("facilitator"); // facilitator report = end the room
           return;
         }
         const now = Date.now();
@@ -618,7 +618,7 @@ export class RoomDO extends DurableObject<Env> {
         const presentIds = new Set(present.map((m) => m.id));
         this.reports = this.reports.filter((r) => presentIds.has(r.id));
         const threshold = Math.max(2, Math.ceil(present.length * 0.3));
-        if (this.reports.length >= threshold) await this.terminate();
+        if (this.reports.length >= threshold) await this.terminate("reports");
         return;
       }
 
@@ -1105,7 +1105,7 @@ export class RoomDO extends DurableObject<Env> {
    */
   async alarm(): Promise<void> {
     if (this.ctx.getWebSockets().length === 0) {
-      await this.terminate();
+      await this.terminate("empty");
       return;
     }
     const now = Date.now();
@@ -1120,7 +1120,7 @@ export class RoomDO extends DurableObject<Env> {
       }
     }
     if (now - this.lastActivityAt >= IDLE_MS || now - this.createdAt >= MAX_ROOM_MS) {
-      await this.terminate(); // idle out, or hit the absolute lifetime cap
+      await this.terminate(now - this.createdAt >= MAX_ROOM_MS ? "lifetime" : "idle");
       return;
     }
     if (changed) {
@@ -1134,7 +1134,9 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   /** End the room now: tell everyone, close sockets, delete all state. */
-  private async terminate(): Promise<void> {
+  private async terminate(reason: "idle" | "empty" | "lifetime" | "facilitator" | "reports" = "idle"): Promise<void> {
+    // Metadata only (no names, no content): a terminate is otherwise invisible.
+    console.log(JSON.stringify({ ev: "room_end", reason, ageMs: Date.now() - this.createdAt }));
     const ended = JSON.stringify({ t: "ended", v: 1 } satisfies EndedMsg);
     for (const w of this.ctx.getWebSockets()) {
       try {

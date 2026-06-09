@@ -54,6 +54,7 @@ export default function Room() {
   const [name, setName] = useState("");
   const [showExport, setShowExport] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [skewed, setSkewed] = useState(false); // server speaks a newer protocol (a deploy landed)
   const clientRef = useRef<RoomClient | null>(null);
 
   // Render-first: connect as a spectator on mount; the user names themselves
@@ -70,6 +71,7 @@ export default function Room() {
         useEmotes.getState().push(emoji, who);
       },
       (name, by, nonce) => useSpotlight.getState().show({ name, by, nonce }),
+      () => setSkewed(true),
     );
     clientRef.current = client;
     return () => client.close();
@@ -160,6 +162,14 @@ export default function Room() {
     <div className="flex min-h-screen flex-col [background:radial-gradient(54rem_32rem_at_50%_-10rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(54rem_32rem_at_50%_-10rem,#1b1838,transparent_60%)]">
       <main className="mx-auto w-full max-w-4xl flex-1 px-3 py-8 sm:px-6">
         <h1 className="sr-only">Scrumlo room {room}, {activity} activity</h1>
+        {skewed && (
+          <div role="alert" className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            Scrumlo just updated.
+            <button onClick={() => window.location.reload()} className="rounded-md bg-amber-600 px-2 py-0.5 font-bold text-white hover:bg-amber-500">
+              Refresh
+            </button>
+          </div>
+        )}
         {!connected && (
           <div
             role="status"

@@ -31,6 +31,7 @@ export function Deck({
             disabled={disabled}
             onClick={() => onVote(c)}
             aria-pressed={selected}
+            aria-label={c === "☕" ? "I need a break" : c === "?" ? "Not enough info to estimate" : `Vote ${c}`}
             title={c === "☕" ? "I need a break" : c === "?" ? "Not enough info to estimate" : `Vote ${c}`}
             style={{ rotate: selected ? "0deg" : `${tilt(i, cards.length)}deg` }}
             className={`group relative grid h-24 w-[64px] place-items-center rounded-xl border-2 text-3xl font-black tabular-nums shadow-[0_6px_16px_-8px_rgba(15,23,42,0.4)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45 ${
@@ -39,14 +40,14 @@ export function Deck({
                 : "border-slate-200 bg-white text-slate-800 enabled:hover:z-10 enabled:hover:-translate-y-3 enabled:hover:rotate-0 enabled:hover:border-iris-300 enabled:hover:shadow-[0_16px_28px_-10px_rgba(15,23,42,0.5)] dark:border-white/10 dark:bg-[#1b1b24] dark:text-slate-100"
             }`}
           >
-            {/* corner pips, like a real card */}
-            <span className={`pointer-events-none absolute left-1.5 top-1 text-[11px] font-bold ${selected ? "text-white/80" : "text-slate-400 dark:text-slate-500"}`}>
+            {/* corner pips, like a real card (decorative · the aria-label names the card) */}
+            <span aria-hidden className={`pointer-events-none absolute left-1.5 top-1 text-[11px] font-bold ${selected ? "text-white/80" : "text-slate-400 dark:text-slate-500"}`}>
               {c}
             </span>
-            <span className={`pointer-events-none absolute bottom-1 right-1.5 rotate-180 text-[11px] font-bold ${selected ? "text-white/80" : "text-slate-400 dark:text-slate-500"}`}>
+            <span aria-hidden className={`pointer-events-none absolute bottom-1 right-1.5 rotate-180 text-[11px] font-bold ${selected ? "text-white/80" : "text-slate-400 dark:text-slate-500"}`}>
               {c}
             </span>
-            {face}
+            <span aria-hidden>{face}</span>
           </button>
         );
       })}

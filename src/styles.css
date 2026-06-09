@@ -127,9 +127,23 @@ h2 {
   .animate-flip,
   .animate-spin-wheel,
   .animate-conf,
-  .animate-glide {
+  .animate-glide,
+  .animate-emote {
     animation: none;
   }
+  /* A floating reaction shouldn't sail across the screen for a motion-sensitive
+     user; show it in place and let its JS timer remove it. */
+  .animate-emote {
+    opacity: 1;
+  }
+}
+
+/* One consistent keyboard focus ring on every interactive control, so tab
+   navigation is always visible (several components suppressed the browser default). */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-iris-500, #6366f1);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 /* ---- retro board: a clean dot-grid workspace (the stickies are the stars) ---- */

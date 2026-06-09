@@ -158,7 +158,8 @@ export default function Room() {
 
   return (
     <div className="flex min-h-screen flex-col [background:radial-gradient(54rem_32rem_at_50%_-10rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(54rem_32rem_at_50%_-10rem,#1b1838,transparent_60%)]">
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-3 py-8 sm:px-6">
+        <h1 className="sr-only">Scrumlo room {room}, {activity} activity</h1>
         {!connected && (
           <div
             role="status"
@@ -263,7 +264,7 @@ export default function Room() {
           follows. Nothing is kept after the room ends.
         </p>
 
-        <div id="scrumlo-board">
+        <div id="scrumlo-board" role="region" aria-label={`${activity} board`}>
           {activity === "estimate" ? (
             <EstimateBoard
               estimate={estimate}

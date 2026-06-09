@@ -12,6 +12,10 @@ export function ExportSheet({
 }) {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState<null | "png" | "pdf">(null);
+  const [err, setErr] = useState<string | null>(null);
+  // The board snapshot only makes sense on the canvas activities (retro/roadmap);
+  // elsewhere there's no #scrumlo-canvas, so don't offer a meaningless capture.
+  const [canImage] = useState(() => !!document.getElementById("scrumlo-canvas"));
   const trapRef = useFocusTrap<HTMLDivElement>();
 
   // Escape closes the dialog (keyboard parity with the backdrop/✕).
@@ -29,15 +33,19 @@ export function ExportSheet({
     if (!node) return null;
     const { toPng } = await import("html-to-image"); // lazy · keep it out of the initial bundle
     const dark = document.documentElement.classList.contains("dark");
+    const el = node as HTMLElement;
+    // Cap the pixel ratio on a big wall so we don't blow past the browser's max
+    // canvas size and fail silently.
+    const area = el.offsetWidth * el.offsetHeight;
     const opts: Record<string, unknown> = {
-      pixelRatio: 2,
+      pixelRatio: area > 4_000_000 ? 1 : 2,
       backgroundColor: dark ? "#0a0a0f" : "#fafafb",
       cacheBust: true,
     };
     if (canvas) {
       // Capture the whole board unscaled, not just the zoomed viewport slice.
-      opts.width = (node as HTMLElement).offsetWidth;
-      opts.height = (node as HTMLElement).offsetHeight;
+      opts.width = el.offsetWidth;
+      opts.height = el.offsetHeight;
       opts.style = { transform: "none" };
     }
     const dataUrl = await toPng(node, opts);
@@ -49,6 +57,7 @@ export function ExportSheet({
 
   async function downloadImage() {
     setBusy("png");
+    setErr(null);
     try {
       const cap = await captureBoard();
       if (!cap) return;
@@ -56,6 +65,8 @@ export function ExportSheet({
       a.href = cap.dataUrl;
       a.download = `scrumlo-${room}.png`;
       a.click();
+    } catch {
+      setErr("Couldn't render the board (it may be too large). The Markdown export always works.");
     } finally {
       setBusy(null);
     }
@@ -63,6 +74,7 @@ export function ExportSheet({
 
   async function downloadPdf() {
     setBusy("pdf");
+    setErr(null);
     try {
       const cap = await captureBoard();
       if (!cap) return;
@@ -74,6 +86,8 @@ export function ExportSheet({
       });
       pdf.addImage(cap.dataUrl, "PNG", 0, 0, cap.w, cap.h);
       pdf.save(`scrumlo-${room}.pdf`);
+    } catch {
+      setErr("Couldn't render the board (it may be too large). The Markdown export always works.");
     } finally {
       setBusy(null);
     }
@@ -147,27 +161,30 @@ export function ExportSheet({
           </button>
         </div>
 
-        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
-          <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-            Or grab a picture of the board, exactly as it looks now · so everyone keeps the same view.
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={downloadImage}
-              disabled={busy !== null}
-              className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
-            >
-              {busy === "png" ? "Rendering…" : "🖼 Board image (PNG)"}
-            </button>
-            <button
-              onClick={downloadPdf}
-              disabled={busy !== null}
-              className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
-            >
-              {busy === "pdf" ? "Rendering…" : "📄 Board PDF"}
-            </button>
+        {canImage && (
+          <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
+            <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+              Or grab a picture of the board, exactly as it looks now · so everyone keeps the same view.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={downloadImage}
+                disabled={busy !== null}
+                className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+              >
+                {busy === "png" ? "Rendering…" : "🖼 Board image (PNG)"}
+              </button>
+              <button
+                onClick={downloadPdf}
+                disabled={busy !== null}
+                className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+              >
+                {busy === "pdf" ? "Rendering…" : "📄 Board PDF"}
+              </button>
+            </div>
+            {err && <p role="alert" className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400">{err}</p>}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

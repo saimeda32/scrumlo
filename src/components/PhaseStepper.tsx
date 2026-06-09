@@ -52,8 +52,27 @@ export function PhaseStepper({
           );
         })}
       </div>
-      <div className="mt-2 flex items-center gap-3 px-1">
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 px-1">
         <p className="min-w-0 flex-1 truncate text-xs text-slate-500 dark:text-slate-400">{current.hint}</p>
+        {isFacil && (
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span className="text-[11px] font-medium text-slate-400">Time-box:</span>
+            {[
+              { label: "1m", s: 60 },
+              { label: "3m", s: 180 },
+              { label: "5m", s: 300 },
+            ].map((t) => (
+              <button
+                key={t.s}
+                onClick={() => client.timerStart(t.s)}
+                className="rounded-md border border-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-300"
+                title={`Start a ${t.label} timer for this phase`}
+              >
+                ⏱ {t.label}
+              </button>
+            ))}
+          </div>
+        )}
         {isFacil && next && (
           <button
             onClick={() => client.retroSetPhase(next.id)}

@@ -37,6 +37,7 @@ function cardToNum(card: string): number | null {
 type EstimateState = {
   story: string;
   deck: string;
+  customDeck: string[]; // card values when deck === "custom"
   phase: Phase;
   votes: Record<string, string>; // memberId -> card
   rationales: Record<string, string>; // memberId -> one-line "what are you pricing?"
@@ -98,6 +99,7 @@ export class RoomDO extends DurableObject<Env> {
   private estimate: EstimateState = {
     story: "",
     deck: "fib",
+    customDeck: [],
     phase: "voting",
     votes: {},
     rationales: {},
@@ -113,6 +115,7 @@ export class RoomDO extends DurableObject<Env> {
   private cursorTimer: number | null = null; // coalesces cursor fan-out to ~1 send / 50ms
   private lastActivityAt = Date.now(); // for idle-TTL; in-memory (hibernation resets it, which is fine)
   private buckets = new Map<string, { t: number; at: number }>(); // per-member token bucket (flood guard)
+  private departTimers = new Map<string, number>(); // memberId -> prune timer after they leave
   private retro: RetroState = {
     template: "ssc",
     cards: [],
@@ -139,6 +142,7 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.decision ??= null;
         this.estimate.queue ??= [];
         this.estimate.log ??= [];
+        this.estimate.customDeck ??= [];
       }
       const r = await ctx.storage.get<RetroState>("retro");
       if (r) {
@@ -237,6 +241,12 @@ export class RoomDO extends DurableObject<Env> {
         const member: Member = { id: memberId, name };
         ws.serializeAttachment(member);
         if (this.facilitatorId === null) this.facilitatorId = memberId;
+        // They're back within the grace window — cancel any pending vote prune.
+        const pending = this.departTimers.get(memberId);
+        if (pending) {
+          clearTimeout(pending);
+          this.departTimers.delete(memberId);
+        }
         break;
       }
 
@@ -244,7 +254,7 @@ export class RoomDO extends DurableObject<Env> {
       case "vote": {
         if (!me) return;
         if (this.estimate.phase !== "voting") return;
-        const deck = DECKS[this.estimate.deck] ?? DECKS.fib;
+        const deck = this.deckCards();
         if (!deck.includes(msg.card)) return;
         this.estimate.votes[me.id] = msg.card;
         // Auto-reveal once everyone present has voted (needs a real group, not a solo).
@@ -309,6 +319,17 @@ export class RoomDO extends DurableObject<Env> {
         if (i >= 0 && i < this.estimate.queue.length) this.estimate.queue.splice(i, 1);
         break;
       }
+      case "estimateQueueReorder": {
+        if (!this.isFacilitator(me)) return;
+        const from = Math.trunc(Number(msg.from));
+        const to = Math.trunc(Number(msg.to));
+        const q = this.estimate.queue;
+        if (from >= 0 && from < q.length && to >= 0 && to < q.length && from !== to) {
+          const [moved] = q.splice(from, 1);
+          q.splice(to, 0, moved);
+        }
+        break;
+      }
       case "estimateNextStory": {
         if (!this.isFacilitator(me)) return;
         // log the current story's outcome (if decided), then load the next one fresh
@@ -340,6 +361,22 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.votes = {};
         this.estimate.rationales = {};
         this.estimate.history = []; // different scale → trail no longer comparable
+        this.estimate.decision = null;
+        this.estimate.phase = "voting";
+        break;
+      }
+      case "setCustomDeck": {
+        if (!this.isFacilitator(me)) return;
+        const cards = (Array.isArray(msg.cards) ? msg.cards : [])
+          .map((s) => String(s ?? "").trim().slice(0, 6))
+          .filter(Boolean);
+        const unique = [...new Set(cards)].slice(0, 16);
+        if (unique.length < 2) return; // a deck needs at least two choices
+        this.estimate.customDeck = unique;
+        this.estimate.deck = "custom";
+        this.estimate.votes = {};
+        this.estimate.rationales = {};
+        this.estimate.history = [];
         this.estimate.decision = null;
         this.estimate.phase = "voting";
         break;
@@ -663,12 +700,52 @@ export class RoomDO extends DurableObject<Env> {
     if (gone) {
       this.cursors.delete(gone.id);
       this.buckets.delete(gone.id);
+      // Keep votes through a brief reconnect window, then prune this member's stale
+      // votes/reactions so a churning room doesn't accumulate phantom voters.
+      const id = gone.id;
+      const existing = this.departTimers.get(id);
+      if (existing) clearTimeout(existing);
+      this.departTimers.set(id, setTimeout(() => this.pruneIfAbsent(id), EMPTY_GRACE_MS) as unknown as number);
     }
     await this.broadcast(ws);
     this.broadcastCursors(); // their cursor disappears for everyone
     const remaining = this.ctx.getWebSockets().filter((w) => w !== ws).length;
     // Empty room → short grace (reconnect window) then evaporate; otherwise idle TTL.
     await this.ctx.storage.setAlarm(Date.now() + (remaining === 0 ? EMPTY_GRACE_MS : IDLE_MS));
+  }
+
+  /** After the reconnect grace: if the member never came back, drop their votes. */
+  private async pruneIfAbsent(id: string): Promise<void> {
+    this.departTimers.delete(id);
+    const present = this.membersFrom(this.ctx.getWebSockets()).some((m) => m.id === id);
+    if (present) return; // they reconnected — keep everything
+    let changed = false;
+    if (this.estimate.votes[id] !== undefined) {
+      delete this.estimate.votes[id];
+      changed = true;
+    }
+    if (this.estimate.rationales[id] !== undefined) {
+      delete this.estimate.rationales[id];
+      changed = true;
+    }
+    for (const c of this.retro.cards) {
+      const vi = c.voters.indexOf(id);
+      if (vi >= 0) {
+        c.voters.splice(vi, 1);
+        changed = true;
+      }
+      for (const e of Object.keys(c.reactions)) {
+        const ri = c.reactions[e].indexOf(id);
+        if (ri >= 0) {
+          c.reactions[e].splice(ri, 1);
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      await this.persist();
+      await this.broadcast();
+    }
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
@@ -713,6 +790,12 @@ export class RoomDO extends DurableObject<Env> {
 
   private isFacilitator(me: Member | null): boolean {
     return !!me && me.id === this.facilitatorId;
+  }
+
+  /** The active deck's card values — a built-in or the facilitator's custom sequence. */
+  private deckCards(): string[] {
+    if (this.estimate.deck === "custom" && this.estimate.customDeck.length) return this.estimate.customDeck;
+    return DECKS[this.estimate.deck] ?? DECKS.fib;
   }
 
   /** Token bucket per member: returns false (drop) when the bucket is empty. */
@@ -825,6 +908,7 @@ export class RoomDO extends DurableObject<Env> {
     const estimateShared = {
       story: this.estimate.story,
       deck: this.estimate.deck,
+      customDeck: this.estimate.deck === "custom" ? this.estimate.customDeck : [],
       phase: this.estimate.phase,
       voted: votedIds,
       votes: revealed ? { ...this.estimate.votes } : null,
@@ -852,7 +936,10 @@ export class RoomDO extends DurableObject<Env> {
       column: c.column,
       text: c.text,
       authorId: c.authorId,
-      author: this.retro.anonymous ? null : (nameById.get(c.authorId) ?? null),
+      // Anonymous hides authors — except in Discuss, where seeing who raised a theme
+      // helps the conversation (names are revealed once voting's done).
+      author:
+        this.retro.anonymous && this.retro.phase !== "discuss" ? null : (nameById.get(c.authorId) ?? null),
       votes: c.voters.length,
       voters: c.voters,
       reactions: RETRO_REACTIONS.filter((e) => (c.reactions[e]?.length ?? 0) > 0).map((e) => ({

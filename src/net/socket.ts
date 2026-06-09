@@ -10,12 +10,14 @@ export type RoomClient = {
   reestimate: () => void;
   setStory: (story: string) => void;
   setDeck: (deck: string) => void;
+  setCustomDeck: (cards: string[]) => void;
   setRationale: (text: string) => void;
   typing: (on: boolean) => void;
   cursor: (x: number, y: number, drag?: { cardId: string; x: number; y: number } | null) => void;
   lockDecision: (value: string, note: string) => void;
   estimateQueueAdd: (stories: string[]) => void;
   estimateQueueRemove: (index: number) => void;
+  estimateQueueReorder: (from: number, to: number) => void;
   estimateNextStory: () => void;
   claimFacilitator: () => void;
   endRoom: () => void;
@@ -93,8 +95,23 @@ export function createRoomClient(
     }
   })();
 
+  // Client-side flood guard (defense-in-depth; the server enforces the real limit).
+  // A token bucket caps outgoing messages so a runaway loop or stuck key can't spam
+  // the room; control messages (hello/sync/endRoom) always go through.
+  const CAP = 50;
+  const REFILL = 25; // tokens/sec
+  let tokens = CAP;
+  let tokenAt = performance.now();
   const send = (m: ClientMsg) => {
-    if (ws.readyState === ReconnectingWebSocket.OPEN) ws.send(JSON.stringify(m));
+    if (ws.readyState !== ReconnectingWebSocket.OPEN) return;
+    if (m.t !== "hello" && m.t !== "sync" && m.t !== "endRoom") {
+      const now = performance.now();
+      tokens = Math.min(CAP, tokens + ((now - tokenAt) / 1000) * REFILL);
+      tokenAt = now;
+      if (tokens < 1) return; // drop excess
+      tokens -= 1;
+    }
+    ws.send(JSON.stringify(m));
   };
 
   ws.addEventListener("open", () => {
@@ -135,12 +152,14 @@ export function createRoomClient(
     reestimate: () => send({ t: "reestimate", v: 1 }),
     setStory: (story) => send({ t: "setStory", v: 1, story }),
     setDeck: (deck) => send({ t: "setDeck", v: 1, deck }),
+    setCustomDeck: (cards) => send({ t: "setCustomDeck", v: 1, cards }),
     setRationale: (text) => send({ t: "setRationale", v: 1, text }),
     typing: (on) => send({ t: "typing", v: 1, on }),
     cursor: (x, y, drag) => send({ t: "cursor", v: 1, x, y, drag: drag ?? null }),
     lockDecision: (value, note) => send({ t: "lockDecision", v: 1, value, note }),
     estimateQueueAdd: (stories) => send({ t: "estimateQueueAdd", v: 1, stories }),
     estimateQueueRemove: (index) => send({ t: "estimateQueueRemove", v: 1, index }),
+    estimateQueueReorder: (from, to) => send({ t: "estimateQueueReorder", v: 1, from, to }),
     estimateNextStory: () => send({ t: "estimateNextStory", v: 1 }),
     claimFacilitator: () => send({ t: "claimFacilitator", v: 1 }),
     endRoom: () => send({ t: "endRoom", v: 1 }),

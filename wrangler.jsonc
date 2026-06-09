@@ -3,6 +3,12 @@
   "name": "scrumlo",
   "main": "worker/index.ts",
   "compatibility_date": "2026-06-01",
+  // Custom domains: Cloudflare auto-provisions the DNS records + TLS certs on deploy
+  // (the scrumlo.com zone must be active in this account).
+  "routes": [
+    { "pattern": "scrumlo.com", "custom_domain": true },
+    { "pattern": "www.scrumlo.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

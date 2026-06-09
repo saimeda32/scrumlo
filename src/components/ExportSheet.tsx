@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useFocusTrap } from "../lib/useFocusTrap";
 
 export function ExportSheet({
   room,
@@ -11,6 +12,7 @@ export function ExportSheet({
 }) {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState<null | "png" | "pdf">(null);
+  const trapRef = useFocusTrap<HTMLDivElement>();
 
   // Escape closes the dialog (keyboard parity with the backdrop/✕).
   useEffect(() => {
@@ -99,6 +101,7 @@ export function ExportSheet({
 
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4 dark:bg-black/70"
       role="dialog"
       aria-modal="true"

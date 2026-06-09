@@ -182,7 +182,7 @@ export default function Landing() {
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { n: "1", t: "Start a room", d: "Hit Create a room — you get a private link like scrumlo.app/r/brave-otter. Nothing to configure." },
+            { n: "1", t: "Start a room", d: "Hit Create a room — you get a private link like scrumlo.com/r/brave-otter. Nothing to configure." },
             { n: "2", t: "Share the link", d: "Drop it in Slack. Teammates open it and land instantly, then type a name to grab a seat. No sign-up." },
             { n: "3", t: "Run the ceremony", d: "The facilitator switches between Estimate, Retro, and Pick and runs the shared timer. Everyone follows live." },
             { n: "4", t: "Export, then poof", d: "Grab a Markdown or full-board PNG/PDF with your action items. When the last person leaves, the room deletes itself." },

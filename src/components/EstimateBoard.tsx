@@ -41,7 +41,10 @@ export function EstimateBoard({
         return;
       }
       if (revealed) return;
-      const deck = DECKS[estimate.deck] ?? DECKS.fib;
+      const deck =
+        estimate.deck === "custom" && estimate.customDeck?.length
+          ? estimate.customDeck
+          : (DECKS[estimate.deck] ?? DECKS.fib);
       if (deck.includes(e.key)) client.vote(e.key);
     };
     window.addEventListener("keydown", onKey);
@@ -133,13 +136,31 @@ export function EstimateBoard({
               <span className="w-5 shrink-0 text-center text-xs font-semibold text-slate-400">{i + 1}</span>
               <span className="min-w-0 flex-1 truncate text-slate-700 dark:text-slate-200">{story}</span>
               {isFacil && (
-                <button
-                  onClick={() => client.estimateQueueRemove(i)}
-                  aria-label={`Remove "${story}" from the backlog`}
-                  className="shrink-0 rounded px-1.5 text-slate-400 hover:text-rose-500"
-                >
-                  ✕
-                </button>
+                <div className="flex shrink-0 items-center">
+                  <button
+                    onClick={() => client.estimateQueueReorder(i, i - 1)}
+                    disabled={i === 0}
+                    aria-label="Move up"
+                    className="rounded px-1 text-slate-400 enabled:hover:text-iris-600 disabled:opacity-30"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => client.estimateQueueReorder(i, i + 1)}
+                    disabled={i === estimate.queue.length - 1}
+                    aria-label="Move down"
+                    className="rounded px-1 text-slate-400 enabled:hover:text-iris-600 disabled:opacity-30"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    onClick={() => client.estimateQueueRemove(i)}
+                    aria-label={`Remove "${story}" from the backlog`}
+                    className="rounded px-1.5 text-slate-400 hover:text-rose-500"
+                  >
+                    ✕
+                  </button>
+                </div>
               )}
             </li>
           ))}
@@ -248,6 +269,7 @@ export function EstimateBoard({
         </div>
         <Deck
           deck={estimate.deck}
+          customDeck={estimate.customDeck}
           yourVote={estimate.yourVote}
           disabled={revealed || !canAct}
           onVote={(c) => client.vote(c)}

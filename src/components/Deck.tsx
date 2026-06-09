@@ -8,16 +8,18 @@ function tilt(i: number, n: number): number {
 
 export function Deck({
   deck,
+  customDeck,
   yourVote,
   disabled,
   onVote,
 }: {
   deck: string;
+  customDeck?: string[];
   yourVote: string | null;
   disabled: boolean;
   onVote: (card: string) => void;
 }) {
-  const cards = DECKS[deck] ?? DECKS.fib;
+  const cards = deck === "custom" && customDeck?.length ? customDeck : (DECKS[deck] ?? DECKS.fib);
   return (
     <div data-testid="deck" className="flex flex-wrap items-end justify-center gap-2 px-1 pb-1 pt-4">
       {cards.map((c, i) => {

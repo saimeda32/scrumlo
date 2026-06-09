@@ -20,7 +20,7 @@ Other tools keep your boards; Scrumlo keeps **nothing** — on purpose. There's 
 
 ## Using a room
 
-1. **Open the app** and hit *Start a room* — you get a private link like `scrumlo.app/r/brave-otter-42`.
+1. **Open the app** and hit *Start a room* — you get a private link like `scrumlo.com/r/brave-otter-42`.
 2. **Share the link.** Anyone who opens it lands as a spectator and renders instantly; they **drop a name** to grab a seat and act. No sign-up.
 3. **The facilitator drives.** Whoever claims the baton switches between **Estimate / Retro / Pick** and starts the shared **timer** — everyone's screen follows live.
    - **Estimate:** pick a card (or press a number key; `R` reveals). Votes stay hidden until everyone's in, then reveal together. Queue a backlog of stories and step through them.

@@ -33,12 +33,14 @@ export const DECK_LABELS: Record<string, string> = {
   modfib: "Mod. Fibonacci",
   powers: "Powers of 2",
   tfb: "T-shirt+",
+  custom: "Custom deck",
 };
 
 /** What a client sees of the estimation activity (redacted server-side). */
 export type EstimateView = {
   story: string;
-  deck: string; // key into DECKS
+  deck: string; // key into DECKS, or "custom"
+  customDeck: string[]; // the card values when deck === "custom" (else [])
   phase: Phase;
   voted: string[]; // member ids who have voted (no values before reveal)
   yourVote: string | null; // your own vote (so your card shows selected)
@@ -251,11 +253,13 @@ export type ClientMsg =
   | { t: "reestimate"; v: 1 } // reopen voting but KEEP the story + rationales, so the room converges in place
   | { t: "setStory"; v: 1; story: string }
   | { t: "setDeck"; v: 1; deck: string }
+  | { t: "setCustomDeck"; v: 1; cards: string[] } // facilitator defines a custom card sequence
   | { t: "setRationale"; v: 1; text: string } // an outlier explains their estimate
   | { t: "typing"; v: 1; on: boolean } // live presence while composing a rationale
   | { t: "lockDecision"; v: 1; value: string; note: string } // facilitator locks the outcome ("" value = unlock)
   | { t: "estimateQueueAdd"; v: 1; stories: string[] } // queue stories to estimate
   | { t: "estimateQueueRemove"; v: 1; index: number } // drop a queued story (typo/dupe)
+  | { t: "estimateQueueReorder"; v: 1; from: number; to: number } // move a queued story up/down
   | { t: "estimateNextStory"; v: 1 } // log current decision, advance to the next story
   // live cursor position on the retro canvas; `drag` carries a sticky being moved
   // right now (live, pre-drop) so everyone sees it glide, not just jump on release.

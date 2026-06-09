@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Activity, PickMode } from "../../shared/protocol";
+import { useFocusTrap } from "../lib/useFocusTrap";
 import { RETRO_TEMPLATES, DECKS, DECK_LABELS } from "../../shared/protocol";
 import { retroTheme } from "../lib/retroThemes";
 import { RetroGlyph } from "./RetroGlyph";
@@ -34,6 +35,17 @@ export function FormatPicker({
   client: RoomClient;
   onClose: () => void;
 }) {
+  const [customDraft, setCustomDraft] = useState("");
+  const trapRef = useFocusTrap<HTMLDivElement>();
+
+  function applyCustomDeck() {
+    const cards = [...new Set(customDraft.split(/[, \n]+/).map((s) => s.trim()).filter(Boolean))].slice(0, 16);
+    if (cards.length >= 2) {
+      client.setCustomDeck(cards);
+      onClose();
+    }
+  }
+
   // Escape closes the picker (keyboard parity with the backdrop/✕).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -50,6 +62,7 @@ export function FormatPicker({
 
   return (
     <div
+      ref={trapRef}
       className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4 backdrop-blur-sm dark:bg-black/70"
       role="dialog"
       aria-modal="true"
@@ -158,6 +171,38 @@ export function FormatPicker({
                 </button>
               );
             })}
+
+          {activity === "estimate" && isFacil && (
+            <div
+              className={`rounded-2xl border p-3 text-left sm:col-span-2 ${
+                deck === "custom" ? "border-iris-500 ring-2 ring-iris-400" : "border-slate-200 dark:border-white/10"
+              } bg-white dark:bg-white/5`}
+            >
+              <div className="flex items-center">
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Custom deck</span>
+                {deck === "custom" && <span className="ml-auto text-xs font-bold text-iris-600 dark:text-iris-300">current</span>}
+              </div>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                Your own sequence — 2 to 16 cards, separated by commas or spaces.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={customDraft}
+                  onChange={(e) => setCustomDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && applyCustomDeck()}
+                  placeholder="e.g. 1, 2, 3, 5, 8, 13, ?, ☕"
+                  aria-label="Custom deck cards"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                />
+                <button
+                  onClick={applyCustomDeck}
+                  className="shrink-0 rounded-lg bg-iris-600 px-3 py-2 text-sm font-semibold text-white hover:bg-iris-500"
+                >
+                  Use
+                </button>
+              </div>
+            </div>
+          )}
 
           {activity === "pick" &&
             PICK_MODES.map(({ mode, label, desc, Icon }) => {

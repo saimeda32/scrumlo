@@ -1,6 +1,7 @@
 import type { RetroView } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { RetroCanvas } from "./RetroCanvas";
+import { PhaseStepper } from "./PhaseStepper";
 import { retroTheme } from "../lib/retroThemes";
 import { RetroGlyph } from "./RetroGlyph";
 
@@ -24,6 +25,8 @@ export function RetroBoard({
   const theme = retroTheme(retro.template);
   return (
     <>
+      <PhaseStepper phase={retro.phase} isFacil={isFacil} client={client} />
+
       <div className="mb-4 flex items-center gap-3">
         {/* format is chosen via the Format picker (toolbar button); here we keep the
             quick toggles. */}

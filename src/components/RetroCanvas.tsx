@@ -34,7 +34,16 @@ export function RetroCanvas({
   const [zoom, setZoom] = useState(0.8);
   const [addingZone, setAddingZone] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [full, setFull] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+
+  // Fullscreen makes the wall big enough for 4–5 columns. Escape exits.
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFull(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [full]);
   const boardRef = useRef<HTMLDivElement>(null);
   const lastCursor = useRef(0);
 
@@ -80,17 +89,35 @@ export function RetroCanvas({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 shadow-inner dark:border-white/10">
-      {/* zoom controls */}
+    <div
+      className={
+        full
+          ? "fixed inset-0 z-50 overflow-hidden border-0 bg-slate-50 p-3 dark:bg-[#0a0a0f]"
+          : "relative overflow-hidden rounded-3xl border border-slate-200/80 shadow-inner dark:border-white/10"
+      }
+    >
+      {/* zoom + fullscreen controls */}
       <div className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/90">
         <button onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom out">−</button>
         <span className="w-10 text-center text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((z) => Math.min(1.4, +(z + 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom in">+</button>
         <button onClick={fit} className="ml-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10">Fit</button>
+        <button
+          onClick={() => setFull((v) => !v)}
+          className="ml-0.5 grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+          aria-label={full ? "Exit fullscreen" : "Fullscreen"}
+          title={full ? "Exit fullscreen (Esc)" : "Fullscreen — more room for the wall"}
+        >
+          {full ? "⤡" : "⤢"}
+        </button>
       </div>
 
       {/* pannable viewport (native scroll) */}
-      <div ref={viewportRef} className="dot-grid h-[600px] overflow-auto" style={{ touchAction: "pan-x pan-y" }}>
+      <div
+        ref={viewportRef}
+        className={`dot-grid overflow-auto ${full ? "h-[calc(100vh-24px)] rounded-2xl" : "h-[600px]"}`}
+        style={{ touchAction: "pan-x pan-y" }}
+      >
         <div style={{ width: W * zoom, height: boardH * zoom }}>
           <div ref={boardRef} onPointerMove={onBoardMove} id="scrumlo-canvas" className="relative origin-top-left dot-grid" style={{ width: W, height: boardH, transform: `scale(${zoom})` }}>
             <ThemedBackdrop template={retro.template} glow={theme.glow} w={W} h={boardH} />
@@ -155,6 +182,7 @@ export function RetroCanvas({
                 c={columnColor(card.column, cols.findIndex((z) => z.id === card.column))}
                 zoom={zoom}
                 canAct={canAct}
+                canVote={canAct && retro.phase === "vote"}
                 isFacil={isFacil}
                 spotlit={retro.spotlightId === card.id}
                 client={client}
@@ -264,6 +292,7 @@ function CanvasCard({
   c,
   zoom,
   canAct,
+  canVote,
   isFacil,
   spotlit,
   client,
@@ -273,6 +302,7 @@ function CanvasCard({
   c: ColC;
   zoom: number;
   canAct: boolean;
+  canVote: boolean;
   isFacil: boolean;
   spotlit: boolean;
   client: RoomClient;
@@ -290,6 +320,24 @@ function CanvasCard({
   // Local drag wins; otherwise follow a teammate's live drag; else the resting spot.
   const x = drag?.x ?? live?.x ?? card.x;
   const y = drag?.y ?? live?.y ?? card.y;
+
+  // Blind brainstorm: someone else's note, text withheld by the server. Show a
+  // calm placeholder so you know it's there without it anchoring your thinking.
+  if (card.masked) {
+    return (
+      <div
+        style={{ left: card.x, top: card.y, width: CARD_W, rotate: `${tiltOf(card.id)}deg` }}
+        className={`absolute z-10 select-none rounded-[10px] px-3.5 py-4 ${c.note} opacity-60`}
+        aria-hidden
+      >
+        <div className="flex items-center gap-2 text-slate-500/70">
+          <span className="text-base">🔒</span>
+          <div className="h-2 flex-1 rounded-full bg-slate-500/20" />
+        </div>
+        <div className="mt-2 h-2 w-2/3 rounded-full bg-slate-500/15" />
+      </div>
+    );
+  }
 
   function onDown(e: React.PointerEvent) {
     if (!canAct || editing) return;
@@ -334,6 +382,21 @@ function CanvasCard({
     if (t && t !== card.text) client.retroEditCard(card.id, t);
     setEditing(false);
   }
+  // Keyboard accessibility: nudge a focused sticky with the arrow keys (Shift = bigger
+  // step), so the canvas isn't mouse-only.
+  function onKey(e: React.KeyboardEvent) {
+    if (!canAct || editing) return;
+    const step = e.shiftKey ? 60 : 20;
+    let dx = 0;
+    let dy = 0;
+    if (e.key === "ArrowLeft") dx = -step;
+    else if (e.key === "ArrowRight") dx = step;
+    else if (e.key === "ArrowUp") dy = -step;
+    else if (e.key === "ArrowDown") dy = step;
+    else return;
+    e.preventDefault();
+    client.retroMoveXY(card.id, Math.round(card.x + dx), Math.round(card.y + dy));
+  }
 
   return (
     <div
@@ -341,6 +404,10 @@ function CanvasCard({
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
+      onKeyDown={onKey}
+      tabIndex={canAct ? 0 : -1}
+      role="group"
+      aria-label={`Sticky: ${card.text}. Arrow keys to move.`}
       style={{ left: x, top: y, width: CARD_W, touchAction: "none", rotate: spotlit || drag || live ? "0deg" : `${tiltOf(card.id)}deg` }}
       className={`group absolute select-none rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_16px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
         canAct ? "cursor-grab active:cursor-grabbing" : ""
@@ -407,7 +474,7 @@ function CanvasCard({
       <div className="mt-2 flex items-center gap-2">
         <button
           onClick={() => client.retroVote(card.id)}
-          disabled={!canAct}
+          disabled={!canVote && !card.youVoted}
           aria-pressed={card.youVoted}
           aria-label={
             card.groupId

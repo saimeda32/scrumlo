@@ -80,6 +80,9 @@ export function Wheel({
           const large = seg > 180 ? 1 : 0;
           const mid = -90 + (i + 0.5) * seg;
           const [lx, ly] = polar(cx, cy, r * 0.62, mid);
+          // Keep labels right-side-up: flip any that would land in the lower half.
+          const baseRot = mid + 90;
+          const textRot = baseRot > 90 && baseRot < 270 ? baseRot + 180 : baseRot;
           const d =
             n === 1
               ? `M ${cx - r},${cy} a ${r},${r} 0 1,0 ${r * 2},0 a ${r},${r} 0 1,0 ${-r * 2},0`
@@ -90,7 +93,7 @@ export function Wheel({
               <text
                 x={lx}
                 y={ly}
-                transform={`rotate(${mid + 90} ${lx} ${ly})`}
+                transform={`rotate(${textRot} ${lx} ${ly})`}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fontSize={n > 8 ? 8 : 10}

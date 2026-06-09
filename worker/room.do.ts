@@ -13,6 +13,7 @@ import type {
   PickMode,
   Phase,
   Activity,
+  RetroPhase,
 } from "../shared/protocol";
 import {
   DECKS,
@@ -70,6 +71,7 @@ type RetroState = {
   anonymous: boolean; // hide authors (default true)
   spotlightId: string | null; // facilitator focusing the room on a card
   discussed: string[]; // card ids the random picker has already surfaced
+  phase: RetroPhase; // facilitated phase (brainstorm hides others' notes)
 };
 
 type PickState = {
@@ -117,6 +119,7 @@ export class RoomDO extends DurableObject<Env> {
     anonymous: true,
     spotlightId: null,
     discussed: [],
+    phase: "brainstorm",
   };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0, recent: [] };
   private activity: Activity = "estimate";
@@ -141,6 +144,7 @@ export class RoomDO extends DurableObject<Env> {
       if (r) {
         this.retro = r;
         this.retro.anonymous ??= true; // tolerate state from before authorship/reactions
+        this.retro.phase ??= "brainstorm";
         this.retro.spotlightId ??= null;
         this.retro.discussed ??= [];
         const htpl = RETRO_TEMPLATES[this.retro.template] ?? RETRO_TEMPLATES.ssc;
@@ -299,6 +303,12 @@ export class RoomDO extends DurableObject<Env> {
         this.estimate.queue = this.estimate.queue.slice(0, 200);
         break;
       }
+      case "estimateQueueRemove": {
+        if (!this.isFacilitator(me)) return;
+        const i = Math.trunc(Number(msg.index));
+        if (i >= 0 && i < this.estimate.queue.length) this.estimate.queue.splice(i, 1);
+        break;
+      }
       case "estimateNextStory": {
         if (!this.isFacilitator(me)) return;
         // log the current story's outcome (if decided), then load the next one fresh
@@ -402,6 +412,13 @@ export class RoomDO extends DurableObject<Env> {
         this.retro.cards = []; // changing template resets the board
         this.retro.spotlightId = null;
         this.retro.discussed = [];
+        this.retro.phase = "brainstorm"; // a fresh board starts a fresh facilitation
+        break;
+      }
+      case "retroSetPhase": {
+        if (!this.isFacilitator(me)) return;
+        if (!["brainstorm", "group", "vote", "discuss"].includes(msg.phase)) return;
+        this.retro.phase = msg.phase as RetroPhase;
         break;
       }
       case "retroAddCard": {
@@ -503,8 +520,9 @@ export class RoomDO extends DurableObject<Env> {
         if (!card) return;
         const i = card.voters.indexOf(me.id);
         if (i >= 0) {
-          card.voters.splice(i, 1); // toggle off (always allowed)
+          card.voters.splice(i, 1); // toggle off (always allowed, e.g. to reclaim a dot)
         } else {
+          if (this.retro.phase !== "vote") return; // dots are only cast in the vote phase
           const used = this.retro.cards.filter((c) => c.voters.includes(me.id)).length;
           if (used >= RETRO_VOTE_BUDGET) return; // out of dots
           card.voters.push(me.id);
@@ -864,30 +882,38 @@ export class RoomDO extends DurableObject<Env> {
         yourVote: meId ? (this.estimate.votes[meId] ?? null) : null,
       };
 
+      // Blind brainstorm: until the facilitator reveals, you only see your own
+      // notes — everyone else's text/author/reactions are withheld at the SERVER
+      // (not just hidden in CSS), so early ideas can't anchor the room.
+      const blind = this.retro.phase === "brainstorm";
       let used = 0;
       const cards = baseCards.map((b) => {
+        const masked = blind && b.authorId !== meId;
         const youVoted = meId ? b.voters.includes(meId) : false;
         if (youVoted) used++;
         return {
           id: b.id,
           column: b.column,
-          text: b.text,
+          text: masked ? "" : b.text,
           mine: meId ? b.authorId === meId : false,
-          author: b.author,
+          author: masked ? null : b.author,
           votes: b.votes,
           youVoted,
-          reactions: b.reactions.map((r) => ({
-            emoji: r.emoji,
-            count: r.count,
-            mine: meId ? r.members.includes(meId) : false,
-          })),
+          reactions: masked
+            ? []
+            : b.reactions.map((r) => ({
+                emoji: r.emoji,
+                count: r.count,
+                mine: meId ? r.members.includes(meId) : false,
+              })),
           discussed: b.discussed,
           order: b.order,
           groupId: b.groupId,
           groupVotes: b.groupVotes,
           groupSize: b.groupSize,
-          action: b.action,
-          owner: b.owner,
+          action: masked ? false : b.action,
+          owner: masked ? null : b.owner,
+          masked,
           x: b.x,
           y: b.y,
         };
@@ -900,6 +926,7 @@ export class RoomDO extends DurableObject<Env> {
         votesLeft: meId ? RETRO_VOTE_BUDGET - used : RETRO_VOTE_BUDGET,
         anonymous: this.retro.anonymous,
         spotlightId: this.retro.spotlightId,
+        phase: this.retro.phase,
       };
 
       const snapshot: ServerMsg = {

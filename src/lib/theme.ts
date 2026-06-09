@@ -5,10 +5,6 @@ import { useSyncExternalStore } from "react";
 type Mode = "light" | "dark";
 const KEY = "scrumlo-theme";
 
-function systemPref(): Mode {
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
 function stored(): Mode | null {
   try {
     const v = localStorage.getItem(KEY);
@@ -18,8 +14,11 @@ function stored(): Mode | null {
   }
 }
 
+// Default to LIGHT for everyone; dark is opt-in and remembered. We intentionally
+// do NOT follow the OS setting — the site reads as a bright, premium light theme
+// out of the box, and dark mode is on demand via the toggle.
 export function currentMode(): Mode {
-  return stored() ?? systemPref();
+  return stored() ?? "light";
 }
 
 function apply(mode: Mode) {

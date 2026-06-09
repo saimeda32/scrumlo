@@ -66,6 +66,27 @@ export default function Room() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activity]);
 
+  // Announce when the facilitator baton moves (a takeover), with a banner that
+  // auto-dismisses after a few seconds so everyone notices who's driving now.
+  const prevFacil = useRef<string | null | undefined>(undefined);
+  const [takeover, setTakeover] = useState<string | null>(null);
+  useEffect(() => {
+    const prev = prevFacil.current;
+    prevFacil.current = facilitator;
+    if (prev === undefined) return; // first snapshot — not a takeover
+    if (facilitator && facilitator !== prev) {
+      const isMe = facilitator === you;
+      const name = members.find((m) => m.id === facilitator)?.name ?? "Someone";
+      setTakeover(isMe ? "You're now facilitating" : `${name} took over as facilitator`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facilitator]);
+  useEffect(() => {
+    if (!takeover) return;
+    const t = setTimeout(() => setTakeover(null), 7000);
+    return () => clearTimeout(t);
+  }, [takeover]);
+
   if (ended) {
     return (
       <div className="grid min-h-screen place-items-center px-6 text-center [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(50rem_30rem_at_50%_-8rem,#1b1838,transparent_60%)]">
@@ -117,6 +138,23 @@ export default function Room() {
         {!connected && (
           <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
             <StatusTicker phrases={FLAVOR.reconnecting} />
+          </div>
+        )}
+
+        {takeover && (
+          <div
+            role="status"
+            className="animate-rise mb-3 flex items-center gap-2.5 rounded-xl border border-iris-200 bg-iris-50 px-4 py-2.5 text-sm font-semibold text-iris-800 shadow-sm dark:border-iris-500/30 dark:bg-iris-500/10 dark:text-iris-200"
+          >
+            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-iris-600 text-xs text-white">♛</span>
+            {takeover}
+            <button
+              onClick={() => setTakeover(null)}
+              aria-label="Dismiss"
+              className="ml-auto rounded-md px-1.5 text-iris-400 hover:text-iris-700 dark:hover:text-iris-200"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -206,6 +244,7 @@ export default function Room() {
               isFacil={isFacil}
               canAct={canAct}
               client={client}
+              onExport={() => setShowExport(true)}
             />
           ) : activity === "retro" ? (
             <RetroBoard

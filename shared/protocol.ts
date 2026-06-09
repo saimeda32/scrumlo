@@ -198,9 +198,19 @@ export type RetroCardView = {
   groupSize: number; // number of cards in this cluster (1 when ungrouped)
   action: boolean; // promoted to an action item (a committed takeaway)
   owner: string | null; // who owns the action item, if assigned
+  masked: boolean; // hidden during blind brainstorm (someone else's note, text withheld)
   x: number; // free position on the canvas (board coords)
   y: number;
 };
+
+/** Facilitated retro phases, stepped through in order. */
+export type RetroPhase = "brainstorm" | "group" | "vote" | "discuss";
+export const RETRO_PHASES: { id: RetroPhase; label: string; hint: string }[] = [
+  { id: "brainstorm", label: "Brainstorm", hint: "Add your own notes — everyone's stay hidden until the reveal." },
+  { id: "group", label: "Group", hint: "All notes revealed. Drag similar ones together into clusters." },
+  { id: "vote", label: "Vote", hint: "Spend your dots on the themes that matter most." },
+  { id: "discuss", label: "Discuss", hint: "Work the top themes. Spotlight a card and capture action items." },
+];
 
 /** Canvas layout shared by client + server: zones are vertical bands of this width. */
 export const RETRO_ZONE_W = 360;
@@ -213,6 +223,7 @@ export type RetroView = {
   votesLeft: number; // dot-votes you have left
   anonymous: boolean; // room setting: hide card authors (default true)
   spotlightId: string | null; // facilitator is focusing the room on one card
+  phase: RetroPhase; // facilitated phase the room is in
 };
 
 // ---- Picker (the facilitator's "wheel of names") ----
@@ -244,6 +255,7 @@ export type ClientMsg =
   | { t: "typing"; v: 1; on: boolean } // live presence while composing a rationale
   | { t: "lockDecision"; v: 1; value: string; note: string } // facilitator locks the outcome ("" value = unlock)
   | { t: "estimateQueueAdd"; v: 1; stories: string[] } // queue stories to estimate
+  | { t: "estimateQueueRemove"; v: 1; index: number } // drop a queued story (typo/dupe)
   | { t: "estimateNextStory"; v: 1 } // log current decision, advance to the next story
   // live cursor position on the retro canvas; `drag` carries a sticky being moved
   // right now (live, pre-drop) so everyone sees it glide, not just jump on release.
@@ -267,6 +279,7 @@ export type ClientMsg =
   | { t: "retroEditCard"; v: 1; cardId: string; text: string } // edit a sticky's text in place
   | { t: "retroGroupCard"; v: 1; cardId: string; ontoCardId: string } // stack cardId onto onto's group
   | { t: "retroSetAction"; v: 1; cardId: string; on: boolean; owner?: string | null } // promote a sticky to an action item
+  | { t: "retroSetPhase"; v: 1; phase: RetroPhase } // facilitator steps the retro phase
   | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors
   | { t: "retroSpotlight"; v: 1; cardId: string | null } // facilitator: focus everyone on a card
   | { t: "retroPickRandom"; v: 1 } // facilitator: spotlight a random not-yet-discussed card

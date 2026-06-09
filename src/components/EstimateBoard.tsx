@@ -15,6 +15,7 @@ export function EstimateBoard({
   isFacil,
   canAct,
   client,
+  onExport,
 }: {
   estimate: EstimateView;
   members: Member[];
@@ -22,9 +23,11 @@ export function EstimateBoard({
   isFacil: boolean;
   canAct: boolean;
   client: RoomClient;
+  onExport: () => void;
 }) {
   const revealed = estimate.phase === "revealed";
   const [showAdd, setShowAdd] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
   const [draft, setDraft] = useState("");
 
   // Keyboard voting: press a card's value to vote it; R reveals (facilitator).
@@ -45,8 +48,23 @@ export function EstimateBoard({
     return () => window.removeEventListener("keydown", onKey);
   }, [canAct, isFacil, revealed, estimate.deck, client]);
 
+  // Accept plain lines OR pasted CSV / Jira exports: one story per line, and within
+  // a comma row, keep an ID-looking first cell as a prefix and use the longest cell
+  // as the title (so "PROJ-12,Add CSV export,5" → "PROJ-12 — Add CSV export").
+  function parseStory(line: string): string {
+    const t = line.trim().replace(/^["']|["']$/g, "");
+    if (!t.includes(",")) return t;
+    const cells = t.split(",").map((c) => c.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+    if (!cells.length) return t;
+    const idLike = /^[A-Za-z]{1,8}-?\d+$/;
+    const id = idLike.test(cells[0]) ? cells[0] : null;
+    const rest = id ? cells.slice(1) : cells;
+    const title = rest.slice().sort((a, b) => b.length - a.length)[0] || cells[0];
+    return id ? `${id} — ${title}` : title;
+  }
+
   function addStories() {
-    const stories = draft.split("\n").map((s) => s.trim()).filter(Boolean);
+    const stories = draft.split("\n").map(parseStory).filter(Boolean);
     if (stories.length) client.estimateQueueAdd(stories);
     setDraft("");
     setShowAdd(false);
@@ -63,32 +81,69 @@ export function EstimateBoard({
             </span>
           )}
           {estimate.queue.length > 0 ? (
-            <span className="min-w-0 truncate text-slate-500 dark:text-slate-400">
+            <button
+              onClick={() => setShowQueue((v) => !v)}
+              className="min-w-0 truncate text-left text-slate-500 hover:text-iris-600 dark:text-slate-400 dark:hover:text-iris-300"
+              title="Show the full backlog"
+            >
               Up next: <span className="font-medium text-slate-700 dark:text-slate-200">{estimate.queue[0]}</span>
               {estimate.queue.length > 1 && ` (+${estimate.queue.length - 1} more)`}
-            </span>
+              <span className="ml-1 text-slate-400">{showQueue ? "▾" : "▸"}</span>
+            </button>
+          ) : estimate.log.length > 0 ? (
+            <span className="font-medium text-slate-600 dark:text-slate-300">All estimated 🎉</span>
           ) : (
             <span className="text-slate-400 dark:text-slate-500">Backlog empty</span>
           )}
-          {isFacil && (
-            <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
+            {/* Once the backlog's done, surface a one-click export of the results. */}
+            {estimate.log.length > 0 && estimate.queue.length === 0 && (
               <button
-                onClick={() => setShowAdd((v) => !v)}
-                className="rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+                onClick={onExport}
+                className="rounded-lg bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-500"
               >
-                + Add stories
+                ↓ Export results
               </button>
-              {(estimate.queue.length > 0 || estimate.decision) && (
+            )}
+            {isFacil && (
+              <>
                 <button
-                  onClick={() => client.estimateNextStory()}
-                  className="rounded-lg bg-iris-600 px-2.5 py-1 font-semibold text-white hover:bg-iris-500"
+                  onClick={() => setShowAdd((v) => !v)}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
                 >
-                  Next story →
+                  + Add stories
+                </button>
+                {(estimate.queue.length > 0 || estimate.decision) && (
+                  <button
+                    onClick={() => client.estimateNextStory()}
+                    className="rounded-lg bg-iris-600 px-2.5 py-1 font-semibold text-white hover:bg-iris-500"
+                  >
+                    Next story →
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {showQueue && estimate.queue.length > 0 && (
+        <ol className="mb-3 space-y-1 rounded-xl border border-slate-200 bg-white/60 p-2 dark:border-white/10 dark:bg-white/5">
+          {estimate.queue.map((story, i) => (
+            <li key={i} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-slate-50 dark:hover:bg-white/5">
+              <span className="w-5 shrink-0 text-center text-xs font-semibold text-slate-400">{i + 1}</span>
+              <span className="min-w-0 flex-1 truncate text-slate-700 dark:text-slate-200">{story}</span>
+              {isFacil && (
+                <button
+                  onClick={() => client.estimateQueueRemove(i)}
+                  aria-label={`Remove "${story}" from the backlog`}
+                  className="shrink-0 rounded px-1.5 text-slate-400 hover:text-rose-500"
+                >
+                  ✕
                 </button>
               )}
-            </div>
-          )}
-        </div>
+            </li>
+          ))}
+        </ol>
       )}
       {showAdd && isFacil && (
         <div className="mb-3 rounded-xl border border-iris-200 bg-iris-50/50 p-3 dark:border-iris-500/25 dark:bg-iris-500/5">

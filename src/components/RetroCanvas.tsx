@@ -4,6 +4,8 @@ import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS } f
 import type { RoomClient } from "../net/socket";
 import { avatarColor, initials } from "../lib/colors";
 import { columnColor, type ColC } from "../lib/retroColors";
+import { retroTheme } from "../lib/retroThemes";
+import { RetroGlyph } from "./RetroGlyph";
 
 const CARD_W = 220;
 
@@ -53,6 +55,8 @@ export function RetroCanvas({
   const liveDrag = new Map<string, { x: number; y: number }>();
   for (const cu of cursors) if (cu.drag) liveDrag.set(cu.drag.cardId, { x: cu.drag.x, y: cu.drag.y });
 
+  const theme = retroTheme(retro.template);
+
   // Fit-to-width on first mount.
   useEffect(() => {
     const vw = viewportRef.current?.clientWidth ?? 900;
@@ -87,6 +91,7 @@ export function RetroCanvas({
       <div ref={viewportRef} className="dot-grid h-[600px] overflow-auto">
         <div style={{ width: W * zoom, height: boardH * zoom }}>
           <div ref={boardRef} onPointerMove={onBoardMove} id="scrumlo-canvas" className="relative origin-top-left dot-grid" style={{ width: W, height: boardH, transform: `scale(${zoom})` }}>
+            <ThemedBackdrop template={retro.template} glow={theme.glow} w={W} h={boardH} />
             {/* zone bands */}
             {cols.map((col, i) => {
               const c = columnColor(col.id, i);
@@ -179,6 +184,69 @@ export function RetroCanvas({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * A playful, theme-aware backdrop: a soft color wash at the top plus a faint
+ * scatter of the theme's own glyph (sailboats, shields, crowns, rockets…) so the
+ * board feels like *that* retro, not a blank grid. Deterministic + decorative.
+ */
+function ThemedBackdrop({
+  template,
+  glow,
+  w,
+  h,
+}: {
+  template: string;
+  glow: string;
+  w: number;
+  h: number;
+}) {
+  const cols = Math.max(2, Math.floor(w / 230));
+  const rows = Math.max(2, Math.floor(h / 230));
+  const motifs: { x: number; y: number; rot: number; size: number; op: number; i: number }[] = [];
+  let i = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      // brick-offset rows + per-cell jitter so it reads organic, not gridded
+      const off = r % 2 ? 115 : 0;
+      const jx = ((i * 53) % 64) - 32;
+      const jy = ((i * 31) % 64) - 32;
+      motifs.push({
+        x: c * 230 + 70 + off + jx,
+        y: r * 230 + 70 + jy,
+        rot: ((i * 37) % 48) - 24,
+        size: 64 + ((i * 17) % 66),
+        op: 0.04 + ((i * 7) % 4) * 0.012,
+        i,
+      });
+      i++;
+    }
+  }
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
+      <div
+        className="absolute inset-x-0 top-0 h-72 opacity-[0.07]"
+        style={{ background: `radial-gradient(70% 100% at 50% 0%, ${glow}, transparent 72%)` }}
+      />
+      {motifs.map((m) => (
+        <RetroGlyph
+          key={m.i}
+          template={template}
+          className="absolute"
+          style={{
+            left: m.x,
+            top: m.y,
+            width: m.size,
+            height: m.size,
+            color: glow,
+            opacity: m.op,
+            transform: `rotate(${m.rot}deg)`,
+          }}
+        />
+      ))}
     </div>
   );
 }

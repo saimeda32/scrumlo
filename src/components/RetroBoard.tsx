@@ -31,7 +31,7 @@ export function RetroBoard({
   const theme = retroTheme(retro.template);
   return (
     <>
-      {/* the planning board has no facilitated phases — just an open canvas */}
+      {/* the planning board has no facilitated phases · just an open canvas */}
       {!isBoard && <PhaseStepper phase={retro.phase} isFacil={isFacil} client={client} />}
 
       <div className="mb-4 flex items-center gap-3">
@@ -39,13 +39,32 @@ export function RetroBoard({
             quick toggles. */}
         <span className="min-w-0 flex-1" />
         {isFacil && (
-          <button
-            onClick={() => client.retroSetAnonymous(!retro.anonymous)}
-            className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-400 dark:hover:text-iris-300"
-            title={retro.anonymous ? "Currently anonymous · click to show names" : "Currently showing names · click to hide"}
-          >
-            {retro.anonymous ? "🕶 Anonymous" : "🙂 Names shown"}
-          </button>
+          <>
+            {!isBoard && (
+            <button
+              onClick={() => client.retroSetBlind(!retro.blind)}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                retro.blind
+                  ? "border-iris-300 bg-iris-50 text-iris-700 dark:border-iris-500/40 dark:bg-iris-500/10 dark:text-iris-300"
+                  : "border-slate-200 text-slate-500 hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-400 dark:hover:text-iris-300"
+              }`}
+              title={
+                retro.blind
+                  ? "Cards are hidden from others · click to reveal everyone's content"
+                  : "Everyone sees all cards · click to blind the content while people write"
+              }
+            >
+              {retro.blind ? "🔒 Cards hidden" : "👁 Cards shown"}
+            </button>
+            )}
+            <button
+              onClick={() => client.retroSetAnonymous(!retro.anonymous)}
+              className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-400 dark:hover:text-iris-300"
+              title={retro.anonymous ? "Currently anonymous · click to show names" : "Currently showing names · click to hide"}
+            >
+              {retro.anonymous ? "🕶 Anonymous" : "🙂 Names shown"}
+            </button>
+          </>
         )}
         <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
           {retro.votesLeft} {retro.votesLeft === 1 ? "vote" : "votes"} left

@@ -17,7 +17,7 @@ const CARD_W = 220;
 /**
  * A free, zoomable canvas (Miro/FigJam-style): zones are labeled vertical bands,
  * stickies are placed by (x,y) and dragged anywhere, the board pans via native
- * scroll and zooms with the controls — so 20 people and a wall of stickies still work.
+ * scroll and zooms with the controls · so 20 people and a wall of stickies still work.
  */
 export function RetroCanvas({
   retro,
@@ -38,7 +38,7 @@ export function RetroCanvas({
   timerEndsAt?: number | null;
   timerDurationMs?: number | null;
 }) {
-  // NOTE: RetroCanvas deliberately does NOT subscribe to the cursor store — that
+  // NOTE: RetroCanvas deliberately does NOT subscribe to the cursor store · that
   // would re-render the whole wall ~20×/sec. Cursor pointers live in <CursorLayer>
   // and each card subscribes to only its own live-drag, so a mouse move re-renders
   // just those tiny pieces, never the board/backdrop.
@@ -74,23 +74,22 @@ export function RetroCanvas({
 
   const theme = retroTheme(retro.template);
 
-  // Fit the board to the current viewport width (capped so it stays usable). In
-  // fullscreen the viewport is far bigger, so we allow a much higher zoom — that's
-  // what makes the wall actually span the screen instead of sitting tiny.
-  function fitZoom(maxZoom: number) {
+  // Fit the board to the viewport WIDTH, but never magnify past 100%. Going fullscreen
+  // is about getting more room to see and add cards at a normal, readable size, not
+  // blowing up the same few cards. If the board is taller than the screen, you scroll.
+  function fitZoom() {
     const el = viewportRef.current;
     if (!el) return;
-    setZoom(Math.max(0.45, Math.min(maxZoom, (el.clientWidth - 24) / W)));
+    const byW = (el.clientWidth - 24) / W;
+    setZoom(Math.max(0.5, Math.min(1, byW)));
     el.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   }
-  function fit() {
-    fitZoom(full ? 3 : 1.2);
-  }
+  const fit = fitZoom;
 
   // Fit on first mount, and re-fit whenever we enter/leave fullscreen (next frame,
   // so the viewport has already resized to the fullscreen box before we measure).
   useEffect(() => {
-    const id = requestAnimationFrame(() => fitZoom(full ? 3 : 1));
+    const id = requestAnimationFrame(() => fitZoom());
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [full]);
@@ -123,19 +122,19 @@ export function RetroCanvas({
       <div className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/90">
         <button onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom out">−</button>
         <span className="w-10 text-center text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom((z) => Math.min(full ? 3 : 1.4, +(z + 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom in">+</button>
+        <button onClick={() => setZoom((z) => Math.min(full ? 1.5 : 1.4, +(z + 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom in">+</button>
         <button onClick={fit} className="ml-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10">Fit</button>
         <button
           onClick={() => setFull((v) => !v)}
           className="ml-0.5 grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
           aria-label={full ? "Exit fullscreen" : "Fullscreen"}
-          title={full ? "Exit fullscreen (Esc)" : "Fullscreen — more room for the wall"}
+          title={full ? "Exit fullscreen (Esc)" : "Fullscreen · more room for the wall"}
         >
           {full ? "⤡" : "⤢"}
         </button>
       </div>
 
-      {/* in fullscreen the phase rail + timer are hidden — float them back in */}
+      {/* in fullscreen the phase rail + timer are hidden · float them back in */}
       {full && (
         <FullscreenBar
           retro={retro}
@@ -158,7 +157,7 @@ export function RetroCanvas({
         }`}
         style={{ touchAction: "pan-x pan-y" }}
       >
-        <div style={{ width: W * zoom, height: boardH * zoom }}>
+        <div className="mx-auto" style={{ width: W * zoom, height: boardH * zoom }}>
           <div ref={boardRef} onPointerMove={onBoardMove} id="scrumlo-canvas" className="relative origin-top-left dot-grid" style={{ width: W, height: boardH, transform: `scale(${zoom})` }}>
             <ThemedBackdrop template={retro.template} glow={theme.glow} w={W} h={boardH} />
             {/* zone bands */}
@@ -230,7 +229,7 @@ export function RetroCanvas({
               />
             ))}
 
-            {/* live cursors — isolated so they re-render without touching the board */}
+            {/* live cursors · isolated so they re-render without touching the board */}
             <CursorLayer you={you} w={W} h={boardH} />
           </div>
         </div>
@@ -239,7 +238,7 @@ export function RetroCanvas({
   );
 }
 
-/** Other people's live pointers — isolated + memoized so cursor frames re-render
+/** Other people's live pointers · isolated + memoized so cursor frames re-render
  *  only this layer, never the board. */
 const CursorLayer = memo(function CursorLayer({ you, w, h }: { you: string; w: number; h: number }) {
   const cursors = useCursors((s) => s.cursors);
@@ -408,7 +407,7 @@ function CanvasCard({
   }
   function onMove(e: React.PointerEvent) {
     if (!drag) return;
-    // Don't let this bubble to the board's cursor handler — otherwise it sends a
+    // Don't let this bubble to the board's cursor handler · otherwise it sends a
     // no-drag cursor that races ours and makes the card flicker for everyone else.
     e.stopPropagation();
     const s = start.current;
@@ -532,7 +531,7 @@ function CanvasCard({
         </div>
       )}
 
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <button
           onClick={() => client.retroVote(card.id)}
           disabled={!canVote && !card.youVoted}
@@ -563,7 +562,7 @@ function CanvasCard({
         ))}
         {canAct && (
           <div className="relative">
-            <button onClick={() => setPick((v) => !v)} className="rounded-full bg-white/55 px-2 py-0.5 text-xs text-slate-500 hover:bg-white/90" aria-label="Add reaction">☺﹢</button>
+            <button onClick={() => setPick((v) => !v)} className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-white/55 px-2 py-0.5 text-xs leading-none text-slate-500 hover:bg-white/90" aria-label="Add reaction"><span className="text-sm">🙂</span><span className="font-bold">+</span></button>
             {pick && (
               <div className="absolute left-0 top-7 z-40 flex gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-lg">
                 {RETRO_REACTIONS.map((e) => (
@@ -573,7 +572,7 @@ function CanvasCard({
             )}
           </div>
         )}
-        <div className="ml-auto flex items-center gap-1">
+        <div className="flex items-center gap-1">
           {canAct && (
             <button
               onClick={() => client.retroSetAction(card.id, !card.action, card.owner ?? null)}
@@ -589,7 +588,7 @@ function CanvasCard({
           {isFacil && (
             <button
               onClick={() => client.retroSpotlight(spotlit ? null : card.id)}
-              title={spotlit ? "Stop spotlight" : "Spotlight — focus the room here"}
+              title={spotlit ? "Stop spotlight" : "Spotlight · focus the room here"}
               aria-label="Spotlight this sticky"
               className={`grid h-7 w-7 place-items-center rounded-full text-sm transition ${
                 spotlit ? "bg-iris-500 text-white shadow" : "bg-white/70 text-slate-500 hover:bg-white hover:text-iris-600"

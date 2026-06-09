@@ -11,27 +11,62 @@ export function ReactionLayer() {
   return (
     <div className="pointer-events-none fixed inset-0 z-[55] overflow-hidden" aria-hidden>
       {emotes.map((e) => (
-        <FloatingEmote key={e.id} emoji={e.emoji} x={e.x} onDone={() => remove(e.id)} />
+        <FloatingEmote key={e.id} emoji={e.emoji} x={e.x} name={e.name} onDone={() => remove(e.id)} />
       ))}
     </div>
   );
 }
 
-function FloatingEmote({ emoji, x, onDone }: { emoji: string; x: number; onDone: () => void }) {
+function FloatingEmote({
+  emoji,
+  x,
+  name,
+  onDone,
+}: {
+  emoji: string;
+  x: number;
+  name?: string;
+  onDone: () => void;
+}) {
   useEffect(() => {
     const t = setTimeout(onDone, 2600);
     return () => clearTimeout(t);
   }, [onDone]);
   return (
-    <span className="animate-emote absolute bottom-20 text-3xl drop-shadow" style={{ right: `${28 + x}px` }}>
-      {emoji}
+    <span
+      className="animate-emote absolute bottom-20 flex flex-col items-center gap-0.5"
+      style={{ right: `${28 + x}px` }}
+    >
+      <span className="text-3xl drop-shadow">{emoji}</span>
+      {name && (
+        <span className="max-w-[7rem] truncate rounded-full bg-slate-900/70 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+          {name}
+        </span>
+      )}
     </span>
   );
 }
 
-/** The launcher: a corner button that pops open the emoji row. */
-export function ReactionBar({ client }: { client: RoomClient }) {
+/** One bottom-right dock holding both room-wide controls: spin a name (facilitator
+ *  only, greyed out for everyone else) and send a floating reaction. Grouping them in
+ *  a single pill reads as a deliberate toolbar instead of two loose corner buttons. */
+export function ActionDock({
+  client,
+  count,
+  isFacil,
+}: {
+  client: RoomClient;
+  count: number;
+  isFacil: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const canSpin = isFacil && count >= 2;
+  const spinTitle = !isFacil
+    ? "Only the facilitator can spin"
+    : count < 2
+      ? "Need at least two people to spin"
+      : "Spin to pick a person";
+
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
       {open && (
@@ -48,18 +83,30 @@ export function ReactionBar({ client }: { client: RoomClient }) {
           ))}
         </div>
       )}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close reactions" : "Send a reaction"}
-        aria-expanded={open}
-        className={`grid h-11 w-11 place-items-center rounded-full border text-xl shadow-soft backdrop-blur transition ${
-          open
-            ? "border-iris-300 bg-iris-600 text-white"
-            : "border-slate-200 bg-white/90 text-slate-600 hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:bg-[#14141b]/90 dark:text-slate-300"
-        }`}
-      >
-        {open ? "✕" : "🎉"}
-      </button>
+      <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 p-1 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/90">
+        <button
+          onClick={() => canSpin && client.spotlightPick()}
+          disabled={!canSpin}
+          title={spinTitle}
+          aria-label="Spin to pick a person"
+          className="grid h-10 w-10 place-items-center rounded-full text-xl text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-white/10"
+        >
+          🎲
+        </button>
+        <span className="h-5 w-px bg-slate-200 dark:bg-white/10" />
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? "Close reactions" : "Send a reaction"}
+          aria-expanded={open}
+          className={`grid h-10 w-10 place-items-center rounded-full text-xl transition ${
+            open
+              ? "bg-iris-600 text-white"
+              : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+          }`}
+        >
+          {open ? "✕" : "😀"}
+        </button>
+      </div>
     </div>
   );
 }

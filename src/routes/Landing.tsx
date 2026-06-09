@@ -69,7 +69,7 @@ export default function Landing() {
     try {
       const res = await fetch("/api/room", { method: "POST" });
       if (!res.ok) {
-        setErr(res.status === 429 ? "Whoa, slow down — too many rooms. Try again in a moment." : "Couldn't create a room. Try again.");
+        setErr(res.status === 429 ? "Whoa, slow down · too many rooms. Try again in a moment." : "Couldn't create a room. Try again.");
         return;
       }
       const data = (await res.json().catch(() => null)) as { room?: string } | null;
@@ -79,7 +79,7 @@ export default function Landing() {
       }
       navigate(`/r/${data.room}`);
     } catch {
-      setErr("Network hiccup — couldn't reach the server.");
+      setErr("Network hiccup · couldn't reach the server.");
     } finally {
       setBusy(false);
     }
@@ -156,7 +156,7 @@ export default function Landing() {
           <RoomsCounter />
         </div>
 
-        {/* live demo theater — a looping mini-session */}
+        {/* live demo theater · a looping mini-session */}
         <DemoTheater />
       </section>
 
@@ -182,7 +182,7 @@ export default function Landing() {
             {
               Icon: IconPulse,
               t: "Pulse",
-              d: "A team health check: rate morale, clarity, delivery… 1–5, blind, then reveal an aggregate radar. Just votes — nothing kept.",
+              d: "A team health check: rate morale, clarity, delivery… 1–5, blind, then reveal an aggregate radar. Just votes · nothing kept.",
             },
             {
               Icon: IconPoll,
@@ -215,7 +215,7 @@ export default function Landing() {
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { n: "1", t: "Start a room", d: "Hit Create a room — you get a private link like scrumlo.com/r/brave-otter. Nothing to configure." },
+            { n: "1", t: "Start a room", d: "Hit Create a room · you get a private link like scrumlo.com/r/brave-otter. Nothing to configure." },
             { n: "2", t: "Share the link", d: "Drop it in Slack. Teammates open it and land instantly, then type a name to grab a seat. No sign-up." },
             { n: "3", t: "Run the ceremony", d: "The facilitator switches between Estimate, Retro, and Pick and runs the shared timer. Everyone follows live." },
             { n: "4", t: "Export, then poof", d: "Grab a Markdown or full-board PNG/PDF with your action items. When the last person leaves, the room deletes itself." },
@@ -232,8 +232,8 @@ export default function Landing() {
         <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-6 dark:border-white/10 dark:bg-white/5 sm:grid-cols-3">
           {[
             { t: "Estimate", d: "Pick a card (or press a number); R reveals. Votes stay blind until everyone's in. Build a custom deck, queue a backlog (paste CSV/Jira), step through it, export the results." },
-            { t: "Retro & boards", d: "Step the room through brainstorm → group → vote → discuss (notes stay hidden until the reveal). Drag to cluster, dot-vote themes, flag action items with owners — or switch to the Now/Next/Later roadmap board. Export to Markdown or a full-board PNG." },
-            { t: "Pick", d: "Spin for a random person, shuffle an order, or pick from a comma-separated list — confetti, no repeats." },
+            { t: "Retro & boards", d: "Step the room through brainstorm → group → vote → discuss (notes stay hidden until the reveal). Drag to cluster, dot-vote themes, flag action items with owners · or switch to the Now/Next/Later roadmap board. Export to Markdown or a full-board PNG." },
+            { t: "Pick", d: "Spin for a random person, shuffle an order, or pick from a comma-separated list · confetti, no repeats." },
           ].map((s) => (
             <div key={s.t}>
               <div className="text-sm font-bold text-iris-600 dark:text-iris-300">{s.t}</div>
@@ -248,7 +248,7 @@ export default function Landing() {
         <div className="mx-auto max-w-2xl px-6">
           <h2 className="text-2xl font-bold sm:text-3xl">
             Other tools keep your boards. Scrumlo keeps{" "}
-            <span className="text-iris-400">nothing</span>. On purpose.
+            <span className="text-iris-400">nothing</span>.
           </h2>
           <p className="mt-4 text-slate-300">
             No database to leak, no account to manage. Each room is one little server that holds your

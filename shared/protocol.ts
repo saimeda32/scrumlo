@@ -177,18 +177,18 @@ export const RETRO_TEMPLATES: Record<string, { label: string; columns: RetroColu
     label: "Game of Thrones",
     columns: [
       { id: "throne", title: "Iron Throne", emoji: "👑" }, // wins we're proud of
-      { id: "wall", title: "The Wall", emoji: "🧊" }, // what holds the line — keep
+      { id: "wall", title: "The Wall", emoji: "🧊" }, // what holds the line · keep
       { id: "walkers", title: "White Walkers", emoji: "🧟" }, // threats marching toward us
-      { id: "dragons", title: "Dragons", emoji: "🐉" }, // our firepower — do more of
+      { id: "dragons", title: "Dragons", emoji: "🐉" }, // our firepower · do more of
     ],
   },
   avengers: {
     label: "Avengers",
     columns: [
-      { id: "assemble", title: "Assemble", emoji: "🦸" }, // what brought us together — wins
-      { id: "stones", title: "Infinity Stones", emoji: "💎" }, // what powered us — keep
+      { id: "assemble", title: "Assemble", emoji: "🦸" }, // what brought us together · wins
+      { id: "stones", title: "Infinity Stones", emoji: "💎" }, // what powered us · keep
       { id: "thanos", title: "Thanos", emoji: "🫰" }, // the big blocker that snapped us
-      { id: "ultron", title: "Ultron", emoji: "🤖" }, // what we built that backfired — stop
+      { id: "ultron", title: "Ultron", emoji: "🤖" }, // what we built that backfired · stop
     ],
   },
   starwars: {
@@ -196,11 +196,11 @@ export const RETRO_TEMPLATES: Record<string, { label: string; columns: RetroColu
     columns: [
       { id: "force", title: "The Force", emoji: "✨" }, // strengths with us
       { id: "rebels", title: "Rebellion", emoji: "🚀" }, // bold moves to start
-      { id: "darkside", title: "Dark Side", emoji: "🌑" }, // temptations / bad habits — stop
+      { id: "darkside", title: "Dark Side", emoji: "🌑" }, // temptations / bad habits · stop
       { id: "empire", title: "The Empire", emoji: "🪐" }, // blockers and risks
     ],
   },
-  // Not a retro — a lightweight planning board. Same canvas: drop stickies, drag to
+  // Not a retro · a lightweight planning board. Same canvas: drop stickies, drag to
   // group, dot-vote priorities, export. Ephemeral roadmapping without a database.
   roadmap: {
     label: "Roadmap board",
@@ -243,8 +243,8 @@ export type RetroCardView = {
 /** Facilitated retro phases, stepped through in order. */
 export type RetroPhase = "brainstorm" | "group" | "vote" | "discuss";
 export const RETRO_PHASES: { id: RetroPhase; label: string; hint: string }[] = [
-  { id: "brainstorm", label: "Brainstorm", hint: "Add your own notes — everyone's stay hidden until the reveal." },
-  { id: "group", label: "Group", hint: "All notes revealed. Drag similar ones together into clusters." },
+  { id: "brainstorm", label: "Brainstorm", hint: "Get the notes up. Toggle 🔒 Cards hidden for a blind round first if you want." },
+  { id: "group", label: "Group", hint: "Drag similar notes together into clusters." },
   { id: "vote", label: "Vote", hint: "Spend your dots on the themes that matter most." },
   { id: "discuss", label: "Discuss", hint: "Work the top themes. Spotlight a card and capture action items." },
 ];
@@ -259,6 +259,7 @@ export type RetroView = {
   cards: RetroCardView[];
   votesLeft: number; // dot-votes you have left
   anonymous: boolean; // room setting: hide card authors (default true)
+  blind: boolean; // room setting: hide OTHERS' card bodies (default false; facilitator still sees all)
   spotlightId: string | null; // facilitator is focusing the room on one card
   phase: RetroPhase; // facilitated phase the room is in
 };
@@ -275,7 +276,7 @@ export type PickView = {
   recent: string[]; // already picked this round (no-repeat), in pick order
 };
 
-// ---- Live floating reactions (Zoom-style) — ephemeral, work in any activity ----
+// ---- Live floating reactions (Zoom-style) · ephemeral, work in any activity ----
 export const EMOTES = ["👍", "❤️", "🎉", "😂", "🔥", "👏", "🤯", "🙌"] as const;
 
 // ---- Messages ----
@@ -285,6 +286,7 @@ export type ClientMsg =
   | { t: "hello"; v: 1; name: string; clientId: string }
   | { t: "sync"; v: 1 }
   | { t: "emote"; v: 1; emoji: string } // live floating reaction, broadcast to everyone
+  | { t: "spotlightPick"; v: 1 } // spin to pick a present person, on any screen (no tab switch)
   // estimation
   | { t: "vote"; v: 1; card: string }
   | { t: "reveal"; v: 1 }
@@ -335,6 +337,7 @@ export type ClientMsg =
   | { t: "pollRemove"; v: 1; id: string }
   | { t: "pollClear"; v: 1 }
   | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors
+  | { t: "retroSetBlind"; v: 1; on: boolean } // facilitator: hide/show other people's card bodies
   | { t: "retroSpotlight"; v: 1; cardId: string | null } // facilitator: focus everyone on a card
   | { t: "retroPickRandom"; v: 1 } // facilitator: spotlight a random not-yet-discussed card
   | { t: "retroResetDiscussed"; v: 1 } // facilitator: clear the discussed marks, start a fresh pass
@@ -355,7 +358,7 @@ export type Snapshot = {
   activity: Activity;
   estimate: EstimateView;
   retro: RetroView;
-  board: RetroView; // a separate planning board (roadmap) — same canvas, own cards
+  board: RetroView; // a separate planning board (roadmap) · same canvas, own cards
   pulse: PulseView; // team health check
   poll: PollView; // ask-the-room Q&A / word cloud
   pick: PickView;
@@ -385,4 +388,9 @@ export type CursorsMsg = {
 /** server -> client: a live floating reaction someone sent (not a full snapshot). */
 export type EmoteMsg = { t: "emote"; v: 1; emoji: string; from: string };
 
-export type ServerMsg = Snapshot | EndedMsg | CursorsMsg | EmoteMsg;
+/** server -> client: someone span the "pick a person" wheel. The server chose the
+ *  winner fairly (server-authoritative), so every screen lands on the same name.
+ *  `nonce` bumps per spin so a repeat winner still re-triggers the animation. */
+export type SpotlightMsg = { t: "spotlight"; v: 1; name: string; by: string; nonce: number };
+
+export type ServerMsg = Snapshot | EndedMsg | CursorsMsg | EmoteMsg | SpotlightMsg;

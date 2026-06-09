@@ -7,6 +7,7 @@ import type {
   EndedMsg,
   CursorsMsg,
   EmoteMsg,
+  SpotlightMsg,
   Member,
   EstimateView,
   RetroView,
@@ -77,9 +78,10 @@ type RetroState = {
   template: string;
   cards: RetroCard[];
   anonymous: boolean; // hide authors (default true)
+  blind: boolean; // hide OTHERS' card bodies (default false; the facilitator still sees all)
   spotlightId: string | null; // facilitator focusing the room on a card
   discussed: string[]; // card ids the random picker has already surfaced
-  phase: RetroPhase; // facilitated phase (brainstorm hides others' notes)
+  phase: RetroPhase; // facilitated phase (structure + author reveal at discuss)
 };
 
 type PickState = {
@@ -107,11 +109,11 @@ type PollState = {
  *
  * Presence is derived from the live WebSocket set + each socket's serialized
  * attachment (Member). Vote VALUES (estimation) and card AUTHORS (retro) are
- * withheld server-side — that redaction is what a peer/CRDT model couldn't enforce.
+ * withheld server-side · that redaction is what a peer/CRDT model couldn't enforce.
  *
  * Authoritative state is write-through to ctx.storage (decision C4): every
  * mutation is persisted BEFORE the next event runs, and rehydrated in the
- * constructor — so a round survives WebSocket-Hibernation evictions that
+ * constructor · so a round survives WebSocket-Hibernation evictions that
  * re-create this object (resetting instance fields) between events.
  */
 export class RoomDO extends DurableObject<Env> {
@@ -127,10 +129,11 @@ export class RoomDO extends DurableObject<Env> {
     queue: [],
     log: [],
   };
-  // Transient presence — who is mid-typing a rationale. Never persisted (it's live-only).
+  // Transient presence · who is mid-typing a rationale. Never persisted (it's live-only).
   private typing = new Set<string>();
   // Live cursor positions on the retro canvas (memberId -> board coords). Live-only.
   private cursors = new Map<string, { x: number; y: number; drag?: { cardId: string; x: number; y: number } }>();
+  private spotlightNonce = 0; // bumps per "pick a person" spin (ephemeral, never persisted)
   private cursorTimer: number | null = null; // coalesces cursor fan-out to ~1 send / 50ms
   private lastActivityAt = Date.now(); // for idle-TTL; in-memory (hibernation resets it, which is fine)
   private buckets = new Map<string, { t: number; at: number }>(); // per-member token bucket (flood guard)
@@ -139,6 +142,7 @@ export class RoomDO extends DurableObject<Env> {
     template: "ssc",
     cards: [],
     anonymous: true,
+    blind: false, // card bodies are visible to everyone by default; facilitator can blind them
     spotlightId: null,
     discussed: [],
     phase: "brainstorm",
@@ -150,6 +154,7 @@ export class RoomDO extends DurableObject<Env> {
     template: "roadmap",
     cards: [],
     anonymous: false,
+    blind: false,
     spotlightId: null,
     discussed: [],
     phase: "vote",
@@ -180,6 +185,7 @@ export class RoomDO extends DurableObject<Env> {
       if (r) {
         this.retro = r;
         this.retro.anonymous ??= true; // tolerate state from before authorship/reactions
+        this.retro.blind ??= false;
         this.retro.phase ??= "brainstorm";
         this.retro.spotlightId ??= null;
         this.retro.discussed ??= [];
@@ -199,6 +205,7 @@ export class RoomDO extends DurableObject<Env> {
       if (b) {
         this.board = b;
         this.board.anonymous ??= false;
+        this.board.blind ??= false;
         this.board.phase = "vote"; // the board is always an open, votable canvas
         this.board.spotlightId ??= null;
         this.board.discussed ??= [];
@@ -318,6 +325,32 @@ export class RoomDO extends DurableObject<Env> {
       return;
     }
 
+    // "Spin to pick a person", available on any screen. The server draws the winner
+    // (server-authoritative, so it's fair and everyone lands on the same name) and
+    // fans the result out like an emote. Nothing is persisted.
+    if (msg.t === "spotlightPick") {
+      if (!this.isFacilitator(me)) return; // only the host spins the room
+      const present = this.membersFrom(this.ctx.getWebSockets());
+      if (present.length === 0) return;
+      const pick = present[crypto.getRandomValues(new Uint32Array(1))[0] % present.length];
+      this.spotlightNonce += 1;
+      const payload = JSON.stringify({
+        t: "spotlight",
+        v: 1,
+        name: pick.name,
+        by: me.id,
+        nonce: this.spotlightNonce,
+      } satisfies SpotlightMsg);
+      for (const s of this.ctx.getWebSockets()) {
+        try {
+          s.send(payload);
+        } catch {
+          /* ignore */
+        }
+      }
+      return;
+    }
+
     // Retro-style messages act on whichever canvas is the active tab: the retro or
     // the separate planning board. (You can only interact with the active board, so
     // routing by activity is safe.)
@@ -336,7 +369,7 @@ export class RoomDO extends DurableObject<Env> {
         const member: Member = { id: memberId, name };
         ws.serializeAttachment(member);
         if (this.facilitatorId === null) this.facilitatorId = memberId;
-        // They're back within the grace window — cancel any pending vote prune.
+        // They're back within the grace window · cancel any pending vote prune.
         if (this.departed[memberId] !== undefined) {
           delete this.departed[memberId];
           await this.ctx.storage.put("departed", this.departed);
@@ -422,13 +455,20 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "estimateNextStory": {
         if (!this.isFacilitator(me)) return;
-        // log the current story's outcome (if decided), then load the next one fresh
-        if (this.estimate.story && this.estimate.decision) {
-          this.estimate.log.push({
-            story: this.estimate.story,
-            value: this.estimate.decision.value,
-            note: this.estimate.decision.note,
-          });
+        // Record the current story's outcome before loading the next, so the backlog
+        // actually fills up "✓ N estimated". Prefer an explicitly locked decision;
+        // otherwise fall back to the consensus of the votes (the value most people
+        // picked). A story with neither a decision nor any votes was skipped, so it
+        // is not logged.
+        if (this.estimate.story) {
+          const value = this.estimate.decision?.value || this.consensusValue();
+          if (value) {
+            this.estimate.log.push({
+              story: this.estimate.story,
+              value,
+              note: this.estimate.decision?.note ?? "",
+            });
+          }
         }
         this.estimate.story = this.estimate.queue.shift() ?? "";
         this.estimate.votes = {};
@@ -488,7 +528,7 @@ export class RoomDO extends DurableObject<Env> {
       // ---- facilitation: anyone can take over the baton (ephemeral, low-stakes) ----
       case "claimFacilitator": {
         if (!me) return;
-        // Only take the baton when no facilitator is currently PRESENT — prevents an
+        // Only take the baton when no facilitator is currently PRESENT · prevents an
         // attacker from wresting control from an active facilitator and then ending or
         // redirecting the room. A real handoff still happens automatically on leave.
         const present = this.membersFrom(this.ctx.getWebSockets());
@@ -591,7 +631,7 @@ export class RoomDO extends DurableObject<Env> {
         const card = R.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
         // During blind brainstorm you can only move your OWN notes (others' are masked).
-        if (R.phase === "brainstorm" && card.authorId !== me.id) return;
+        if (R.blind && card.authorId !== me.id && me.id !== this.facilitatorId) return; // can't move a card you can't see
         const tplM = RETRO_TEMPLATES[R.template] ?? RETRO_TEMPLATES.ssc;
         card.x = Math.max(0, Math.min(Math.round(Number(msg.x) || 0), tplM.columns.length * ZONE_W));
         card.y = Math.max(0, Math.min(Math.round(Number(msg.y) || 0), CANVAS_H));
@@ -608,7 +648,7 @@ export class RoomDO extends DurableObject<Env> {
         if (!tpl || !tpl.columns.some((c) => c.id === msg.toColumn)) return;
         const card = R.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
-        if (R.phase === "brainstorm" && card.authorId !== me.id) return;
+        if (R.blind && card.authorId !== me.id && me.id !== this.facilitatorId) return; // can't move a card you can't see
         const wasGroup = card.groupId;
         card.column = msg.toColumn;
         card.groupId = null;
@@ -624,7 +664,7 @@ export class RoomDO extends DurableObject<Env> {
       case "retroGroupCard": {
         // Stack one sticky onto another → they share a groupId (votes display summed client-side).
         if (!me) return;
-        if (R.phase === "brainstorm") return; // no grouping masked notes
+        if (R.blind && me.id !== this.facilitatorId) return; // no grouping masked notes
         if (msg.cardId === msg.ontoCardId) return;
         const card = R.cards.find((c) => c.id === msg.cardId);
         const onto = R.cards.find((c) => c.id === msg.ontoCardId);
@@ -709,17 +749,23 @@ export class RoomDO extends DurableObject<Env> {
         R.anonymous = !!msg.on;
         break;
       }
+      case "retroSetBlind": {
+        if (!this.isFacilitator(me)) return;
+        R.blind = !!msg.on; // hide other people's card bodies (facilitator still sees all)
+        if (R.blind) R.spotlightId = null; // a spotlight makes no sense while the room is blind
+        break;
+      }
       case "retroSpotlight": {
         if (!this.isFacilitator(me)) return;
-        if (R.phase === "brainstorm") return; // notes are masked — nothing to spotlight
+        if (R.blind) return; // notes are masked for the room · nothing to spotlight
         if (msg.cardId === null) R.spotlightId = null;
         else if (R.cards.some((c) => c.id === msg.cardId)) R.spotlightId = msg.cardId;
         break;
       }
       case "retroPickRandom": {
-        // Discuss cards in random order, each once — picked → spotlight it + mark discussed.
+        // Discuss cards in random order, each once · picked → spotlight it + mark discussed.
         if (!this.isFacilitator(me)) return;
-        if (R.phase === "brainstorm") return; // can't surface a masked note
+        if (R.blind) return; // can't surface a masked note to a blind room
         const done = new Set(R.discussed);
         const pool = R.cards.filter((c) => !done.has(c.id));
         if (pool.length === 0) return; // all discussed → no-op (client offers reset)
@@ -1007,7 +1053,7 @@ export class RoomDO extends DurableObject<Env> {
     return !!me && me.id === this.facilitatorId;
   }
 
-  /** The active deck's card values — a built-in or the facilitator's custom sequence. */
+  /** The active deck's card values · a built-in or the facilitator's custom sequence. */
   private deckCards(): string[] {
     if (this.estimate.deck === "custom" && this.estimate.customDeck.length) return this.estimate.customDeck;
     return DECKS[this.estimate.deck] ?? DECKS.fib;
@@ -1050,10 +1096,10 @@ export class RoomDO extends DurableObject<Env> {
     const cursors = [...this.cursors.entries()]
       .filter(([id]) => nameById.has(id))
       .map(([id, p]) => ({ id, name: nameById.get(id)!, x: p.x, y: p.y, ...(p.drag ? { drag: p.drag } : {}) }));
-    // Send each socket everyone ELSE's cursor — never its own (a client should
+    // Send each socket everyone ELSE's cursor · never its own (a client should
     // see only the native OS pointer for itself, not a duplicated colored one).
     for (const w of sockets) {
-      // Skip clients whose send buffer is already backed up — dropping a cursor
+      // Skip clients whose send buffer is already backed up · dropping a cursor
       // frame for a slow socket is harmless and keeps fast clients smooth.
       if (w.bufferedAmount > 512 * 1024) continue;
       const me = w.deserializeAttachment() as Member | null;
@@ -1076,6 +1122,25 @@ export class RoomDO extends DurableObject<Env> {
     if (nums.length) {
       this.estimate.history.push({ lo: Math.min(...nums), hi: Math.max(...nums), n: nums.length });
     }
+  }
+
+  /** The value the most voters landed on this round (the mode), or null if nobody
+   *  voted. Used to auto-record a story's estimate when the facilitator advances
+   *  without explicitly locking a decision. */
+  private consensusValue(): string | null {
+    const counts = new Map<string, number>();
+    for (const v of Object.values(this.estimate.votes)) {
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    let best: string | null = null;
+    let bestN = 0;
+    for (const [val, n] of counts) {
+      if (n > bestN) {
+        bestN = n;
+        best = val;
+      }
+    }
+    return best;
   }
 
   /** Build the poll view: an upvoted Q&A list, or an aggregated word cloud. */
@@ -1129,7 +1194,12 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   /** Build one socket's view of a retro/board surface (with server-side masking + redaction). */
-  private buildRetroView(state: RetroState, meId: string | null, nameById: Map<string, string>): RetroView {
+  private buildRetroView(
+    state: RetroState,
+    meId: string | null,
+    nameById: Map<string, string>,
+    viewerIsFacil: boolean,
+  ): RetroView {
     const tpl = RETRO_TEMPLATES[state.template] ?? RETRO_TEMPLATES.ssc;
     const groupTotals = new Map<string, { votes: number; size: number }>();
     for (const c of state.cards) {
@@ -1139,7 +1209,9 @@ export class RoomDO extends DurableObject<Env> {
       g.size += 1;
       groupTotals.set(c.groupId, g);
     }
-    const blind = state.phase === "brainstorm";
+    // Card bodies are blind only when the facilitator turns it on, and even then the
+    // facilitator still sees everything (so they can run the session). Default: visible.
+    const blind = state.blind && !viewerIsFacil;
     let used = 0;
     const cards = state.cards.map((c) => {
       const masked = blind && c.authorId !== meId;
@@ -1180,12 +1252,13 @@ export class RoomDO extends DurableObject<Env> {
       cards,
       votesLeft: meId ? RETRO_VOTE_BUDGET - used : RETRO_VOTE_BUDGET,
       anonymous: state.anonymous,
+      blind: state.blind,
       spotlightId: state.spotlightId,
       phase: state.phase,
     };
   }
 
-  /** A group of one isn't a group — clear its lone member's groupId (on the given surface). */
+  /** A group of one isn't a group · clear its lone member's groupId (on the given surface). */
   private dissolveSingletonGroups(cards: RetroCard[], gid: string | null): void {
     if (!gid) return;
     const members = cards.filter((c) => c.groupId === gid);
@@ -1194,7 +1267,7 @@ export class RoomDO extends DurableObject<Env> {
 
   private membersFrom(sockets: WebSocket[]): Member[] {
     // Dedupe by member id: duplicating a tab copies the sessionStorage clientId, so
-    // two live sockets can resolve to the SAME member — count them once so presence,
+    // two live sockets can resolve to the SAME member · count them once so presence,
     // the auto-reveal quorum, and picker odds aren't doubled.
     const byId = new Map<string, Member>();
     for (const w of sockets) {
@@ -1213,7 +1286,7 @@ export class RoomDO extends DurableObject<Env> {
     let mutated = false;
 
     // Move the facilitator baton only on a REAL leave (holder gone from the
-    // live socket set) — a fresh joiner never displaces the first joiner.
+    // live socket set) · a fresh joiner never displaces the first joiner.
     if (this.facilitatorId === null || !presentIds.has(this.facilitatorId)) {
       this.facilitatorId = members[0]?.id ?? null;
       mutated = true;
@@ -1239,7 +1312,14 @@ export class RoomDO extends DurableObject<Env> {
       phase: this.estimate.phase,
       voted: votedIds,
       votes: revealed ? { ...this.estimate.votes } : null,
-      rationales: Object.keys(this.estimate.rationales).length ? { ...this.estimate.rationales } : null,
+      // Hold rationales until this story has been revealed at least once: an outlier's
+      // note can hint at their number, so nothing leaks during the FIRST blind round.
+      // After a reveal we keep showing them (history survives a reestimate but not a
+      // restart), which is the whole point of reestimate: re-vote knowing the why.
+      rationales:
+        (revealed || this.estimate.history.length > 0) && Object.keys(this.estimate.rationales).length
+          ? { ...this.estimate.rationales }
+          : null,
       history: this.estimate.history,
       typing: [...this.typing],
       decision: this.estimate.decision,
@@ -1266,8 +1346,8 @@ export class RoomDO extends DurableObject<Env> {
         members,
         activity: this.activity,
         estimate,
-        retro: this.buildRetroView(this.retro, meId, nameById),
-        board: this.buildRetroView(this.board, meId, nameById),
+        retro: this.buildRetroView(this.retro, meId, nameById, meId === this.facilitatorId),
+        board: this.buildRetroView(this.board, meId, nameById, meId === this.facilitatorId),
         pulse: this.buildPulseView(meId),
         poll: this.buildPollView(meId),
         pick,

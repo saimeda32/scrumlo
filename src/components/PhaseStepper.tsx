@@ -4,8 +4,8 @@ import type { RoomClient } from "../net/socket";
 /**
  * The facilitated-retro rail: brainstorm → group → vote → discuss. Everyone sees
  * where the room is and what to do; the facilitator clicks a step (or Next) to move
- * the room. During brainstorm, others' notes are hidden — this is what turns a
- * sticky wall into a real, paced retro.
+ * the room. Card content is visible by default; the facilitator can blind it with the
+ * "Cards hidden" toggle for a private round.
  */
 export function PhaseStepper({
   phase,
@@ -78,7 +78,7 @@ export function PhaseStepper({
             onClick={() => client.retroSetPhase(next.id)}
             className="shrink-0 rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold text-white transition hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
           >
-            {phase === "brainstorm" ? "Reveal & group →" : `Next: ${next.label} →`}
+            Next: {next.label} →
           </button>
         )}
       </div>

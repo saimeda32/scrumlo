@@ -15,6 +15,7 @@ export type RoomClient = {
   typing: (on: boolean) => void;
   cursor: (x: number, y: number, drag?: { cardId: string; x: number; y: number } | null) => void;
   emote: (emoji: string) => void;
+  spotlightPick: () => void;
   lockDecision: (value: string, note: string) => void;
   estimateQueueAdd: (stories: string[]) => void;
   estimateQueueRemove: (index: number) => void;
@@ -48,6 +49,7 @@ export type RoomClient = {
   pollRemove: (id: string) => void;
   pollClear: () => void;
   retroSetAnonymous: (on: boolean) => void;
+  retroSetBlind: (on: boolean) => void;
   retroSpotlight: (cardId: string | null) => void;
   retroPickRandom: () => void;
   retroResetDiscussed: () => void;
@@ -62,7 +64,7 @@ export type RoomClient = {
 
 // A stable per-tab id for this room, so a reconnect restores the same member
 // (seat, facilitator baton, votes). sessionStorage = lives for the tab session,
-// cleared when the tab closes — on-ethos with "no durable identity".
+// cleared when the tab closes · on-ethos with "no durable identity".
 function clientIdFor(room: string): string {
   const key = `scrumlo-cid-${room}`;
   try {
@@ -85,6 +87,7 @@ export function createRoomClient(
     cursors: { id: string; name: string; x: number; y: number; drag?: { cardId: string; x: number; y: number } }[],
   ) => void,
   onEmote?: (emoji: string, from: string) => void,
+  onSpotlight?: (name: string, by: string, nonce: number) => void,
 ): RoomClient {
   const clientId = clientIdFor(room);
   const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -139,6 +142,7 @@ export function createRoomClient(
       if (msg.t === "snapshot") onSnapshot(msg);
       else if (msg.t === "cursors") onCursors?.(msg.cursors);
       else if (msg.t === "emote") onEmote?.(msg.emoji, msg.from);
+      else if (msg.t === "spotlight") onSpotlight?.(msg.name, msg.by, msg.nonce);
       else if (msg.t === "ended") {
         onEnded();
         ws.close(); // stop reconnecting to a room that's gone
@@ -154,7 +158,7 @@ export function createRoomClient(
       try {
         sessionStorage.setItem(nameKey, name);
       } catch {
-        /* private mode — still works for this session in memory */
+        /* private mode · still works for this session in memory */
       }
       send({ t: "hello", v: 1, name, clientId });
     },
@@ -169,6 +173,7 @@ export function createRoomClient(
     typing: (on) => send({ t: "typing", v: 1, on }),
     cursor: (x, y, drag) => send({ t: "cursor", v: 1, x, y, drag: drag ?? null }),
     emote: (emoji) => send({ t: "emote", v: 1, emoji }),
+    spotlightPick: () => send({ t: "spotlightPick", v: 1 }),
     lockDecision: (value, note) => send({ t: "lockDecision", v: 1, value, note }),
     estimateQueueAdd: (stories) => send({ t: "estimateQueueAdd", v: 1, stories }),
     estimateQueueRemove: (index) => send({ t: "estimateQueueRemove", v: 1, index }),
@@ -202,6 +207,7 @@ export function createRoomClient(
     pollRemove: (id) => send({ t: "pollRemove", v: 1, id }),
     pollClear: () => send({ t: "pollClear", v: 1 }),
     retroSetAnonymous: (on) => send({ t: "retroSetAnonymous", v: 1, on }),
+    retroSetBlind: (on) => send({ t: "retroSetBlind", v: 1, on }),
     retroSpotlight: (cardId) => send({ t: "retroSpotlight", v: 1, cardId }),
     retroPickRandom: () => send({ t: "retroPickRandom", v: 1 }),
     retroResetDiscussed: () => send({ t: "retroResetDiscussed", v: 1 }),

@@ -4,7 +4,9 @@ import { createRoomClient, type RoomClient } from "../net/socket";
 import { useRoom } from "../store/roomStore";
 import { useCursors } from "../store/cursorStore";
 import { useEmotes } from "../store/emoteStore";
-import { ReactionBar, ReactionLayer } from "../components/Reactions";
+import { useSpotlight } from "../store/spotlightStore";
+import { ActionDock, ReactionLayer } from "../components/Reactions";
+import { SpotlightLayer } from "../components/Spotlight";
 import { RoomHeader } from "../components/RoomHeader";
 import { ActivityTabs } from "../components/ActivityTabs";
 import { EstimateBoard } from "../components/EstimateBoard";
@@ -59,7 +61,11 @@ export default function Room() {
       setConnected,
       () => setEnded(true),
       useCursors.getState().setCursors,
-      (emoji) => useEmotes.getState().push(emoji),
+      (emoji, from) => {
+        const who = useRoom.getState().members.find((m) => m.id === from)?.name;
+        useEmotes.getState().push(emoji, who);
+      },
+      (name, by, nonce) => useSpotlight.getState().show({ name, by, nonce }),
     );
     clientRef.current = client;
     return () => client.close();
@@ -87,7 +93,7 @@ export default function Room() {
   useEffect(() => {
     const prev = prevFacil.current;
     prevFacil.current = facilitator;
-    if (prev === undefined) return; // first snapshot — not a takeover
+    if (prev === undefined) return; // first snapshot · not a takeover
     if (facilitator && facilitator !== prev) {
       const isMe = facilitator === you;
       const name = members.find((m) => m.id === facilitator)?.name ?? "Someone";
@@ -124,7 +130,7 @@ export default function Room() {
 
   if (!estimate || !retro || !board || !pulse || !poll || !pick) {
     return (
-      <div className="grid min-h-screen place-items-center text-slate-400 [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(50rem_30rem_at_50%_-8rem,#1b1838,transparent_60%)]">
+      <div className="grid min-h-screen place-items-center text-base font-medium text-slate-600 dark:text-slate-300 [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(50rem_30rem_at_50%_-8rem,#1b1838,transparent_60%)]">
         <StatusTicker phrases={FLAVOR.connecting} />
       </div>
     );
@@ -249,7 +255,7 @@ export default function Room() {
           )}
         </div>
         <p className="mt-2 mb-5 text-xs text-slate-500 dark:text-slate-400">
-          One link runs your whole ceremony — the facilitator switches activities and everyone
+          One link runs your whole ceremony · the facilitator switches activities and everyone
           follows. Nothing is kept after the room ends.
         </p>
 
@@ -318,9 +324,10 @@ export default function Room() {
         Nothing is stored · the room is deleted when everyone leaves.
       </footer>
 
-      {/* live floating reactions (any activity) */}
+      {/* live floating reactions + spin-to-pick-a-person (any activity, any screen) */}
       <ReactionLayer />
-      {joined && <ReactionBar client={client} />}
+      <SpotlightLayer members={members} client={client} canSpin={isFacil} />
+      {joined && <ActionDock client={client} count={members.length} isFacil={isFacil} />}
     </div>
   );
 }

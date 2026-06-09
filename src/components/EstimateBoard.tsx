@@ -7,6 +7,7 @@ import { Deck } from "./Deck";
 import { TensionLine } from "./TensionLine";
 import { StatusTicker } from "./StatusTicker";
 import { FLAVOR } from "../lib/flavor";
+import { parseStoryList } from "../lib/parseStories";
 
 export function EstimateBoard({
   estimate,
@@ -51,23 +52,8 @@ export function EstimateBoard({
     return () => window.removeEventListener("keydown", onKey);
   }, [canAct, isFacil, revealed, estimate.deck, estimate.customDeck, client]);
 
-  // Accept plain lines OR pasted CSV / Jira exports: one story per line, and within
-  // a comma row, keep an ID-looking first cell as a prefix and use the longest cell
-  // as the title (so "PROJ-12,Add CSV export,5" → "PROJ-12 — Add CSV export").
-  function parseStory(line: string): string {
-    const t = line.trim().replace(/^["']|["']$/g, "");
-    if (!t.includes(",")) return t;
-    const cells = t.split(",").map((c) => c.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
-    if (!cells.length) return t;
-    const idLike = /^[A-Za-z]{1,8}-?\d+$/;
-    const id = idLike.test(cells[0]) ? cells[0] : null;
-    const rest = id ? cells.slice(1) : cells;
-    const title = rest.slice().sort((a, b) => b.length - a.length)[0] || cells[0];
-    return id ? `${id} — ${title}` : title;
-  }
-
   function addStories() {
-    const stories = draft.split("\n").map(parseStory).filter(Boolean);
+    const stories = parseStoryList(draft);
     if (stories.length) client.estimateQueueAdd(stories);
     setDraft("");
     setShowAdd(false);
@@ -116,12 +102,13 @@ export function EstimateBoard({
                 >
                   + Add stories
                 </button>
-                {(estimate.queue.length > 0 || estimate.decision) && (
+                {(estimate.queue.length > 0 || estimate.decision || revealed) && (
                   <button
                     onClick={() => client.estimateNextStory()}
                     className="rounded-lg bg-iris-600 px-2.5 py-1 font-semibold text-white hover:bg-iris-500"
+                    title={estimate.queue.length > 0 ? "Record this estimate and load the next story" : "Record this estimate and finish the backlog"}
                   >
-                    Next story →
+                    {estimate.queue.length > 0 ? "Next story →" : "Record ✓"}
                   </button>
                 )}
               </>
@@ -172,7 +159,7 @@ export function EstimateBoard({
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Paste your backlog, one story per line…"
+            placeholder="One per line, or a comma list (a, b, c). Pasting CSV/Jira works too."
             rows={4}
             className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
           />
@@ -265,7 +252,7 @@ export function EstimateBoard({
           {!revealed && (
             <StatusTicker
               phrases={FLAVOR.waiting}
-              className="ml-auto hidden max-w-[45%] truncate text-[11px] italic text-slate-300 sm:block dark:text-slate-600"
+              className="ml-auto hidden max-w-[45%] truncate text-[11px] italic text-slate-500 sm:block dark:text-slate-400"
             />
           )}
         </div>

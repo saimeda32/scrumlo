@@ -6,7 +6,7 @@ const CLOUD_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8
 
 /**
  * Ask the room a question (Slido-lite). Two modes: Q&A (submit answers, upvote, sort
- * by votes) and a one-word live word cloud. Ephemeral — nothing kept after the room.
+ * by votes) and a one-word live word cloud. Ephemeral · nothing kept after the room.
  */
 export function PollBoard({
   poll,
@@ -47,7 +47,11 @@ export function PollBoard({
             />
           ) : (
             <h2 className="min-w-0 flex-1 text-lg font-bold text-slate-800 dark:text-slate-100">
-              {poll.prompt || "…"}
+              {poll.prompt || (
+                <span className="font-medium text-slate-400 dark:text-slate-500">
+                  Waiting for the facilitator to ask something…
+                </span>
+              )}
             </h2>
           )}
           {isFacil && (
@@ -121,7 +125,7 @@ export function PollBoard({
         <div className="space-y-2">
           {poll.answers.length === 0 ? (
             <p className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-400 shadow-soft dark:border-white/10 dark:bg-[#14141b] dark:text-slate-500">
-              No answers yet — be the first.
+              No answers yet · be the first.
             </p>
           ) : (
             poll.answers.map((a) => (

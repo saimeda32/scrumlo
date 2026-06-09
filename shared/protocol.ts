@@ -176,6 +176,17 @@ export const RETRO_TEMPLATES: Record<string, { label: string; columns: RetroColu
       { id: "empire", title: "The Empire", emoji: "🪐" }, // blockers and risks
     ],
   },
+  // Not a retro — a lightweight planning board. Same canvas: drop stickies, drag to
+  // group, dot-vote priorities, export. Ephemeral roadmapping without a database.
+  roadmap: {
+    label: "Roadmap board",
+    columns: [
+      { id: "now", title: "Now", emoji: "🔥" },
+      { id: "next", title: "Next", emoji: "➡️" },
+      { id: "later", title: "Later", emoji: "🗓️" },
+      { id: "someday", title: "Someday", emoji: "💭" },
+    ],
+  },
 };
 
 export const RETRO_VOTE_BUDGET = 5;

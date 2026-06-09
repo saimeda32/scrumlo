@@ -44,6 +44,11 @@ export const RETRO_THEMES: Record<string, RetroTheme> = {
     motif: "✨",
     blurb: "The Force with us, the rebellion to start, the Dark Side to drop.",
   },
+  roadmap: {
+    glow: "#6366f1",
+    motif: "🗺️",
+    blurb: "Plan it out: Now, Next, Later, Someday. Drag to group, dot-vote priorities, export.",
+  },
 };
 
 export function retroTheme(template: string): RetroTheme {

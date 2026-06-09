@@ -167,14 +167,14 @@ export default function Landing() {
             {
               Icon: IconEstimate,
               t: "Estimate",
-              d: "Blind-reveal poker that refuses to go quiet. The spread becomes a debate, the debate becomes a number.",
+              d: "Blind-reveal poker that refuses to go quiet. Custom decks, a story backlog, then a number everyone owns.",
             },
             {
               Icon: IconRetro,
-              t: "Retro",
-              d: "Thirteen boards, from Sailboat to the Avengers. Sticky notes that drag, group, and vanish.",
+              t: "Retro & boards",
+              d: "A free Miro-style canvas: facilitated phases, blind brainstorm, drag-to-group, dot-votes — plus a Now/Next/Later roadmap board. Export it, then it's gone.",
             },
-            { Icon: IconPick, t: "Pick", d: "Who goes first? Spin for a name, an order, or a topic. No favorites." },
+            { Icon: IconPick, t: "Pick", d: "Who goes first? Spin for a name, shuffle an order, or pick from a list. No favorites." },
           ].map(({ Icon, t, d }) => (
             <div key={t} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-iris-50 text-iris-600 dark:bg-iris-500/15 dark:text-iris-300">
@@ -216,8 +216,8 @@ export default function Landing() {
         </div>
         <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-6 dark:border-white/10 dark:bg-white/5 sm:grid-cols-3">
           {[
-            { t: "Estimate", d: "Pick a card (or press a number); R reveals. Votes stay blind until everyone's in, then reveal together. Queue a backlog and step through it." },
-            { t: "Retro", d: "Choose a format, drop stickies on the zoomable canvas, drag to cluster, dot-vote the themes, flag action items with owners." },
+            { t: "Estimate", d: "Pick a card (or press a number); R reveals. Votes stay blind until everyone's in. Build a custom deck, queue a backlog (paste CSV/Jira), step through it, export the results." },
+            { t: "Retro & boards", d: "Step the room through brainstorm → group → vote → discuss (notes stay hidden until the reveal). Drag to cluster, dot-vote themes, flag action items with owners — or switch to the Now/Next/Later roadmap board. Export to Markdown or a full-board PNG." },
             { t: "Pick", d: "Spin for a random person, shuffle an order, or pick from a comma-separated list — confetti, no repeats." },
           ].map((s) => (
             <div key={s.t}>

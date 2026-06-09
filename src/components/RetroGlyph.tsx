@@ -98,6 +98,13 @@ const G: Record<string, React.ReactNode> = {
       <path d="M8.5 16.5L6 19l2 .3M15.5 16.5L18 19l-2 .3M11 20.5h2" />
     </>
   ),
+  // flag on a pole (Roadmap)
+  roadmap: (
+    <>
+      <path d="M6 21V4" />
+      <path d="M6 4.5h12l-2.6 3.5L18 11.5H6" />
+    </>
+  ),
 };
 
 export function RetroGlyph({

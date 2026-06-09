@@ -37,9 +37,12 @@ const EMPTY_GRACE_MS = 2 * 60 * 1000; // 2 min after the last person leaves (rec
 const MAX_ROOM_MS = 12 * 60 * 60 * 1000; // absolute cap: a room can't outlive 12h even with a keep-alive trickle
 const MAX_CONNECTIONS = 60; // hard cap on concurrent sockets per room (DoS guard; targets ~20)
 
-/** Numeric value of a deck card, or null for ?/☕/t-shirt sizes. "½" → 0.5. */
+/** Numeric value of a deck card, or null for ?/☕/t-shirt sizes. "½" → 0.5.
+ *  Only plain decimals count, so a custom-deck label like "1e3", "0x10", or
+ *  "Infinity" can't be silently read as a giant estimate that skews the reveal. */
 function cardToNum(card: string): number | null {
   if (card === "½") return 0.5;
+  if (!/^\d+(\.\d+)?$/.test(card)) return null;
   const n = Number(card);
   return Number.isFinite(n) ? n : null;
 }
@@ -298,6 +301,10 @@ export class RoomDO extends DurableObject<Env> {
     const client = pair[0];
     const server = pair[1];
     this.ctx.acceptWebSocket(server); // hibernation-aware (NOT server.accept())
+    // Stamp a per-connection id so the flood guard can throttle a socket BEFORE it
+    // sends hello (hello overwrites this attachment with the Member). Short key `c`
+    // so asMember (which requires id+name) still treats a spectator as un-joined.
+    server.serializeAttachment({ c: crypto.randomUUID() });
     // A new connection is activity. Arm via armAlarm so we never clobber the
     // empty-grace / ghost-prune deadlines the way a hardcoded now+IDLE_MS did.
     this.lastActivityAt = Date.now();
@@ -331,18 +338,21 @@ export class RoomDO extends DurableObject<Env> {
 
     // Flood guard: a participant on a shared link can't hammer the room. A token
     // bucket (burst 60, refill 30/s) comfortably covers cursors + real interaction
-    // but throttles a griefer spamming addCard/vote/spin.
-    if (me && !this.allow(me.id)) return;
+    // but throttles a griefer spamming addCard/vote/spin. Applies to EVERY socket,
+    // including pre-hello spectators that could otherwise loop sync/hello unthrottled.
+    if (!this.allow(me ? me.id : this.connKey(ws))) return;
 
     // Live cursors: high-frequency + ephemeral, so they bypass the persist/snapshot
     // path entirely and fan out as a tiny dedicated message.
     if (msg.t === "cursor") {
       if (!me) return;
+      const cx = (n: unknown) => Math.max(0, Math.min(Math.round(Number(n) || 0), ZONE_W * 8));
+      const cy = (n: unknown) => Math.max(0, Math.min(Math.round(Number(n) || 0), CANVAS_H));
       const drag =
         msg.drag && typeof msg.drag.cardId === "string"
-          ? { cardId: msg.drag.cardId, x: Math.round(Number(msg.drag.x) || 0), y: Math.round(Number(msg.drag.y) || 0) }
+          ? { cardId: String(msg.drag.cardId).slice(0, 64), x: cx(msg.drag.x), y: cy(msg.drag.y) }
           : undefined;
-      this.cursors.set(me.id, { x: Math.round(Number(msg.x) || 0), y: Math.round(Number(msg.y) || 0), drag });
+      this.cursors.set(me.id, { x: cx(msg.x), y: cy(msg.y), drag });
       this.scheduleCursorFlush();
       return;
     }
@@ -399,6 +409,7 @@ export class RoomDO extends DurableObject<Env> {
         // Reuse this client's member id across reconnects so seat/baton/votes survive.
         let memberId = this.clients[clientId];
         if (!memberId) {
+          this.gcClients(); // reclaim stale mappings before minting a new one
           memberId = crypto.randomUUID();
           this.clients[clientId] = memberId;
         }
@@ -550,6 +561,8 @@ export class RoomDO extends DurableObject<Env> {
       case "typing": {
         // Live presence while an outlier composes a rationale. Transient, not persisted.
         if (!me) return;
+        const had = this.typing.has(me.id);
+        if (msg.on === had) return; // no-op: don't rebuild + rebroadcast the whole snapshot
         if (msg.on) this.typing.add(me.id);
         else this.typing.delete(me.id);
         break;
@@ -1106,6 +1119,26 @@ export class RoomDO extends DurableObject<Env> {
 
   private isFacilitator(me: Member | null): boolean {
     return !!me && me.id === this.facilitatorId;
+  }
+
+  /** Per-connection flood-guard key for a socket that hasn't sent hello yet. */
+  private connKey(ws: WebSocket): string {
+    const a = ws.deserializeAttachment() as { c?: string } | null;
+    return a && typeof a.c === "string" ? `c:${a.c}` : "anon";
+  }
+
+  /** Drop clientId->memberId mappings whose member is neither present nor in grace,
+   *  and cap the map so a churn of fresh clientIds can't grow storage without bound. */
+  private gcClients(): void {
+    const presentIds = new Set(this.membersFrom(this.ctx.getWebSockets()).map((m) => m.id));
+    for (const [cid, mid] of Object.entries(this.clients)) {
+      if (!presentIds.has(mid) && this.departed[mid] === undefined) delete this.clients[cid];
+    }
+    const keys = Object.keys(this.clients);
+    const CAP = MAX_CONNECTIONS * 2;
+    if (keys.length > CAP) {
+      for (const k of keys.slice(0, keys.length - CAP)) delete this.clients[k];
+    }
   }
 
   /** Validate the hibernation attachment rather than trusting the blob shape. */

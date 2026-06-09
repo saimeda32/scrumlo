@@ -78,6 +78,12 @@ export default {
     if (url.pathname === "/ws") {
       const room = url.searchParams.get("room");
       if (!room) return new Response("missing room", { status: 400 });
+      // Validate the slug shape before it mints a Durable Object. Lenient enough for
+      // human-typed join codes, strict enough that junk/huge strings can't be used to
+      // mass-instantiate DOs.
+      if (!/^[a-z0-9-]{1,64}$/.test(room)) {
+        return new Response("bad room", { status: 400 });
+      }
       if (request.headers.get("Upgrade") !== "websocket") {
         return new Response("expected websocket", { status: 426 });
       }

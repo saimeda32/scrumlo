@@ -34,6 +34,7 @@ import {
 
 const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
 const EMPTY_GRACE_MS = 2 * 60 * 1000; // 2 min after the last person leaves (reconnect grace)
+const MAX_ROOM_MS = 12 * 60 * 60 * 1000; // absolute cap: a room can't outlive 12h even with a keep-alive trickle
 const MAX_CONNECTIONS = 60; // hard cap on concurrent sockets per room (DoS guard; targets ~20)
 
 /** Numeric value of a deck card, or null for ?/☕/t-shirt sizes. "½" → 0.5. */
@@ -137,6 +138,7 @@ export class RoomDO extends DurableObject<Env> {
   private spotlightNonce = 0; // bumps per "pick a person" spin (ephemeral, never persisted)
   private cursorTimer: number | null = null; // coalesces cursor fan-out to ~1 send / 50ms
   private lastActivityAt = Date.now(); // for idle-TTL; in-memory (hibernation resets it, which is fine)
+  private createdAt = Date.now(); // durable; backs the absolute room-lifetime cap
   private buckets = new Map<string, { t: number; at: number }>(); // per-member token bucket (flood guard)
   private departed: Record<string, number> = {}; // memberId -> left-at; votes pruned after grace (durable, survives hibernation)
   private retro: RetroState = {
@@ -247,26 +249,43 @@ export class RoomDO extends DurableObject<Env> {
       this.timerDurationMs = (await ctx.storage.get<number>("timerDurationMs")) ?? null;
       this.departed = (await ctx.storage.get<Record<string, number>>("departed")) ?? {};
       this.lastActivityAt = (await ctx.storage.get<number>("lastActivityAt")) ?? Date.now();
+      // createdAt is stamped once and persisted, so the absolute lifetime cap survives
+      // hibernation and a keep-alive trickle can't make a room immortal.
+      const stamped = await ctx.storage.get<number>("createdAt");
+      if (stamped) {
+        this.createdAt = stamped;
+      } else {
+        this.createdAt = Date.now();
+        await ctx.storage.put("createdAt", this.createdAt);
+      }
     });
   }
 
   private async persist(): Promise<void> {
-    await this.ctx.storage.put("estimate", this.estimate);
-    await this.ctx.storage.put("retro", this.retro);
-    await this.ctx.storage.put("board", this.board);
-    await this.ctx.storage.put("pulse", this.pulse);
-    await this.ctx.storage.put("poll", this.poll);
-    await this.ctx.storage.put("pick", this.pick);
-    await this.ctx.storage.put("clients", this.clients);
-    await this.ctx.storage.put("activity", this.activity);
-    await this.ctx.storage.put("departed", this.departed);
-    await this.ctx.storage.put("lastActivityAt", this.lastActivityAt);
-    if (this.timerEndsAt === null) await this.ctx.storage.delete("timerEndsAt");
-    else await this.ctx.storage.put("timerEndsAt", this.timerEndsAt);
-    if (this.timerDurationMs === null) await this.ctx.storage.delete("timerDurationMs");
-    else await this.ctx.storage.put("timerDurationMs", this.timerDurationMs);
-    if (this.facilitatorId === null) await this.ctx.storage.delete("facilitator");
-    else await this.ctx.storage.put("facilitator", this.facilitatorId);
+    // One batched put is atomic and a single round-trip, so a hibernation eviction
+    // mid-persist can't leave storage cross-key inconsistent the way 11 serial awaited
+    // puts could. Nullable keys (timer, facilitator) are deleted in one batched call.
+    const batch: Record<string, unknown> = {
+      estimate: this.estimate,
+      retro: this.retro,
+      board: this.board,
+      pulse: this.pulse,
+      poll: this.poll,
+      pick: this.pick,
+      clients: this.clients,
+      activity: this.activity,
+      departed: this.departed,
+      lastActivityAt: this.lastActivityAt,
+    };
+    const dels: string[] = [];
+    if (this.timerEndsAt === null) dels.push("timerEndsAt");
+    else batch.timerEndsAt = this.timerEndsAt;
+    if (this.timerDurationMs === null) dels.push("timerDurationMs");
+    else batch.timerDurationMs = this.timerDurationMs;
+    if (this.facilitatorId === null) dels.push("facilitator");
+    else batch.facilitator = this.facilitatorId;
+    await this.ctx.storage.put(batch);
+    if (dels.length) await this.ctx.storage.delete(dels);
   }
 
   async fetch(_request: Request): Promise<Response> {
@@ -279,7 +298,10 @@ export class RoomDO extends DurableObject<Env> {
     const client = pair[0];
     const server = pair[1];
     this.ctx.acceptWebSocket(server); // hibernation-aware (NOT server.accept())
-    await this.ctx.storage.setAlarm(Date.now() + IDLE_MS);
+    // A new connection is activity. Arm via armAlarm so we never clobber the
+    // empty-grace / ghost-prune deadlines the way a hardcoded now+IDLE_MS did.
+    this.lastActivityAt = Date.now();
+    await this.armAlarm();
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -934,26 +956,38 @@ export class RoomDO extends DurableObject<Env> {
     await this.armAlarm();
   }
 
-  async webSocketClose(ws: WebSocket): Promise<void> {
+  // A socket left, whether cleanly (close) or via a network error. Both paths must
+  // prune, persist, and re-arm; previously webSocketError did none of that, so a
+  // mobile drop left phantom voters and a stuck cursor with no cleanup.
+  private async handleGone(ws: WebSocket): Promise<void> {
     const gone = this.asMember(ws);
     if (gone) {
-      this.cursors.delete(gone.id);
       this.buckets.delete(gone.id);
-      // Record the departure durably; the alarm prunes their votes if they don't
-      // return within the grace window (survives hibernation, unlike a setTimeout).
-      this.departed[gone.id] = Date.now();
-      await this.ctx.storage.put("departed", this.departed);
+      // Only treat the member as departed (and blank their cursor) if NO other live
+      // socket still resolves to the same id. A duplicate tab shares the clientId, so
+      // closing one tab must not orphan the member or erase the live tab's cursor.
+      const stillHere = this.ctx
+        .getWebSockets()
+        .some((w) => w !== ws && this.asMember(w)?.id === gone.id);
+      if (!stillHere) {
+        this.cursors.delete(gone.id);
+        this.departed[gone.id] = Date.now();
+        await this.ctx.storage.put("departed", this.departed);
+      }
     }
-    // Their leaving may complete an estimate round (everyone still here has voted).
     this.maybeAutoReveal(ws);
     await this.persist();
     await this.broadcast(ws);
-    this.broadcastCursors(); // their cursor disappears for everyone
+    this.broadcastCursors();
     await this.armAlarm();
   }
 
+  async webSocketClose(ws: WebSocket): Promise<void> {
+    await this.handleGone(ws);
+  }
+
   async webSocketError(ws: WebSocket): Promise<void> {
-    await this.broadcast(ws);
+    await this.handleGone(ws);
   }
 
   /** Auto-reveal once every present member has voted (a real group, not a solo). */
@@ -1013,7 +1047,9 @@ export class RoomDO extends DurableObject<Env> {
       next = this.lastActivityAt + IDLE_MS;
       for (const at of Object.values(this.departed)) next = Math.min(next, at + EMPTY_GRACE_MS);
     }
-    await this.ctx.storage.setAlarm(next);
+    next = Math.min(next, this.createdAt + MAX_ROOM_MS); // never outlive the absolute cap
+    // Floor in the future so a reordering bug can't schedule an immediate-fire loop.
+    await this.ctx.storage.setAlarm(Math.max(next, Date.now() + 1000));
   }
 
   /**
@@ -1037,8 +1073,8 @@ export class RoomDO extends DurableObject<Env> {
         delete this.departed[id];
       }
     }
-    if (now - this.lastActivityAt >= IDLE_MS) {
-      await this.terminate();
+    if (now - this.lastActivityAt >= IDLE_MS || now - this.createdAt >= MAX_ROOM_MS) {
+      await this.terminate(); // idle out, or hit the absolute lifetime cap
       return;
     }
     if (changed) {

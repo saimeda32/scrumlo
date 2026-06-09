@@ -8,12 +8,19 @@ import { DurableObject } from "cloudflare:workers";
  */
 export class StatsDO extends DurableObject {
   async bump(): Promise<number> {
-    const n = ((await this.ctx.storage.get<number>("rooms")) ?? 0) + 1;
-    await this.ctx.storage.put("rooms", n);
-    return n;
+    // Atomic read-modify-write so concurrent bumps can't lose an increment, with a
+    // finite guard so a corrupt value can't poison the counter into NaN forever.
+    return this.ctx.storage.transaction(async (txn) => {
+      const cur = await txn.get<number>("rooms");
+      const base = Number.isFinite(cur) ? (cur as number) : 0;
+      const n = base + 1;
+      await txn.put("rooms", n);
+      return n;
+    });
   }
 
   async total(): Promise<number> {
-    return (await this.ctx.storage.get<number>("rooms")) ?? 0;
+    const cur = await this.ctx.storage.get<number>("rooms");
+    return Number.isFinite(cur) ? (cur as number) : 0;
   }
 }

@@ -61,8 +61,16 @@ export default {
           return new Response("Too many rooms, please slow down.", { status: 429 });
         }
       }
-      // Bump the global tally (fire-and-forget so it never slows room creation).
-      ctx.waitUntil(statsStub(env).bump().then(() => {}, () => {}));
+      // Bump the global tally (fire-and-forget so it never slows room creation). Log
+      // a failure so a stuck counter is greppable instead of silently swallowed.
+      ctx.waitUntil(
+        statsStub(env)
+          .bump()
+          .then(
+            () => {},
+            (e) => console.warn("stats bump failed", String(e)),
+          ),
+      );
       return Response.json({ room: makeSlug() });
     }
 

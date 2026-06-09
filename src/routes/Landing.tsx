@@ -172,6 +172,44 @@ export default function Landing() {
         </p>
       </section>
 
+      {/* how it works · quick guide */}
+      <section className="mx-auto max-w-5xl px-6 py-10">
+        <div className="mb-8 text-center">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Up and running in four steps</h2>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            No account, no setup, no install · one link runs the whole ceremony.
+          </p>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { n: "1", t: "Start a room", d: "Hit Create a room — you get a private link like scrumlo.app/r/brave-otter. Nothing to configure." },
+            { n: "2", t: "Share the link", d: "Drop it in Slack. Teammates open it and land instantly, then type a name to grab a seat. No sign-up." },
+            { n: "3", t: "Run the ceremony", d: "The facilitator switches between Estimate, Retro, and Pick and runs the shared timer. Everyone follows live." },
+            { n: "4", t: "Export, then poof", d: "Grab a Markdown or full-board PNG/PDF with your action items. When the last person leaves, the room deletes itself." },
+          ].map((s) => (
+            <div key={s.n} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-iris-600 text-sm font-bold text-white shadow-sm shadow-iris-600/30">
+                {s.n}
+              </div>
+              <div className="mt-3 font-semibold">{s.t}</div>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{s.d}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-6 dark:border-white/10 dark:bg-white/5 sm:grid-cols-3">
+          {[
+            { t: "Estimate", d: "Pick a card (or press a number); R reveals. Votes stay blind until everyone's in, then reveal together. Queue a backlog and step through it." },
+            { t: "Retro", d: "Choose a format, drop stickies on the zoomable canvas, drag to cluster, dot-vote the themes, flag action items with owners." },
+            { t: "Pick", d: "Spin for a random person, shuffle an order, or pick from a comma-separated list — confetti, no repeats." },
+          ].map((s) => (
+            <div key={s.t}>
+              <div className="text-sm font-bold text-iris-600 dark:text-iris-300">{s.t}</div>
+              <p className="mt-1 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">{s.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* the wedge · contrasting dark band */}
       <section className="bg-slate-900 py-16 text-center text-white">
         <div className="mx-auto max-w-2xl px-6">

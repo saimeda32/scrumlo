@@ -25,9 +25,11 @@ export function LogoMark({ size = 26, className = "" }: { size?: number; classNa
 
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
+    <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <LogoMark />
-      <span className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-white">Scrumlo</span>
+      <span className="text-[15px] font-light uppercase tracking-[0.34em] text-slate-900 dark:text-white">
+        Scrumlo
+      </span>
     </span>
   );
 }

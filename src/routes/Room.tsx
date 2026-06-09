@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "wouter";
 import { createRoomClient, type RoomClient } from "../net/socket";
 import { useRoom } from "../store/roomStore";
+import { useCursors } from "../store/cursorStore";
 import { RoomHeader } from "../components/RoomHeader";
 import { ActivityTabs } from "../components/ActivityTabs";
 import { EstimateBoard } from "../components/EstimateBoard";
@@ -33,10 +34,8 @@ export default function Room() {
     pick,
     timerEndsAt,
     timerDurationMs,
-    cursors,
     setConnected,
     setEnded,
-    setCursors,
     apply,
   } = useRoom();
   const [name, setName] = useState("");
@@ -47,7 +46,7 @@ export default function Room() {
   // Render-first: connect as a spectator on mount; the user names themselves
   // (becomes a participant) only when they want to act.
   useEffect(() => {
-    const client = createRoomClient(room, apply, setConnected, () => setEnded(true), setCursors);
+    const client = createRoomClient(room, apply, setConnected, () => setEnded(true), useCursors.getState().setCursors);
     clientRef.current = client;
     return () => client.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,7 +213,6 @@ export default function Room() {
               isFacil={isFacil}
               canAct={canAct}
               client={client}
-              cursors={cursors}
               you={you ?? ""}
             />
           ) : (

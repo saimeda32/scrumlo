@@ -6,6 +6,7 @@ import { avatarColor, initials } from "../lib/colors";
 import { columnColor, type ColC } from "../lib/retroColors";
 import { retroTheme } from "../lib/retroThemes";
 import { RetroGlyph } from "./RetroGlyph";
+import { useCursors } from "../store/cursorStore";
 
 const CARD_W = 220;
 
@@ -19,16 +20,17 @@ export function RetroCanvas({
   canAct,
   isFacil,
   client,
-  cursors,
   you,
 }: {
   retro: RetroView;
   canAct: boolean;
   isFacil: boolean;
   client: RoomClient;
-  cursors: { id: string; name: string; x: number; y: number; drag?: { cardId: string; x: number; y: number } }[];
   you: string;
 }) {
+  // Read cursors straight from their own store so a cursor frame re-renders only
+  // this canvas, never the whole Room tree.
+  const cursors = useCursors((s) => s.cursors);
   const [zoom, setZoom] = useState(0.8);
   const [addingZone, setAddingZone] = useState<string | null>(null);
   const [draft, setDraft] = useState("");

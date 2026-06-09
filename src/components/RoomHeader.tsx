@@ -49,8 +49,11 @@ export function RoomHeader({
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-2.5 shadow-soft backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
-      <a href="/" title="Scrumlo · new room" className="shrink-0">
+      <a href="/" title="Scrumlo · new room" className="flex shrink-0 items-center gap-2">
         <LogoMark size={22} />
+        <span className="hidden text-[12px] font-light uppercase tracking-[0.32em] text-slate-900 dark:text-white sm:inline">
+          Scrumlo
+        </span>
       </a>
       <span className="font-mono text-xs text-slate-400 dark:text-slate-500">{room}</span>
       <button

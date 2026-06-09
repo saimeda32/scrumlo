@@ -9,14 +9,12 @@ export function RetroBoard({
   isFacil,
   canAct,
   client,
-  cursors,
   you,
 }: {
   retro: RetroView;
   isFacil: boolean;
   canAct: boolean;
   client: RoomClient;
-  cursors: { id: string; name: string; x: number; y: number; drag?: { cardId: string; x: number; y: number } }[];
   you: string;
 }) {
   const spotlit = retro.cards.find((c) => c.id === retro.spotlightId) ?? null;
@@ -101,7 +99,7 @@ export function RetroBoard({
         {theme.blurb}
       </p>
 
-      <RetroCanvas retro={retro} canAct={canAct} isFacil={isFacil} client={client} cursors={cursors} you={you} />
+      <RetroCanvas retro={retro} canAct={canAct} isFacil={isFacil} client={client} you={you} />
 
       <p className="mt-6 text-xs text-slate-400 dark:text-slate-500">
         {retro.anonymous ? "Anonymous by default" : "Authors shown"}. Five dot-votes each. Drag a

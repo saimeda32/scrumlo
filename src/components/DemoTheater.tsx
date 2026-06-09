@@ -25,6 +25,8 @@ export function DemoTheater() {
   const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
+    // Respect reduced-motion: don't auto-cycle the reel for motion-sensitive users.
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const id = setInterval(() => {
       setAct((a) => {
         const next = (a + 1) % ACTS.length;

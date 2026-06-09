@@ -9,6 +9,7 @@ import { RetroGlyph } from "./RetroGlyph";
 import { useCursors } from "../store/cursorStore";
 import { useShallow } from "zustand/react/shallow";
 import { memo } from "react";
+import { FullscreenBar } from "./FullscreenBar";
 
 const CARD_W = 220;
 
@@ -23,12 +24,18 @@ export function RetroCanvas({
   isFacil,
   client,
   you,
+  isBoard = false,
+  timerEndsAt = null,
+  timerDurationMs = null,
 }: {
   retro: RetroView;
   canAct: boolean;
   isFacil: boolean;
   client: RoomClient;
   you: string;
+  isBoard?: boolean;
+  timerEndsAt?: number | null;
+  timerDurationMs?: number | null;
 }) {
   // NOTE: RetroCanvas deliberately does NOT subscribe to the cursor store — that
   // would re-render the whole wall ~20×/sec. Cursor pointers live in <CursorLayer>
@@ -110,26 +117,17 @@ export function RetroCanvas({
         </button>
       </div>
 
-      {/* in fullscreen the phase rail is hidden — surface a compact phase control */}
+      {/* in fullscreen the phase rail + timer are hidden — float them back in */}
       {full && (
-        <div className="absolute left-3 top-3 z-20 flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-1.5 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/90">
-          <span className="text-xs font-bold tracking-tight text-iris-600 dark:text-iris-300">
-            {RETRO_PHASES.find((p) => p.id === retro.phase)?.label ?? "Retro"}
-          </span>
-          {isFacil &&
-            (() => {
-              const idx = RETRO_PHASES.findIndex((p) => p.id === retro.phase);
-              const next = RETRO_PHASES[idx + 1];
-              return next ? (
-                <button
-                  onClick={() => client.retroSetPhase(next.id)}
-                  className="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900"
-                >
-                  {retro.phase === "brainstorm" ? "Reveal →" : `${next.label} →`}
-                </button>
-              ) : null;
-            })()}
-        </div>
+        <FullscreenBar
+          retro={retro}
+          isBoard={isBoard}
+          isFacil={isFacil}
+          client={client}
+          timerEndsAt={timerEndsAt}
+          timerDurationMs={timerDurationMs}
+          onExit={() => setFull(false)}
+        />
       )}
 
       {/* pannable viewport (native scroll) */}

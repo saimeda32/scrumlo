@@ -12,6 +12,8 @@ export function RetroBoard({
   client,
   you,
   isBoard = false,
+  timerEndsAt = null,
+  timerDurationMs = null,
 }: {
   retro: RetroView;
   isFacil: boolean;
@@ -19,6 +21,8 @@ export function RetroBoard({
   client: RoomClient;
   you: string;
   isBoard?: boolean;
+  timerEndsAt?: number | null;
+  timerDurationMs?: number | null;
 }) {
   const spotlit = retro.cards.find((c) => c.id === retro.spotlightId) ?? null;
   const total = retro.cards.length;
@@ -105,7 +109,16 @@ export function RetroBoard({
         {theme.blurb}
       </p>
 
-      <RetroCanvas retro={retro} canAct={canAct} isFacil={isFacil} client={client} you={you} />
+      <RetroCanvas
+        retro={retro}
+        canAct={canAct}
+        isFacil={isFacil}
+        client={client}
+        you={you}
+        isBoard={isBoard}
+        timerEndsAt={timerEndsAt}
+        timerDurationMs={timerDurationMs}
+      />
 
       <p className="mt-6 text-xs text-slate-400 dark:text-slate-500">
         {retro.anonymous ? "Anonymous by default" : "Authors shown"}. Five dot-votes each. Drag a

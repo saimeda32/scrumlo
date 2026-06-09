@@ -261,6 +261,8 @@ export default function Room() {
               canAct={canAct}
               client={client}
               you={you ?? ""}
+              timerEndsAt={timerEndsAt}
+              timerDurationMs={timerDurationMs}
             />
           ) : activity === "board" ? (
             <RetroBoard
@@ -270,6 +272,8 @@ export default function Room() {
               client={client}
               you={you ?? ""}
               isBoard
+              timerEndsAt={timerEndsAt}
+              timerDurationMs={timerDurationMs}
             />
           ) : (
             <PickerBoard pick={pick} members={members} isFacil={isFacil} client={client} />

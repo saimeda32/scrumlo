@@ -116,7 +116,7 @@ export class RoomDO extends DurableObject<Env> {
   private cursorTimer: number | null = null; // coalesces cursor fan-out to ~1 send / 50ms
   private lastActivityAt = Date.now(); // for idle-TTL; in-memory (hibernation resets it, which is fine)
   private buckets = new Map<string, { t: number; at: number }>(); // per-member token bucket (flood guard)
-  private departTimers = new Map<string, number>(); // memberId -> prune timer after they leave
+  private departed: Record<string, number> = {}; // memberId -> left-at; votes pruned after grace (durable, survives hibernation)
   private retro: RetroState = {
     template: "ssc",
     cards: [],
@@ -174,6 +174,8 @@ export class RoomDO extends DurableObject<Env> {
       this.facilitatorId = (await ctx.storage.get<string>("facilitator")) ?? null;
       this.timerEndsAt = (await ctx.storage.get<number>("timerEndsAt")) ?? null;
       this.timerDurationMs = (await ctx.storage.get<number>("timerDurationMs")) ?? null;
+      this.departed = (await ctx.storage.get<Record<string, number>>("departed")) ?? {};
+      this.lastActivityAt = (await ctx.storage.get<number>("lastActivityAt")) ?? Date.now();
     });
   }
 
@@ -183,6 +185,8 @@ export class RoomDO extends DurableObject<Env> {
     await this.ctx.storage.put("pick", this.pick);
     await this.ctx.storage.put("clients", this.clients);
     await this.ctx.storage.put("activity", this.activity);
+    await this.ctx.storage.put("departed", this.departed);
+    await this.ctx.storage.put("lastActivityAt", this.lastActivityAt);
     if (this.timerEndsAt === null) await this.ctx.storage.delete("timerEndsAt");
     else await this.ctx.storage.put("timerEndsAt", this.timerEndsAt);
     if (this.timerDurationMs === null) await this.ctx.storage.delete("timerDurationMs");
@@ -248,10 +252,9 @@ export class RoomDO extends DurableObject<Env> {
         ws.serializeAttachment(member);
         if (this.facilitatorId === null) this.facilitatorId = memberId;
         // They're back within the grace window — cancel any pending vote prune.
-        const pending = this.departTimers.get(memberId);
-        if (pending) {
-          clearTimeout(pending);
-          this.departTimers.delete(memberId);
+        if (this.departed[memberId] !== undefined) {
+          delete this.departed[memberId];
+          await this.ctx.storage.put("departed", this.departed);
         }
         break;
       }
@@ -263,11 +266,7 @@ export class RoomDO extends DurableObject<Env> {
         const deck = this.deckCards();
         if (!deck.includes(msg.card)) return;
         this.estimate.votes[me.id] = msg.card;
-        // Auto-reveal once everyone present has voted (needs a real group, not a solo).
-        const present = this.membersFrom(this.ctx.getWebSockets());
-        if (present.length >= 2 && present.every((m) => this.estimate.votes[m.id] !== undefined)) {
-          this.recordReveal();
-        }
+        this.maybeAutoReveal();
         break;
       }
       case "reveal": {
@@ -357,7 +356,7 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "setStory": {
         if (!this.isFacilitator(me)) return;
-        this.estimate.story = String(msg.story ?? "").slice(0, 200);
+        this.estimate.story = String(msg.story ?? "").trim().slice(0, 200);
         break;
       }
       case "setDeck": {
@@ -505,6 +504,8 @@ export class RoomDO extends DurableObject<Env> {
         if (!me) return;
         const card = this.retro.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
+        // During blind brainstorm you can only move your OWN notes (others' are masked).
+        if (this.retro.phase === "brainstorm" && card.authorId !== me.id) return;
         const tplM = RETRO_TEMPLATES[this.retro.template] ?? RETRO_TEMPLATES.ssc;
         card.x = Math.max(0, Math.min(Math.round(Number(msg.x) || 0), tplM.columns.length * ZONE_W));
         card.y = Math.max(0, Math.min(Math.round(Number(msg.y) || 0), CANVAS_H));
@@ -521,6 +522,7 @@ export class RoomDO extends DurableObject<Env> {
         if (!tpl || !tpl.columns.some((c) => c.id === msg.toColumn)) return;
         const card = this.retro.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
+        if (this.retro.phase === "brainstorm" && card.authorId !== me.id) return;
         const wasGroup = card.groupId;
         card.column = msg.toColumn;
         card.groupId = null;
@@ -536,6 +538,7 @@ export class RoomDO extends DurableObject<Env> {
       case "retroGroupCard": {
         // Stack one sticky onto another → they share a groupId (votes display summed client-side).
         if (!me) return;
+        if (this.retro.phase === "brainstorm") return; // no grouping masked notes
         if (msg.cardId === msg.ontoCardId) return;
         const card = this.retro.cards.find((c) => c.id === msg.cardId);
         const onto = this.retro.cards.find((c) => c.id === msg.ontoCardId);
@@ -622,6 +625,7 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "retroSpotlight": {
         if (!this.isFacilitator(me)) return;
+        if (this.retro.phase === "brainstorm") return; // notes are masked — nothing to spotlight
         if (msg.cardId === null) this.retro.spotlightId = null;
         else if (this.retro.cards.some((c) => c.id === msg.cardId)) this.retro.spotlightId = msg.cardId;
         break;
@@ -629,6 +633,7 @@ export class RoomDO extends DurableObject<Env> {
       case "retroPickRandom": {
         // Discuss cards in random order, each once — picked → spotlight it + mark discussed.
         if (!this.isFacilitator(me)) return;
+        if (this.retro.phase === "brainstorm") return; // can't surface a masked note
         const done = new Set(this.retro.discussed);
         const pool = this.retro.cards.filter((c) => !done.has(c.id));
         if (pool.length === 0) return; // all discussed → no-op (client offers reset)
@@ -707,10 +712,10 @@ export class RoomDO extends DurableObject<Env> {
 
     // Persist the mutation BEFORE broadcasting, so a hibernation eviction
     // before the next event can't roll it back.
+    this.lastActivityAt = Date.now(); // durable idle clock (persisted in persist())
     await this.persist();
     await this.broadcast();
-    this.lastActivityAt = Date.now();
-    await this.ctx.storage.setAlarm(this.lastActivityAt + IDLE_MS); // any activity resets the idle clock
+    await this.armAlarm();
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
@@ -718,25 +723,34 @@ export class RoomDO extends DurableObject<Env> {
     if (gone) {
       this.cursors.delete(gone.id);
       this.buckets.delete(gone.id);
-      // Keep votes through a brief reconnect window, then prune this member's stale
-      // votes/reactions so a churning room doesn't accumulate phantom voters.
-      const id = gone.id;
-      const existing = this.departTimers.get(id);
-      if (existing) clearTimeout(existing);
-      this.departTimers.set(id, setTimeout(() => this.pruneIfAbsent(id), EMPTY_GRACE_MS) as unknown as number);
+      // Record the departure durably; the alarm prunes their votes if they don't
+      // return within the grace window (survives hibernation, unlike a setTimeout).
+      this.departed[gone.id] = Date.now();
+      await this.ctx.storage.put("departed", this.departed);
     }
+    // Their leaving may complete an estimate round (everyone still here has voted).
+    this.maybeAutoReveal(ws);
+    await this.persist();
     await this.broadcast(ws);
     this.broadcastCursors(); // their cursor disappears for everyone
-    const remaining = this.ctx.getWebSockets().filter((w) => w !== ws).length;
-    // Empty room → short grace (reconnect window) then evaporate; otherwise idle TTL.
-    await this.ctx.storage.setAlarm(Date.now() + (remaining === 0 ? EMPTY_GRACE_MS : IDLE_MS));
+    await this.armAlarm();
   }
 
-  /** After the reconnect grace: if the member never came back, drop their votes. */
-  private async pruneIfAbsent(id: string): Promise<void> {
-    this.departTimers.delete(id);
-    const present = this.membersFrom(this.ctx.getWebSockets()).some((m) => m.id === id);
-    if (present) return; // they reconnected — keep everything
+  async webSocketError(ws: WebSocket): Promise<void> {
+    await this.broadcast(ws);
+  }
+
+  /** Auto-reveal once every present member has voted (a real group, not a solo). */
+  private maybeAutoReveal(exclude?: WebSocket): void {
+    if (this.estimate.phase !== "voting") return;
+    const present = this.membersFrom(this.ctx.getWebSockets().filter((w) => w !== exclude));
+    if (present.length >= 2 && present.every((m) => this.estimate.votes[m.id] !== undefined)) {
+      this.recordReveal();
+    }
+  }
+
+  /** Drop a departed member's votes/rationales/reactions. Returns whether anything changed. */
+  private pruneMember(id: string): boolean {
     let changed = false;
     if (this.estimate.votes[id] !== undefined) {
       delete this.estimate.votes[id];
@@ -760,33 +774,54 @@ export class RoomDO extends DurableObject<Env> {
         }
       }
     }
-    if (changed) {
-      await this.persist();
-      await this.broadcast();
-    }
+    return changed;
   }
 
-  async webSocketError(ws: WebSocket): Promise<void> {
-    await this.broadcast(ws);
+  /** Set the storage alarm to the earliest pending deadline (idle TTL, empty grace, or a prune). */
+  private async armAlarm(): Promise<void> {
+    let next: number;
+    if (this.ctx.getWebSockets().length === 0) {
+      next = Date.now() + EMPTY_GRACE_MS;
+    } else {
+      next = this.lastActivityAt + IDLE_MS;
+      for (const at of Object.values(this.departed)) next = Math.min(next, at + EMPTY_GRACE_MS);
+    }
+    await this.ctx.storage.setAlarm(next);
   }
 
   /**
-   * Idle TTL / empty-grace fired. Re-check reality rather than trusting the alarm:
-   * an empty room always dies (this is what stops a clobbered grace alarm from
-   * letting an empty room linger 30 min); a still-occupied room only dies if it's
-   * genuinely been idle, otherwise we re-arm to the real deadline.
+   * Durable alarm: prune departed members past grace, end empty/idle rooms. Re-checks
+   * reality rather than trusting the alarm (an empty room always dies; idle is measured
+   * against the persisted lastActivityAt so it survives hibernation).
    */
   async alarm(): Promise<void> {
     if (this.ctx.getWebSockets().length === 0) {
       await this.terminate();
       return;
     }
-    const idleFor = Date.now() - this.lastActivityAt;
-    if (idleFor >= IDLE_MS) {
+    const now = Date.now();
+    const presentIds = new Set(this.membersFrom(this.ctx.getWebSockets()).map((m) => m.id));
+    let changed = false;
+    for (const [id, at] of Object.entries(this.departed)) {
+      if (presentIds.has(id)) {
+        delete this.departed[id]; // they came back
+      } else if (now - at >= EMPTY_GRACE_MS) {
+        if (this.pruneMember(id)) changed = true;
+        delete this.departed[id];
+      }
+    }
+    if (now - this.lastActivityAt >= IDLE_MS) {
       await this.terminate();
       return;
     }
-    await this.ctx.storage.setAlarm(this.lastActivityAt + IDLE_MS);
+    if (changed) {
+      this.maybeAutoReveal();
+      await this.persist();
+      await this.broadcast();
+    } else {
+      await this.ctx.storage.put("departed", this.departed);
+    }
+    await this.armAlarm();
   }
 
   /** End the room now: tell everyone, close sockets, delete all state. */
@@ -889,9 +924,15 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   private membersFrom(sockets: WebSocket[]): Member[] {
-    return sockets
-      .map((w) => w.deserializeAttachment() as Member | null)
-      .filter((m): m is Member => m !== null);
+    // Dedupe by member id: duplicating a tab copies the sessionStorage clientId, so
+    // two live sockets can resolve to the SAME member — count them once so presence,
+    // the auto-reveal quorum, and picker odds aren't doubled.
+    const byId = new Map<string, Member>();
+    for (const w of sockets) {
+      const m = w.deserializeAttachment() as Member | null;
+      if (m && typeof m.id === "string" && !byId.has(m.id)) byId.set(m.id, m);
+    }
+    return [...byId.values()];
   }
 
   private async broadcast(exclude?: WebSocket): Promise<void> {

@@ -338,7 +338,7 @@ export default function Room() {
         )}
       </main>
       <footer className="border-t border-slate-200/70 bg-white/40 py-4 text-center text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-500">
-        Nothing is stored · the room is deleted when everyone leaves.
+        Hit Export to keep the decisions · everything else goes when you do.
       </footer>
 
       {/* live floating reactions + spin-to-pick-a-person (any activity, any screen) */}

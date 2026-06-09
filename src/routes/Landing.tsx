@@ -167,7 +167,7 @@ export default function Landing() {
             {
               Icon: IconEstimate,
               t: "Estimate",
-              d: "Blind-reveal poker that refuses to go quiet. Custom decks, a story backlog (paste CSV/Jira), then a number everyone owns.",
+              d: "Blind-reveal poker that refuses to go quiet. Custom decks, a story backlog (paste CSV/Jira), and a quick nudge toward the outliers when the room splits.",
             },
             {
               Icon: IconRetro,
@@ -187,7 +187,7 @@ export default function Landing() {
             {
               Icon: IconPoll,
               t: "Poll & Q&A",
-              d: "Ask the room a question: collect answers and upvote the best, or drop one word each into a live word cloud. Slido, without the login.",
+              d: "Ask the room a question: collect answers and upvote the best, or drop one word each into a live word cloud. No accounts, no dashboard to log into.",
             },
             { Icon: IconPick, t: "Pick", d: "Who goes first? Spin for a name, shuffle an order, or pick from a list. No favorites." },
           ].map(({ Icon, t, d }) => (

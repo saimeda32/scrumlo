@@ -55,6 +55,7 @@ export default function Room() {
   const [showExport, setShowExport] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [skewed, setSkewed] = useState(false); // server speaks a newer protocol (a deploy landed)
+  const [watchOnly, setWatchOnly] = useState(false); // chose to spectate instead of naming themselves
   const clientRef = useRef<RoomClient | null>(null);
 
   // Render-first: connect as a spectator on mount; the user names themselves
@@ -220,14 +221,15 @@ export default function Room() {
           onStop={() => client.timerStop()}
         />
 
-        {!joined && (
+        {/* After someone chooses "just watching", keep a slim reminder so they can grab
+            a seat whenever they want, without blocking the room again. */}
+        {!joined && watchOnly && (
           <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-iris-200 bg-iris-50 px-4 py-3 dark:border-iris-500/25 dark:bg-iris-500/10">
             <span className="text-sm font-medium text-iris-900 dark:text-iris-200">
-              You’re a fly on the wall. Drop your name to grab a seat.
+              Watching only. Drop your name when you want to join in.
             </span>
             <div className="ml-auto flex items-center gap-2">
               <input
-                autoFocus
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && join()}
@@ -340,6 +342,48 @@ export default function Room() {
       <footer className="border-t border-slate-200/70 bg-white/40 py-4 text-center text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-500">
         Hit Export to keep the decisions · everything else goes when you do.
       </footer>
+
+      {/* Name gate: an unmissable prompt up front, so people don't land in read-only
+          mode by accident and think the room is broken. They can still opt to watch. */}
+      {!joined && !watchOnly && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Join this room"
+          className="fixed inset-0 z-[70] grid place-items-center bg-slate-900/50 p-4 backdrop-blur-md"
+        >
+          <div className="w-[22rem] max-w-[92vw] rounded-3xl border border-slate-200 bg-white p-7 text-center shadow-2xl dark:border-white/10 dark:bg-[#14141b]">
+            <LogoMark size={40} className="mx-auto" />
+            <h2 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">Who's joining?</h2>
+            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+              Drop your name to vote, add cards, and take a seat. It's never stored.
+            </p>
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && join()}
+              placeholder="your name"
+              aria-label="Your name"
+              maxLength={40}
+              className="mt-5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-center text-base outline-none focus-visible:border-iris-500 focus-visible:ring-2 focus-visible:ring-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
+            />
+            <button
+              onClick={join}
+              disabled={!name.trim()}
+              className="mt-3 w-full rounded-xl bg-iris-600 px-5 py-2.5 text-base font-semibold text-white shadow-soft transition hover:bg-iris-500 disabled:opacity-40"
+            >
+              Join the room
+            </button>
+            <button
+              onClick={() => setWatchOnly(true)}
+              className="mt-3 text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-600 hover:underline dark:hover:text-slate-300"
+            >
+              Just watching for now →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* live floating reactions + spin-to-pick-a-person (any activity, any screen) */}
       <ReactionLayer />

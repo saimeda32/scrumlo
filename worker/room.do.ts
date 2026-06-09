@@ -29,6 +29,7 @@ import {
   RETRO_CANVAS_H as CANVAS_H,
   EMOTES,
   PULSE_DIMENSIONS,
+  PULSE_MIN_REVEAL,
   PROTOCOL_VERSION,
 } from "../shared/protocol";
 
@@ -36,7 +37,6 @@ const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
 const EMPTY_GRACE_MS = 2 * 60 * 1000; // 2 min after the last person leaves (reconnect grace)
 const MAX_ROOM_MS = 12 * 60 * 60 * 1000; // absolute cap: a room can't outlive 12h even with a keep-alive trickle
 const MAX_CONNECTIONS = 60; // hard cap on concurrent sockets per room (DoS guard; targets ~20)
-const PULSE_MIN_REVEAL = 3; // a health check needs >=3 submitters to stay anonymous when revealed
 
 /** Numeric value of a deck card, or null for ?/☕/t-shirt sizes. "½" → 0.5.
  *  Only plain decimals count, so a custom-deck label like "1e3", "0x10", or

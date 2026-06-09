@@ -1,4 +1,5 @@
 import type { PulseView, Member } from "../../shared/protocol";
+import { PULSE_MIN_REVEAL } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 
 /**
@@ -120,13 +121,21 @@ export function PulseBoard({
         </span>
         {youVoted && <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">✓ your ratings are in</span>}
         {isFacil && (
-          <button
-            onClick={() => client.pulseReveal()}
-            disabled={pulse.voted.length === 0}
-            className="ml-auto rounded-xl bg-iris-600 px-4 py-2 text-sm font-semibold text-white hover:bg-iris-500 disabled:opacity-50"
-          >
-            Reveal results →
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            {pulse.voted.length < PULSE_MIN_REVEAL && (
+              <span className="text-xs text-slate-400 dark:text-slate-500">
+                Needs {PULSE_MIN_REVEAL}+ submitted to reveal anonymously
+              </span>
+            )}
+            <button
+              onClick={() => client.pulseReveal()}
+              disabled={pulse.voted.length < PULSE_MIN_REVEAL}
+              title={pulse.voted.length < PULSE_MIN_REVEAL ? `Need at least ${PULSE_MIN_REVEAL} submissions` : undefined}
+              className="rounded-xl bg-iris-600 px-4 py-2 text-sm font-semibold text-white hover:bg-iris-500 disabled:opacity-50"
+            >
+              Reveal results →
+            </button>
+          </div>
         )}
       </div>
     </div>

@@ -26,6 +26,9 @@ export type PollView = {
 
 // ---- Pulse (team health check) ----
 export const PULSE_DIMENSIONS = ["Morale", "Clarity", "Delivery", "Collaboration", "Fun"] as const;
+// Minimum fully-submitted people before a health check can be revealed, so a single
+// person's scores can't be read straight off the aggregate.
+export const PULSE_MIN_REVEAL = 2;
 
 export type PulseView = {
   dimensions: string[];

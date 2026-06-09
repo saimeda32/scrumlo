@@ -416,16 +416,15 @@ await flow("pulse: votes blind until reveal, then aggregates", async (t) => {
   eq(morale.avg, 3, "avg of 4, 2, 3 is 3");
 });
 
-await flow("pulse: reveal is blocked below the anonymity minimum", async (t) => {
-  const [a, b] = t(await room(["Alice", "Bob"]));
+await flow("pulse: a single voter can't reveal (would de-anonymize)", async (t) => {
+  const [a] = t(await room(["Alice"]));
   a.send({ t: "switchActivity", v: 1, activity: "pulse" });
   await sleep(150);
   for (const d of a.snap.pulse.dimensions) a.send({ t: "pulseVote", v: 1, dim: d, value: 4 });
-  for (const d of a.snap.pulse.dimensions) b.send({ t: "pulseVote", v: 1, dim: d, value: 4 });
-  await sleep(250);
-  a.send({ t: "pulseReveal", v: 1 }); // only 2 voters, must not reveal
   await sleep(200);
-  eq(a.snap.pulse.phase, "voting", "stays hidden until at least three have submitted");
+  a.send({ t: "pulseReveal", v: 1 }); // only one submitter, must not reveal
+  await sleep(200);
+  eq(a.snap.pulse.phase, "voting", "stays hidden with a single submitter");
 });
 
 await flow("pulse: reset clears votes and phase", async (t) => {

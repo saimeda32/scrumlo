@@ -167,7 +167,7 @@ export function RetroCanvas({
               return (
                 <div
                   key={col.id}
-                  className="absolute top-0 border-r border-dashed border-slate-300/50 dark:border-white/10"
+                  className="absolute top-0 border-r border-slate-300 dark:border-white/15"
                   style={{ left: i * ZONE_W, width: ZONE_W, height: CANVAS_H }}
                 >
                   <div className="sticky top-0 flex items-center gap-2 px-4 pt-3">

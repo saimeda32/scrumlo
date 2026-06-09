@@ -10,6 +10,7 @@ import { useCursors } from "../store/cursorStore";
 import { useShallow } from "zustand/react/shallow";
 import { memo } from "react";
 import { FullscreenBar } from "./FullscreenBar";
+import { LogoMark } from "./Logo";
 
 const CARD_W = 220;
 
@@ -73,18 +74,26 @@ export function RetroCanvas({
 
   const theme = retroTheme(retro.template);
 
-  // Fit-to-width on first mount.
-  useEffect(() => {
-    const vw = viewportRef.current?.clientWidth ?? 900;
-    setZoom(Math.max(0.4, Math.min(1, (vw - 24) / W)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function fit() {
-    const vw = viewportRef.current?.clientWidth ?? 900;
-    setZoom(Math.max(0.4, Math.min(1.2, (vw - 24) / W)));
-    if (viewportRef.current) viewportRef.current.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  // Fit the board to the current viewport width (capped so it stays usable). In
+  // fullscreen the viewport is far bigger, so we allow a much higher zoom — that's
+  // what makes the wall actually span the screen instead of sitting tiny.
+  function fitZoom(maxZoom: number) {
+    const el = viewportRef.current;
+    if (!el) return;
+    setZoom(Math.max(0.45, Math.min(maxZoom, (el.clientWidth - 24) / W)));
+    el.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   }
+  function fit() {
+    fitZoom(full ? 3 : 1.2);
+  }
+
+  // Fit on first mount, and re-fit whenever we enter/leave fullscreen (next frame,
+  // so the viewport has already resized to the fullscreen box before we measure).
+  useEffect(() => {
+    const id = requestAnimationFrame(() => fitZoom(full ? 3 : 1));
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [full]);
 
   function addInZone(colId: string) {
     const t = draft.trim();
@@ -97,15 +106,24 @@ export function RetroCanvas({
     <div
       className={
         full
-          ? "fixed inset-0 z-50 overflow-hidden border-0 bg-slate-50 p-3 dark:bg-[#0a0a0f]"
+          ? "fixed inset-0 z-50 overflow-hidden border-0 p-3 [background:radial-gradient(72rem_44rem_at_50%_-12%,var(--color-iris-100),transparent_60%),#f6f7fb] dark:[background:radial-gradient(72rem_44rem_at_50%_-12%,#241f48,transparent_62%),#0a0a0f]"
           : "relative overflow-hidden rounded-3xl border border-slate-200/80 shadow-inner dark:border-white/10"
       }
     >
+      {/* branded fullscreen wordmark */}
+      {full && (
+        <div className="pointer-events-none absolute left-1/2 top-3.5 z-20 flex -translate-x-1/2 items-center gap-2 opacity-80">
+          <LogoMark size={20} />
+          <span className="text-[12px] font-light uppercase tracking-[0.3em] text-slate-700 dark:text-slate-200">
+            Scrumlo
+          </span>
+        </div>
+      )}
       {/* zoom + fullscreen controls */}
       <div className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/90">
         <button onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom out">−</button>
         <span className="w-10 text-center text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom((z) => Math.min(1.4, +(z + 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom in">+</button>
+        <button onClick={() => setZoom((z) => Math.min(full ? 3 : 1.4, +(z + 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom in">+</button>
         <button onClick={fit} className="ml-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10">Fit</button>
         <button
           onClick={() => setFull((v) => !v)}
@@ -133,7 +151,11 @@ export function RetroCanvas({
       {/* pannable viewport (native scroll) */}
       <div
         ref={viewportRef}
-        className={`dot-grid overflow-auto ${full ? "h-[calc(100vh-24px)] rounded-2xl" : "h-[600px]"}`}
+        className={`dot-grid overflow-auto ${
+          full
+            ? "h-[calc(100vh-24px)] rounded-2xl border border-slate-200/70 bg-white/50 pt-14 shadow-soft dark:border-white/10 dark:bg-white/[0.02]"
+            : "h-[600px]"
+        }`}
         style={{ touchAction: "pan-x pan-y" }}
       >
         <div style={{ width: W * zoom, height: boardH * zoom }}>

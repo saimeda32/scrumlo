@@ -3,6 +3,8 @@ import { useParams } from "wouter";
 import { createRoomClient, type RoomClient } from "../net/socket";
 import { useRoom } from "../store/roomStore";
 import { useCursors } from "../store/cursorStore";
+import { useEmotes } from "../store/emoteStore";
+import { ReactionBar, ReactionLayer } from "../components/Reactions";
 import { RoomHeader } from "../components/RoomHeader";
 import { ActivityTabs } from "../components/ActivityTabs";
 import { EstimateBoard } from "../components/EstimateBoard";
@@ -47,7 +49,14 @@ export default function Room() {
   // Render-first: connect as a spectator on mount; the user names themselves
   // (becomes a participant) only when they want to act.
   useEffect(() => {
-    const client = createRoomClient(room, apply, setConnected, () => setEnded(true), useCursors.getState().setCursors);
+    const client = createRoomClient(
+      room,
+      apply,
+      setConnected,
+      () => setEnded(true),
+      useCursors.getState().setCursors,
+      (emoji) => useEmotes.getState().push(emoji),
+    );
     clientRef.current = client;
     return () => client.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -303,6 +312,10 @@ export default function Room() {
       <footer className="border-t border-slate-200/70 bg-white/40 py-4 text-center text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-500">
         Nothing is stored · the room is deleted when everyone leaves.
       </footer>
+
+      {/* live floating reactions (any activity) */}
+      <ReactionLayer />
+      {joined && <ReactionBar client={client} />}
     </div>
   );
 }

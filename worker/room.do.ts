@@ -6,6 +6,7 @@ import type {
   ServerMsg,
   EndedMsg,
   CursorsMsg,
+  EmoteMsg,
   Member,
   EstimateView,
   RetroView,
@@ -22,6 +23,7 @@ import {
   RETRO_REACTIONS,
   RETRO_ZONE_W as ZONE_W,
   RETRO_CANVAS_H as CANVAS_H,
+  EMOTES,
 } from "../shared/protocol";
 
 const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
@@ -265,6 +267,20 @@ export class RoomDO extends DurableObject<Env> {
           : undefined;
       this.cursors.set(me.id, { x: Math.round(Number(msg.x) || 0), y: Math.round(Number(msg.y) || 0), drag });
       this.scheduleCursorFlush();
+      return;
+    }
+
+    // Live floating reaction: ephemeral, fan out to everyone, never persisted.
+    if (msg.t === "emote") {
+      if (!me || !(EMOTES as readonly string[]).includes(msg.emoji)) return;
+      const payload = JSON.stringify({ t: "emote", v: 1, emoji: msg.emoji, from: me.id } satisfies EmoteMsg);
+      for (const s of this.ctx.getWebSockets()) {
+        try {
+          s.send(payload);
+        } catch {
+          /* ignore */
+        }
+      }
       return;
     }
 

@@ -251,12 +251,16 @@ export type PickView = {
   recent: string[]; // already picked this round (no-repeat), in pick order
 };
 
+// ---- Live floating reactions (Zoom-style) — ephemeral, work in any activity ----
+export const EMOTES = ["👍", "❤️", "🎉", "😂", "🔥", "👏", "🤯", "🙌"] as const;
+
 // ---- Messages ----
 
 /** client -> server */
 export type ClientMsg =
   | { t: "hello"; v: 1; name: string; clientId: string }
   | { t: "sync"; v: 1 }
+  | { t: "emote"; v: 1; emoji: string } // live floating reaction, broadcast to everyone
   // estimation
   | { t: "vote"; v: 1; card: string }
   | { t: "reveal"; v: 1 }
@@ -341,4 +345,7 @@ export type CursorsMsg = {
   }[];
 };
 
-export type ServerMsg = Snapshot | EndedMsg | CursorsMsg;
+/** server -> client: a live floating reaction someone sent (not a full snapshot). */
+export type EmoteMsg = { t: "emote"; v: 1; emoji: string; from: string };
+
+export type ServerMsg = Snapshot | EndedMsg | CursorsMsg | EmoteMsg;

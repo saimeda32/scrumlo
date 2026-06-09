@@ -14,6 +14,7 @@ export type RoomClient = {
   setRationale: (text: string) => void;
   typing: (on: boolean) => void;
   cursor: (x: number, y: number, drag?: { cardId: string; x: number; y: number } | null) => void;
+  emote: (emoji: string) => void;
   lockDecision: (value: string, note: string) => void;
   estimateQueueAdd: (stories: string[]) => void;
   estimateQueueRemove: (index: number) => void;
@@ -74,6 +75,7 @@ export function createRoomClient(
   onCursors?: (
     cursors: { id: string; name: string; x: number; y: number; drag?: { cardId: string; x: number; y: number } }[],
   ) => void,
+  onEmote?: (emoji: string, from: string) => void,
 ): RoomClient {
   const clientId = clientIdFor(room);
   const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -127,6 +129,7 @@ export function createRoomClient(
       const msg = JSON.parse(e.data as string) as ServerMsg;
       if (msg.t === "snapshot") onSnapshot(msg);
       else if (msg.t === "cursors") onCursors?.(msg.cursors);
+      else if (msg.t === "emote") onEmote?.(msg.emoji, msg.from);
       else if (msg.t === "ended") {
         onEnded();
         ws.close(); // stop reconnecting to a room that's gone
@@ -156,6 +159,7 @@ export function createRoomClient(
     setRationale: (text) => send({ t: "setRationale", v: 1, text }),
     typing: (on) => send({ t: "typing", v: 1, on }),
     cursor: (x, y, drag) => send({ t: "cursor", v: 1, x, y, drag: drag ?? null }),
+    emote: (emoji) => send({ t: "emote", v: 1, emoji }),
     lockDecision: (value, note) => send({ t: "lockDecision", v: 1, value, note }),
     estimateQueueAdd: (stories) => send({ t: "estimateQueueAdd", v: 1, stories }),
     estimateQueueRemove: (index) => send({ t: "estimateQueueRemove", v: 1, index }),

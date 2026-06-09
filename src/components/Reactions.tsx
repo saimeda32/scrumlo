@@ -72,7 +72,7 @@ export function ActionDock({
       : "Spin to pick a person";
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+    <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] z-50 flex flex-col items-end gap-2">
       {open && (
         <div className="animate-rise flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 px-2 py-1.5 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/95">
           {EMOTES.map((e) => (

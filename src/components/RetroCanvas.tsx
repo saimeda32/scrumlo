@@ -152,7 +152,7 @@ export function RetroCanvas({
         ref={viewportRef}
         className={`dot-grid overflow-auto ${
           full
-            ? "h-[calc(100vh-24px)] rounded-2xl border border-slate-200/70 bg-white/50 pt-14 shadow-soft dark:border-white/10 dark:bg-white/[0.02]"
+            ? "h-[calc(100dvh-24px)] rounded-2xl border border-slate-200/70 bg-white/50 pt-14 shadow-soft dark:border-white/10 dark:bg-white/[0.02]"
             : "h-[600px]"
         }`}
         style={{ touchAction: "pan-x pan-y" }}

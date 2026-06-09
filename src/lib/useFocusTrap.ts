@@ -1,14 +1,21 @@
 import { useEffect, useRef } from "react";
 
+// Ref-counted body-scroll lock shared across dialogs, so opening one stops the page
+// behind it from scrolling (and on mobile keeps the background put) without a second
+// dialog's cleanup unlocking too early.
+let scrollLocks = 0;
+
 /**
- * Trap keyboard focus within a dialog while it's open, and restore focus to the
- * element that opened it on close. Attach the returned ref to the dialog root.
+ * Trap keyboard focus within a dialog while it's open, restore focus to the element
+ * that opened it on close, and lock background scroll. Attach the returned ref to the
+ * dialog root.
  */
 export function useFocusTrap<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
+    if (scrollLocks++ === 0) document.body.style.overflow = "hidden";
     const prev = document.activeElement as HTMLElement | null;
     const sel =
       'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -32,6 +39,7 @@ export function useFocusTrap<T extends HTMLElement>() {
     node.addEventListener("keydown", onKey);
     return () => {
       node.removeEventListener("keydown", onKey);
+      if (--scrollLocks === 0) document.body.style.overflow = "";
       prev?.focus?.();
     };
   }, []);

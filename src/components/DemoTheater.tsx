@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-// A self-playing hero: loops through a tiny live session — Estimate reveals,
+// A self-playing hero: loops through a tiny live session · Estimate reveals,
 // Retro stickies + a gliding cursor, then a Pick wheel with confetti. Pure
 // CSS/SVG, no backend, remounts each act so the entrance animations replay.
 
@@ -76,7 +76,7 @@ export function DemoTheater() {
           />
         </div>
 
-        {/* stage — fixed height so the layout never jumps */}
+        {/* stage · fixed height so the layout never jumps */}
         <div key={`${act}-${cycle}`} className="relative h-[260px] p-4">
           {act === 0 && <EstimateAct />}
           {act === 1 && <RetroAct />}
@@ -88,7 +88,7 @@ export function DemoTheater() {
       </div>
 
       <p className="mt-3 text-center text-xs text-slate-400 dark:text-slate-500">
-        A real session, on a loop · estimate, retro, pick — then poof.
+        A real session, on a loop · estimate, retro, pick · then poof.
       </p>
     </div>
   );

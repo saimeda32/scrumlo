@@ -185,7 +185,7 @@ export function FormatPicker({
                 {deck === "custom" && <span className="ml-auto text-xs font-bold text-iris-600 dark:text-iris-300">current</span>}
               </div>
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Your own sequence — 2 to 16 cards, separated by commas or spaces.
+                Your own sequence · 2 to 16 cards, separated by commas or spaces.
               </p>
               <div className="mt-2 flex gap-2">
                 <input

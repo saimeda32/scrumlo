@@ -3,7 +3,7 @@ import { RETRO_PHASES, type RetroView } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 
 /**
- * A floating toolbar shown only in the retro/board fullscreen view — it surfaces the
+ * A floating toolbar shown only in the retro/board fullscreen view · it surfaces the
  * controls that otherwise live outside the canvas (the phase rail and the shared
  * timer) so a facilitator never has to leave fullscreen to run the session.
  */

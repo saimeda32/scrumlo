@@ -15,7 +15,7 @@ function stored(): Mode | null {
 }
 
 // Default to LIGHT for everyone; dark is opt-in and remembered. We intentionally
-// do NOT follow the OS setting — the site reads as a bright, premium light theme
+// do NOT follow the OS setting · the site reads as a bright, premium light theme
 // out of the box, and dark mode is on demand via the toggle.
 export function currentMode(): Mode {
   return stored() ?? "light";
@@ -36,7 +36,7 @@ export function toggleTheme() {
   try {
     localStorage.setItem(KEY, next);
   } catch {
-    /* private mode — still applies for the session */
+    /* private mode · still applies for the session */
   }
   apply(next);
   listeners.forEach((l) => l());

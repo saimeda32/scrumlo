@@ -3,7 +3,7 @@ import type { RoomClient } from "../net/socket";
 
 /**
  * Team health check: everyone rates a few dimensions 1–5, blind, then the facilitator
- * reveals an aggregate radar + per-dimension bars. Just votes-in-a-DO — ephemeral.
+ * reveals an aggregate radar + per-dimension bars. Just votes-in-a-DO · ephemeral.
  */
 function scoreColor(v: number): string {
   if (v >= 4) return "#10b981"; // green
@@ -82,7 +82,7 @@ export function PulseBoard({
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
       <div className="mb-1 text-lg font-bold text-slate-800 dark:text-slate-100">How's the team doing?</div>
       <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
-        Rate each 1–5. It's blind — nobody sees the numbers until the facilitator reveals.
+        Rate each 1–5. It's blind · nobody sees the numbers until the facilitator reveals.
       </p>
 
       <div className="space-y-4">

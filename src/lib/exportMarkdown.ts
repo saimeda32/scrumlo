@@ -3,7 +3,7 @@ import { RETRO_TEMPLATES } from "../../shared/protocol";
 import { numericValue } from "./colors";
 
 /**
- * Build a clean Markdown digest of the live session, entirely client-side — the
+ * Build a clean Markdown digest of the live session, entirely client-side · the
  * carryover seam for an ephemeral tool: paste it into Slack/Jira/a doc and the
  * decisions survive even though the room won't.
  */
@@ -19,14 +19,14 @@ export function buildSessionMarkdown(args: {
 }): string {
   const { room, members, estimate, retro, board, pulse, poll, pick } = args;
   const nameById = new Map(members.map((m) => [m.id, m.name]));
-  const out: string[] = [`# Scrumlo — ${room}`, `_Exported ${new Date().toLocaleString()}_`];
+  const out: string[] = [`# Scrumlo · ${room}`, `_Exported ${new Date().toLocaleString()}_`];
 
-  // Action items first — the one artifact stakeholders actually want from a retro.
+  // Action items first · the one artifact stakeholders actually want from a retro.
   const actions = retro.cards.filter((c) => c.action);
   if (actions.length) {
     out.push("", "## Action Items");
     for (const a of actions) {
-      out.push(`- [ ] ${a.text}${a.owner ? ` — **@${a.owner}**` : ""}`);
+      out.push(`- [ ] ${a.text}${a.owner ? ` · **@${a.owner}**` : ""}`);
     }
   }
 
@@ -39,11 +39,11 @@ export function buildSessionMarkdown(args: {
     }
     out.push("");
   }
-  out.push(`**Now:** ${estimate.story || "—"}`);
+  out.push(`**Now:** ${estimate.story || "-"}`);
   if (estimate.decision) {
     out.push(
       "",
-      `**Decision: \`${estimate.decision.value}\`**${estimate.decision.note ? ` — ${estimate.decision.note}` : ""}`,
+      `**Decision: \`${estimate.decision.value}\`**${estimate.decision.note ? ` · ${estimate.decision.note}` : ""}`,
     );
   }
   if (estimate.phase === "revealed" && estimate.votes) {
@@ -63,7 +63,7 @@ export function buildSessionMarkdown(args: {
           : `Spread **${min}–${max}**, median **${median}**, avg **${avg}**`,
       );
     }
-    // The reason the room disagreed — the part that's actually worth keeping.
+    // The reason the room disagreed · the part that's actually worth keeping.
     if (estimate.rationales) {
       const why = Object.entries(estimate.rationales).filter(([, t]) => t?.trim());
       if (why.length) {
@@ -77,7 +77,7 @@ export function buildSessionMarkdown(args: {
 
   // Retro
   const tplLabel = RETRO_TEMPLATES[retro.template]?.label ?? retro.template;
-  out.push("", `## Retro — ${tplLabel}`);
+  out.push("", `## Retro · ${tplLabel}`);
   let anyCards = false;
   for (const col of retro.columns) {
     const cards = retro.cards
@@ -113,7 +113,7 @@ export function buildSessionMarkdown(args: {
 
   // Poll / Q&A
   if (poll && poll.total > 0) {
-    out.push("", `## Poll${poll.prompt ? ` — ${poll.prompt}` : ""}`);
+    out.push("", `## Poll${poll.prompt ? ` · ${poll.prompt}` : ""}`);
     if (poll.mode === "cloud") {
       out.push(poll.cloud.map((c) => `${c.word} (${c.count})`).join(" · "));
     } else {
@@ -126,6 +126,6 @@ export function buildSessionMarkdown(args: {
     out.push("", "## Picker", `Picked: ${pick.result.join(pick.mode === "order" ? " → " : ", ")}`);
   }
 
-  out.push("", "_Made with Scrumlo — no account, no database, deleted when the room ends._");
+  out.push("", "_Made with Scrumlo · no account, no database, deleted when the room ends._");
   return out.join("\n");
 }

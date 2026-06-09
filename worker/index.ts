@@ -37,7 +37,7 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    // Global "rooms run" tally — a single integer, no content. Seeded for launch.
+    // Global "rooms run" tally · a single integer, no content. Seeded for launch.
     if (url.pathname === "/api/stats" && request.method === "GET") {
       let n = 0;
       try {

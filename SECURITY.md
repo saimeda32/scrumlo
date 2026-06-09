@@ -1,10 +1,10 @@
 # Security Policy
 
-Scrumlo is a no-login, no-database, ephemeral tool — room state lives only in a Cloudflare Durable Object while the room is active and is deleted when everyone leaves. There is no user database and no stored credentials to breach.
+Scrumlo is a no-login, no-database, ephemeral tool · room state lives only in a Cloudflare Durable Object while the room is active and is deleted when everyone leaves. There is no user database and no stored credentials to breach.
 
 ## Reporting a vulnerability
 
-Please report security issues **privately** — do not open a public issue for an exploitable vulnerability.
+Please report security issues **privately** · do not open a public issue for an exploitable vulnerability.
 
 - Open a [GitHub security advisory](../../security/advisories/new) on this repository, **or**
 - Email the maintainer (see the repository owner's profile).

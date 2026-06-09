@@ -9,7 +9,7 @@
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* Iris — the brand accent (indigo→violet). Used for primary actions + focus. */
+  /* Iris · the brand accent (indigo→violet). Used for primary actions + focus. */
   --color-iris-50: #eef1ff;
   --color-iris-100: #e0e5ff;
   --color-iris-200: #c7cdfe;
@@ -55,7 +55,7 @@ html.dark body {
   color: #e2e8f0;
 }
 
-/* Tighten display headings — the premium signal. */
+/* Tighten display headings · the premium signal. */
 h1,
 h2 {
   letter-spacing: -0.02em;

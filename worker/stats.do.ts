@@ -2,8 +2,8 @@
 import { DurableObject } from "cloudflare:workers";
 
 /**
- * One global tally of rooms ever created. It holds a single integer — no room
- * content, no names, no PII — so it stays honest with "nothing is stored". This
+ * One global tally of rooms ever created. It holds a single integer · no room
+ * content, no names, no PII · so it stays honest with "nothing is stored". This
  * is the only durable state in the whole app that outlives a room.
  */
 export class StatsDO extends DurableObject {

@@ -51,7 +51,7 @@ export function Wheel({
       if (!reduce) while (next < cur + 360 * 5) next += 360; // at least 5 full turns
       return next;
     });
-    // No CSS transition fires for reduced-motion, so onTransitionEnd won't — settle now.
+    // No CSS transition fires for reduced-motion, so onTransitionEnd won't · settle now.
     if (reduce) onSettle();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nonce]);

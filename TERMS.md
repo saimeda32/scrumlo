@@ -1,4 +1,4 @@
-# Scrumlo — Terms (stub)
+# Scrumlo · Terms (stub)
 
 Scrumlo is a free, open-source, no-login tool for running sprint ceremonies over a shared link. It is intended for **trusted shared links among colleagues**, not public boards.
 

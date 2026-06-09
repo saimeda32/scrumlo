@@ -142,6 +142,14 @@ export function RoomHeader({
               )}
             </div>
           ))}
+          {members.length > 8 && (
+            <div
+              title={members.slice(8).map((m) => m.name).join(", ")}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-400 text-xs font-bold text-white dark:border-[#14141b] dark:bg-slate-600"
+            >
+              +{members.length - 8}
+            </div>
+          )}
         </div>
       </div>
     </div>

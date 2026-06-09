@@ -45,11 +45,14 @@ export function Wheel({
     }
     // angle that lands slice idx's center under the top pointer
     const targetMod = -(idx + 0.5) * seg;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     setRotation((cur) => {
       let next = cur - (((cur % 360) + 360) % 360) + targetMod;
-      while (next < cur + 360 * 5) next += 360; // at least 5 full turns
+      if (!reduce) while (next < cur + 360 * 5) next += 360; // at least 5 full turns
       return next;
     });
+    // No CSS transition fires for reduced-motion, so onTransitionEnd won't — settle now.
+    if (reduce) onSettle();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nonce]);
 
@@ -68,7 +71,10 @@ export function Wheel({
         className="h-full w-full"
         style={{
           transform: `rotate(${rotation}deg)`,
-          transition: spinning ? "transform 3.6s cubic-bezier(0.16,1,0.3,1)" : "none",
+          transition:
+            spinning && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+              ? "transform 3.6s cubic-bezier(0.16,1,0.3,1)"
+              : "none",
         }}
         onTransitionEnd={() => spinning && onSettle()}
       >

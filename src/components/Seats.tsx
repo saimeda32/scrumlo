@@ -22,20 +22,18 @@ export function Seats({
         const value = estimate.votes?.[m.id];
 
         let face: React.ReactNode;
-        let faceStyle: React.CSSProperties;
+        let faceClass = "";
+        let faceStyle: React.CSSProperties | undefined;
         if (revealed && value !== undefined) {
           face = value === "☕" ? <IconCoffee className="h-6 w-6" /> : value;
           faceStyle = { background: consensusColor(value), color: "#fff" };
         } else if (voted) {
+          // class-based so dark mode works (inline styles can't be overridden by `dark:`)
           face = "";
-          faceStyle = {
-            background:
-              "repeating-linear-gradient(135deg,#eceefe,#eceefe 6px,#e3e6ff 6px,#e3e6ff 12px)",
-            border: "1px solid #d8dcff",
-          };
+          faceClass = "border border-iris-200 bg-iris-100 dark:border-iris-500/30 dark:bg-iris-500/20";
         } else {
           face = <IconWaiting className="h-5 w-5 text-slate-400" />;
-          faceStyle = { background: "#f1f5f9", border: "1px dashed #cbd5e1" };
+          faceClass = "border border-dashed border-slate-300 bg-slate-100 dark:border-white/15 dark:bg-white/5";
         }
 
         return (
@@ -53,7 +51,7 @@ export function Seats({
               </span>
             )}
             <div
-              className="mx-auto mb-2 flex h-16 w-12 items-center justify-center rounded-lg text-lg font-extrabold"
+              className={`mx-auto mb-2 flex h-16 w-12 items-center justify-center rounded-lg text-lg font-extrabold ${faceClass}`}
               style={faceStyle}
             >
               {face}

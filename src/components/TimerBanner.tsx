@@ -30,9 +30,21 @@ export function TimerBanner({
     setDismissed(false);
     buzzed.current = false;
     if (endsAt === null) return;
+    setNow(Date.now()); // refresh immediately so the first paint isn't stale
     const id = setInterval(() => setNow(Date.now()), 200);
     return () => clearInterval(id);
   }, [endsAt]);
+
+  // one gentle buzz on mobile when it lands on zero (side effect, not in render)
+  useEffect(() => {
+    if (endsAt === null || now < endsAt || buzzed.current) return;
+    buzzed.current = true;
+    try {
+      navigator.vibrate?.([120, 60, 120]);
+    } catch {
+      /* unsupported */
+    }
+  }, [now, endsAt]);
 
   if (endsAt === null) return null;
 
@@ -42,16 +54,6 @@ export function TimerBanner({
   const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
   const urgent = !done && remaining <= 10_000;
   const warning = !done && remaining <= 30_000 && !urgent;
-
-  // one gentle buzz on mobile when it lands on zero
-  if (done && !buzzed.current) {
-    buzzed.current = true;
-    try {
-      navigator.vibrate?.([120, 60, 120]);
-    } catch {
-      /* unsupported */
-    }
-  }
 
   const tone = done
     ? "border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200"

@@ -7,6 +7,8 @@ import { columnColor, type ColC } from "../lib/retroColors";
 import { retroTheme } from "../lib/retroThemes";
 import { RetroGlyph } from "./RetroGlyph";
 import { useCursors } from "../store/cursorStore";
+import { useShallow } from "zustand/react/shallow";
+import { memo } from "react";
 
 const CARD_W = 220;
 
@@ -28,9 +30,10 @@ export function RetroCanvas({
   client: RoomClient;
   you: string;
 }) {
-  // Read cursors straight from their own store so a cursor frame re-renders only
-  // this canvas, never the whole Room tree.
-  const cursors = useCursors((s) => s.cursors);
+  // NOTE: RetroCanvas deliberately does NOT subscribe to the cursor store — that
+  // would re-render the whole wall ~20×/sec. Cursor pointers live in <CursorLayer>
+  // and each card subscribes to only its own live-drag, so a mouse move re-renders
+  // just those tiny pieces, never the board/backdrop.
   const [zoom, setZoom] = useState(0.8);
   const [addingZone, setAddingZone] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -60,11 +63,6 @@ export function RetroCanvas({
   const W = cols.length * ZONE_W;
   // Board height fits the content (no giant empty scroll), capped at the canvas max.
   const boardH = Math.min(CANVAS_H, Math.max(720, ...retro.cards.map((c) => c.y + 200)));
-
-  // Cards other people are dragging right now (live, pre-drop) — render them at
-  // the in-flight position so they glide for everyone, not just jump on release.
-  const liveDrag = new Map<string, { x: number; y: number }>();
-  for (const cu of cursors) if (cu.drag) liveDrag.set(cu.drag.cardId, { x: cu.drag.x, y: cu.drag.y });
 
   const theme = retroTheme(retro.template);
 
@@ -208,31 +206,12 @@ export function RetroCanvas({
                 isFacil={isFacil}
                 spotlit={retro.spotlightId === card.id}
                 client={client}
-                live={liveDrag.get(card.id) ?? null}
                 idx={i}
               />
             ))}
 
-            {/* live cursors — everyone else's pointer, in board coords */}
-            {cursors
-              .filter((cu) => cu.id !== you && cu.x >= 0 && cu.x <= W && cu.y >= 0 && cu.y <= boardH)
-              .map((cu) => (
-                <div
-                  key={cu.id}
-                  className="pointer-events-none absolute z-40 transition-[left,top] duration-75 ease-linear"
-                  style={{ left: cu.x, top: cu.y }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ color: avatarColor(cu.id) }}>
-                    <path d="M2 2 L2 15 L6 11 L9 17 L11.5 16 L8.5 10 L14 10 Z" fill="currentColor" stroke="white" strokeWidth="1.2" strokeLinejoin="round" />
-                  </svg>
-                  <span
-                    className="absolute left-4 top-3 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold text-white shadow"
-                    style={{ background: avatarColor(cu.id) }}
-                  >
-                    {cu.name}
-                  </span>
-                </div>
-              ))}
+            {/* live cursors — isolated so they re-render without touching the board */}
+            <CursorLayer you={you} w={W} h={boardH} />
           </div>
         </div>
       </div>
@@ -240,12 +219,41 @@ export function RetroCanvas({
   );
 }
 
+/** Other people's live pointers — isolated + memoized so cursor frames re-render
+ *  only this layer, never the board. */
+const CursorLayer = memo(function CursorLayer({ you, w, h }: { you: string; w: number; h: number }) {
+  const cursors = useCursors((s) => s.cursors);
+  return (
+    <>
+      {cursors
+        .filter((cu) => cu.id !== you && cu.x >= 0 && cu.x <= w && cu.y >= 0 && cu.y <= h)
+        .map((cu) => (
+          <div
+            key={cu.id}
+            className="pointer-events-none absolute z-40 transition-[left,top] duration-75 ease-linear"
+            style={{ left: cu.x, top: cu.y }}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ color: avatarColor(cu.id) }}>
+              <path d="M2 2 L2 15 L6 11 L9 17 L11.5 16 L8.5 10 L14 10 Z" fill="currentColor" stroke="white" strokeWidth="1.2" strokeLinejoin="round" />
+            </svg>
+            <span
+              className="absolute left-4 top-3 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold text-white shadow"
+              style={{ background: avatarColor(cu.id) }}
+            >
+              {cu.name}
+            </span>
+          </div>
+        ))}
+    </>
+  );
+});
+
 /**
  * A playful, theme-aware backdrop: a soft color wash at the top plus a faint
  * scatter of the theme's own glyph (sailboats, shields, crowns, rockets…) so the
  * board feels like *that* retro, not a blank grid. Deterministic + decorative.
  */
-function ThemedBackdrop({
+const ThemedBackdrop = memo(function ThemedBackdrop({
   template,
   glow,
   w,
@@ -301,7 +309,7 @@ function ThemedBackdrop({
       ))}
     </div>
   );
-}
+});
 
 function tiltOf(id: string): number {
   let h = 0;
@@ -318,7 +326,6 @@ function CanvasCard({
   isFacil,
   spotlit,
   client,
-  live,
 }: {
   card: RetroCardView;
   c: ColC;
@@ -328,7 +335,6 @@ function CanvasCard({
   isFacil: boolean;
   spotlit: boolean;
   client: RoomClient;
-  live: { x: number; y: number } | null;
   idx: number;
 }) {
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
@@ -338,6 +344,16 @@ function CanvasCard({
   const start = useRef({ px: 0, py: 0, cx: 0, cy: 0 });
   const moved = useRef(false);
   const lastLive = useRef(0);
+
+  // Subscribe to ONLY this card's live drag (a teammate dragging it pre-drop). The
+  // shallow selector means a cursor frame re-renders just the card being moved,
+  // not the whole board. Cards no one is dragging get `null` → no re-render.
+  const live = useCursors(
+    useShallow((s: { cursors: { drag?: { cardId: string; x: number; y: number } }[] }) => {
+      const d = s.cursors.find((cu) => cu.drag?.cardId === card.id)?.drag;
+      return d ? { x: d.x, y: d.y } : null;
+    }),
+  );
 
   // Local drag wins; otherwise follow a teammate's live drag; else the resting spot.
   const x = drag?.x ?? live?.x ?? card.x;
@@ -442,7 +458,7 @@ function CanvasCard({
           : live
             ? "z-20 scale-[1.02] ring-2 ring-violet-400/70 shadow-[0_14px_26px_-10px_rgba(15,23,42,0.45)] transition-[left,top] duration-75 ease-linear"
             : "z-10 hover:z-20"
-      } ${
+      } outline-none focus-visible:ring-2 focus-visible:ring-iris-500 focus-visible:ring-offset-2 ${
         spotlit ? "ring-2 ring-iris-500 ring-offset-2" : ""
       } ${card.groupId && !spotlit && !drag && !live ? "ring-1 ring-violet-300" : ""} ${
         card.discussed && !spotlit ? "opacity-65 saturate-50" : ""
@@ -517,6 +533,8 @@ function CanvasCard({
           <button
             key={r.emoji}
             onClick={() => canAct && client.retroReact(card.id, r.emoji)}
+            aria-label={`${r.emoji} reaction, ${r.count}${r.mine ? " (you reacted)" : ""}`}
+            aria-pressed={r.mine}
             className="inline-flex items-center gap-0.5 rounded-full bg-white/60 px-1.5 py-0.5 text-xs hover:bg-white/90"
           >
             {r.emoji}

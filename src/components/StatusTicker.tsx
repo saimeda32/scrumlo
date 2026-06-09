@@ -21,19 +21,23 @@ export function StatusTicker({
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
+    let inner: ReturnType<typeof setTimeout>;
     const id = setInterval(() => {
       if (reduce) {
         setI((p) => (p + 1) % phrases.length);
         return;
       }
       setVisible(false);
-      setTimeout(() => {
+      inner = setTimeout(() => {
         setI((p) => (p + 1) % phrases.length);
         setVisible(true);
       }, 220);
     }, 2200);
 
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      clearTimeout(inner);
+    };
   }, [phrases.length]);
 
   return (

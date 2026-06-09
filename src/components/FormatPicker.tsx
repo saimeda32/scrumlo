@@ -39,7 +39,9 @@ export function FormatPicker({
   const trapRef = useFocusTrap<HTMLDivElement>();
 
   function applyCustomDeck() {
-    const cards = [...new Set(customDraft.split(/[, \n]+/).map((s) => s.trim()).filter(Boolean))].slice(0, 16);
+    const cards = [
+      ...new Set(customDraft.split(/[, \n]+/).map((s) => s.trim().slice(0, 6)).filter(Boolean)),
+    ].slice(0, 16);
     if (cards.length >= 2) {
       client.setCustomDeck(cards);
       onClose();

@@ -61,13 +61,25 @@ export default function Landing() {
   const [, navigate] = useLocation();
   const [busy, setBusy] = useState(false);
   const [code, setCode] = useState("");
+  const [err, setErr] = useState("");
 
   async function createRoom() {
     setBusy(true);
+    setErr("");
     try {
       const res = await fetch("/api/room", { method: "POST" });
-      const data = (await res.json()) as { room: string };
+      if (!res.ok) {
+        setErr(res.status === 429 ? "Whoa, slow down — too many rooms. Try again in a moment." : "Couldn't create a room. Try again.");
+        return;
+      }
+      const data = (await res.json().catch(() => null)) as { room?: string } | null;
+      if (!data?.room) {
+        setErr("Couldn't create a room. Try again.");
+        return;
+      }
       navigate(`/r/${data.room}`);
+    } catch {
+      setErr("Network hiccup — couldn't reach the server.");
     } finally {
       setBusy(false);
     }
@@ -134,6 +146,12 @@ export default function Landing() {
               </button>
             </div>
           </div>
+
+          {err && (
+            <p role="alert" className="mt-3 text-sm font-medium text-rose-600 dark:text-rose-400">
+              {err}
+            </p>
+          )}
 
           <RoomsCounter />
         </div>

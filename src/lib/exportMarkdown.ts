@@ -77,7 +77,9 @@ export function buildSessionMarkdown(args: {
   out.push("", `## Retro — ${tplLabel}`);
   let anyCards = false;
   for (const col of retro.columns) {
-    const cards = retro.cards.filter((c) => c.column === col.id).sort((a, b) => b.votes - a.votes);
+    const cards = retro.cards
+      .filter((c) => c.column === col.id && !c.masked && c.text.trim())
+      .sort((a, b) => b.votes - a.votes);
     if (!cards.length) continue;
     anyCards = true;
     out.push("", `### ${col.emoji} ${col.title}`);

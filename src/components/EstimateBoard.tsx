@@ -49,7 +49,7 @@ export function EstimateBoard({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canAct, isFacil, revealed, estimate.deck, client]);
+  }, [canAct, isFacil, revealed, estimate.deck, estimate.customDeck, client]);
 
   // Accept plain lines OR pasted CSV / Jira exports: one story per line, and within
   // a comma row, keep an ID-looking first cell as a prefix and use the longest cell

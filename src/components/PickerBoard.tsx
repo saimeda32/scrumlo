@@ -5,6 +5,7 @@ import { IconPerson, IconOrder, IconList, IconPick } from "./icons";
 import { Wheel } from "./Wheel";
 
 async function fireConfetti() {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return; // respect reduced-motion
   try {
     const confetti = (await import("canvas-confetti")).default;
     confetti({ particleCount: 140, spread: 75, startVelocity: 42, origin: { y: 0.42 } });

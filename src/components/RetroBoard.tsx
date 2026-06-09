@@ -45,7 +45,7 @@ export function RetroBoard({
         </span>
       </div>
 
-      {isFacil && total > 0 && (
+      {isFacil && total > 0 && retro.phase === "discuss" && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
           {anyLeft ? (
             <button

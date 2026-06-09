@@ -4,10 +4,9 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-06-01",
   "workers_dev": true,
-  // NOTE: scrumlo.com must be an ACTIVE zone in this Cloudflare account (nameservers
-  // pointed at Cloudflare) before custom_domain routes can be provisioned. It's still
-  // on GoDaddy today, so we ship on workers.dev until the zone is moved over, then add:
-  //   "routes": [{ "pattern": "scrumlo.com", "custom_domain": true }]
+  // scrumlo.com is an active Cloudflare zone, attached as a custom domain (the old
+  // GoDaddy apex A records were removed). workers.dev stays on as a fallback.
+  "routes": [{ "pattern": "scrumlo.com", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

@@ -36,9 +36,13 @@ export function Wheel({
   useEffect(() => {
     if (nonce === lastNonce.current) return;
     lastNonce.current = nonce;
-    if (!winner) return;
-    const idx = candidates.indexOf(winner);
-    if (idx < 0) return;
+    // Can't land on a winner that isn't on the wheel (a member left / list item was
+    // removed between the spin and the snapshot). Release the lock instead of hanging.
+    const idx = winner ? candidates.indexOf(winner) : -1;
+    if (idx < 0) {
+      onSettle();
+      return;
+    }
     // angle that lands slice idx's center under the top pointer
     const targetMod = -(idx + 0.5) * seg;
     setRotation((cur) => {

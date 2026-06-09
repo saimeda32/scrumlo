@@ -32,6 +32,7 @@ export type RoomClient = {
   retroMoveXY: (cardId: string, x: number, y: number) => void;
   retroEditCard: (cardId: string, text: string) => void;
   retroGroupCard: (cardId: string, ontoCardId: string) => void;
+  retroSetAction: (cardId: string, on: boolean, owner?: string | null) => void;
   retroSetAnonymous: (on: boolean) => void;
   retroSpotlight: (cardId: string | null) => void;
   retroPickRandom: () => void;
@@ -154,6 +155,7 @@ export function createRoomClient(
     retroMoveXY: (cardId, x, y) => send({ t: "retroMoveXY", v: 1, cardId, x, y }),
     retroEditCard: (cardId, text) => send({ t: "retroEditCard", v: 1, cardId, text }),
     retroGroupCard: (cardId, ontoCardId) => send({ t: "retroGroupCard", v: 1, cardId, ontoCardId }),
+    retroSetAction: (cardId, on, owner) => send({ t: "retroSetAction", v: 1, cardId, on, owner }),
     retroSetAnonymous: (on) => send({ t: "retroSetAnonymous", v: 1, on }),
     retroSpotlight: (cardId) => send({ t: "retroSpotlight", v: 1, cardId }),
     retroPickRandom: () => send({ t: "retroPickRandom", v: 1 }),

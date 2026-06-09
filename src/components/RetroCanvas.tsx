@@ -88,7 +88,7 @@ export function RetroCanvas({
       </div>
 
       {/* pannable viewport (native scroll) */}
-      <div ref={viewportRef} className="dot-grid h-[600px] overflow-auto">
+      <div ref={viewportRef} className="dot-grid h-[600px] overflow-auto" style={{ touchAction: "pan-x pan-y" }}>
         <div style={{ width: W * zoom, height: boardH * zoom }}>
           <div ref={boardRef} onPointerMove={onBoardMove} id="scrumlo-canvas" className="relative origin-top-left dot-grid" style={{ width: W, height: boardH, transform: `scale(${zoom})` }}>
             <ThemedBackdrop template={retro.template} glow={theme.glow} w={W} h={boardH} />
@@ -339,7 +339,7 @@ function CanvasCard({
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
-      style={{ left: x, top: y, width: CARD_W, rotate: spotlit || drag || live ? "0deg" : `${tiltOf(card.id)}deg` }}
+      style={{ left: x, top: y, width: CARD_W, touchAction: "none", rotate: spotlit || drag || live ? "0deg" : `${tiltOf(card.id)}deg` }}
       className={`group absolute select-none rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_16px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
         canAct ? "cursor-grab active:cursor-grabbing" : ""
       } ${
@@ -363,10 +363,11 @@ function CanvasCard({
             e.stopPropagation();
             if (canAct) client.retroMoveXY(card.id, Math.round(card.x + 30), Math.round(card.y + 30));
           }}
-          title="Grouped · click to pull this one out"
+          title={`Cluster of ${card.groupSize} · click to pull this one out`}
+          aria-label={`Grouped, ${card.groupSize} cards. Click to ungroup this one.`}
           className="absolute -left-1.5 -top-2 inline-flex items-center gap-0.5 rounded-full bg-violet-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow hover:bg-violet-600"
         >
-          ⧉ group
+          ⧉ {card.groupSize}
         </button>
       )}
       {card.author && (
@@ -406,11 +407,17 @@ function CanvasCard({
           onClick={() => client.retroVote(card.id)}
           disabled={!canAct}
           aria-pressed={card.youVoted}
+          aria-label={
+            card.groupId
+              ? `Vote · cluster has ${card.groupVotes} ${card.groupVotes === 1 ? "vote" : "votes"}`
+              : `Vote · ${card.votes} ${card.votes === 1 ? "vote" : "votes"}`
+          }
+          title={card.groupId ? `Cluster total: ${card.groupVotes} across ${card.groupSize} cards` : undefined}
           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold transition disabled:cursor-default ${
             card.youVoted ? "bg-slate-900 text-white" : "bg-white/70 text-slate-600 enabled:hover:bg-white"
           }`}
         >
-          ▲ {card.votes}
+          ▲ {card.groupId ? card.groupVotes : card.votes}
         </button>
         {card.reactions.map((r) => (
           <button
@@ -435,6 +442,18 @@ function CanvasCard({
           </div>
         )}
         <div className="ml-auto flex items-center gap-1">
+          {canAct && (
+            <button
+              onClick={() => client.retroSetAction(card.id, !card.action, card.owner ?? null)}
+              title={card.action ? "Unmark action item" : "Mark as an action item"}
+              aria-label={card.action ? "Unmark action item" : "Mark as action item"}
+              className={`grid h-7 w-7 place-items-center rounded-full text-sm transition ${
+                card.action ? "bg-amber-400 text-white shadow" : "bg-white/70 text-slate-500 hover:bg-white hover:text-amber-600"
+              }`}
+            >
+              ⚑
+            </button>
+          )}
           {isFacil && (
             <button
               onClick={() => client.retroSpotlight(spotlit ? null : card.id)}
@@ -459,6 +478,33 @@ function CanvasCard({
           )}
         </div>
       </div>
+
+      {card.action && (
+        <div
+          className="mt-1.5 flex items-center gap-1.5 rounded-md bg-amber-100/80 px-2 py-1 text-[11px] font-bold text-amber-800"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <span className="shrink-0">⚑ Action</span>
+          {canAct ? (
+            <input
+              defaultValue={card.owner ?? ""}
+              key={card.owner ?? ""}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if ((v || null) !== (card.owner ?? null)) client.retroSetAction(card.id, true, v || null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              placeholder="owner?"
+              aria-label="Action item owner"
+              className="w-20 rounded bg-white/80 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900 outline-none placeholder:font-medium placeholder:text-amber-500/70"
+            />
+          ) : (
+            <span className="font-semibold">· {card.owner || "unassigned"}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

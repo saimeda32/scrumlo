@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { Activity, PickMode } from "../../shared/protocol";
 import { RETRO_TEMPLATES, DECKS, DECK_LABELS } from "../../shared/protocol";
 import { retroTheme } from "../lib/retroThemes";
@@ -33,6 +34,13 @@ export function FormatPicker({
   client: RoomClient;
   onClose: () => void;
 }) {
+  // Escape closes the picker (keyboard parity with the backdrop/✕).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const title =
     activity === "retro"
       ? "Choose a retro format"

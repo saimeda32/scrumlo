@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function ExportSheet({
   room,
@@ -11,6 +11,13 @@ export function ExportSheet({
 }) {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState<null | "png" | "pdf">(null);
+
+  // Escape closes the dialog (keyboard parity with the backdrop/✕).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   // Render the live board to an image, entirely in the browser (nothing sent).
   async function captureBoard(): Promise<{ dataUrl: string; w: number; h: number } | null> {

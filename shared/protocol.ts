@@ -194,6 +194,10 @@ export type RetroCardView = {
   discussed: boolean; // already picked by the random picker → marked done, won't be re-picked
   order: number; // legacy column ordering
   groupId: string | null; // cards sharing a groupId are stacked into a cluster
+  groupVotes: number; // dot-votes summed across the whole cluster (== votes when ungrouped)
+  groupSize: number; // number of cards in this cluster (1 when ungrouped)
+  action: boolean; // promoted to an action item (a committed takeaway)
+  owner: string | null; // who owns the action item, if assigned
   x: number; // free position on the canvas (board coords)
   y: number;
 };
@@ -262,6 +266,7 @@ export type ClientMsg =
   | { t: "retroMoveXY"; v: 1; cardId: string; x: number; y: number } // free-canvas placement
   | { t: "retroEditCard"; v: 1; cardId: string; text: string } // edit a sticky's text in place
   | { t: "retroGroupCard"; v: 1; cardId: string; ontoCardId: string } // stack cardId onto onto's group
+  | { t: "retroSetAction"; v: 1; cardId: string; on: boolean; owner?: string | null } // promote a sticky to an action item
   | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors
   | { t: "retroSpotlight"; v: 1; cardId: string | null } // facilitator: focus everyone on a card
   | { t: "retroPickRandom"; v: 1 } // facilitator: spotlight a random not-yet-discussed card

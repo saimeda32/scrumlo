@@ -37,7 +37,14 @@ export function PickerBoard({
   useEffect(() => {
     if (pick.nonce === lastNonce.current) return;
     lastNonce.current = pick.nonce;
-    setSpinning(wheelMode && pick.result.length > 0);
+    const willSpin = wheelMode && pick.result.length > 0;
+    setSpinning(willSpin);
+    // Safety net: never let the Spin button stay disabled if the wheel's settle
+    // never fires (e.g. transition interrupted). Auto-release after the spin window.
+    if (willSpin) {
+      const t = setTimeout(() => setSpinning(false), 4500);
+      return () => clearTimeout(t);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pick.nonce]);
 

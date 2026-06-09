@@ -18,6 +18,15 @@ export function buildSessionMarkdown(args: {
   const nameById = new Map(members.map((m) => [m.id, m.name]));
   const out: string[] = [`# Scrumlo — ${room}`, `_Exported ${new Date().toLocaleString()}_`];
 
+  // Action items first — the one artifact stakeholders actually want from a retro.
+  const actions = retro.cards.filter((c) => c.action);
+  if (actions.length) {
+    out.push("", "## Action Items");
+    for (const a of actions) {
+      out.push(`- [ ] ${a.text}${a.owner ? ` — **@${a.owner}**` : ""}`);
+    }
+  }
+
   // Estimation
   out.push("", "## Estimation");
   if (estimate.log.length) {

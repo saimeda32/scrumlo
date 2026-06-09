@@ -58,6 +58,8 @@ type RetroCard = {
   reactions: Record<string, string[]>; // emoji -> memberIds
   order: number; // legacy column ordering (kept for tolerance)
   groupId: string | null; // cards sharing a groupId are clustered
+  action?: boolean; // promoted to an action item
+  owner?: string | null; // action-item owner, if assigned
   x: number; // free position on the canvas (board coords)
   y: number;
 };
@@ -365,7 +367,7 @@ export class RoomDO extends DurableObject<Env> {
       // ---- shared timer (facilitator-run countdown) ----
       case "timerStart": {
         if (!this.isFacilitator(me)) return;
-        const secs = Math.max(5, Math.min(60 * 60, Math.floor(msg.seconds)));
+        const secs = Math.max(5, Math.min(60 * 60, Math.floor(Number(msg.seconds) || 0)));
         this.timerEndsAt = Date.now() + secs * 1000;
         this.timerDurationMs = secs * 1000;
         break;
@@ -474,6 +476,17 @@ export class RoomDO extends DurableObject<Env> {
         card.x = Math.round(onto.x + 16 * stackN);
         card.y = Math.round(onto.y + 16 * stackN);
         this.dissolveSingletonGroups(wasGroup);
+        break;
+      }
+      case "retroSetAction": {
+        // Promote/demote a sticky as an action item, with an optional owner. This
+        // is the one artifact that outlives the room (it lands in the export).
+        if (!me) return;
+        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        if (!card) return;
+        card.action = !!msg.on;
+        if (!card.action) card.owner = null;
+        else if (msg.owner !== undefined) card.owner = (String(msg.owner ?? "").trim().slice(0, 40)) || null;
         break;
       }
       case "retroVote": {
@@ -750,6 +763,17 @@ export class RoomDO extends DurableObject<Env> {
         log: this.estimate.log,
       };
 
+      // Roll dot-votes up per cluster so a group shows ONE total for its theme
+      // (the point of dot-voting is to rank themes, not individual stickies).
+      const groupTotals = new Map<string, { votes: number; size: number }>();
+      for (const c of this.retro.cards) {
+        if (!c.groupId) continue;
+        const g = groupTotals.get(c.groupId) ?? { votes: 0, size: 0 };
+        g.votes += c.voters.length;
+        g.size += 1;
+        groupTotals.set(c.groupId, g);
+      }
+
       const retro: RetroView = {
         template: this.retro.template,
         columns: tpl.columns,
@@ -769,6 +793,10 @@ export class RoomDO extends DurableObject<Env> {
           discussed: this.retro.discussed.includes(c.id),
           order: c.order ?? 0,
           groupId: c.groupId ?? null,
+          groupVotes: c.groupId ? (groupTotals.get(c.groupId)?.votes ?? c.voters.length) : c.voters.length,
+          groupSize: c.groupId ? (groupTotals.get(c.groupId)?.size ?? 1) : 1,
+          action: !!c.action,
+          owner: c.owner ?? null,
           x: c.x ?? 0,
           y: c.y ?? 0,
         })),

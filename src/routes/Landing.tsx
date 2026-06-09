@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { StatusTicker } from "../components/StatusTicker";
 import { FLAVOR } from "../lib/flavor";
-import { IconEstimate, IconRetro, IconPick } from "../components/icons";
+import { IconEstimate, IconRetro, IconPick, IconBoard } from "../components/icons";
 import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { DemoTheater } from "../components/DemoTheater";
@@ -116,8 +116,8 @@ export default function Landing() {
           </h1>
           <p className="mt-5 max-w-md text-lg text-slate-600 dark:text-slate-300">
             Most tools flip the cards and go quiet. Scrumlo turns that silence into a real conversation,
-            then a number everyone owns. Retro and a name-picker ride the same link. When the last
-            person leaves, the room forgets it ever happened.
+            then a number everyone owns. A retro, a roadmap board, and a name-picker ride the same link.
+            When the last person leaves, the room forgets it ever happened.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -160,19 +160,24 @@ export default function Landing() {
         <DemoTheater />
       </section>
 
-      {/* three activities band */}
+      {/* activities band */}
       <section className="mx-auto max-w-5xl px-6 py-12">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
               Icon: IconEstimate,
               t: "Estimate",
-              d: "Blind-reveal poker that refuses to go quiet. Custom decks, a story backlog, then a number everyone owns.",
+              d: "Blind-reveal poker that refuses to go quiet. Custom decks, a story backlog (paste CSV/Jira), then a number everyone owns.",
             },
             {
               Icon: IconRetro,
-              t: "Retro & boards",
-              d: "A free Miro-style canvas: facilitated phases, blind brainstorm, drag-to-group, dot-votes — plus a Now/Next/Later roadmap board. Export it, then it's gone.",
+              t: "Retro",
+              d: "A free Miro-style canvas with facilitated phases: blind brainstorm → group → vote → discuss. Drag-to-cluster, dot-votes, action items with owners.",
+            },
+            {
+              Icon: IconBoard,
+              t: "Roadmap",
+              d: "A plain Now / Next / Later board on the same canvas. Drop ideas, group them, dot-vote priorities, export — ephemeral planning, no database.",
             },
             { Icon: IconPick, t: "Pick", d: "Who goes first? Spin for a name, shuffle an order, or pick from a list. No favorites." },
           ].map(({ Icon, t, d }) => (
@@ -186,7 +191,7 @@ export default function Landing() {
           ))}
         </div>
         <p className="mt-5 text-center text-sm text-slate-500 dark:text-slate-400">
-          All three in one room · the facilitator switches live and everyone follows.
+          All four in one room · the facilitator switches live and everyone follows.
         </p>
       </section>
 

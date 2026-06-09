@@ -2,7 +2,7 @@
 
 **Estimate. Retro. Forgotten.**
 
-An open-source, no-login, ephemeral sprint room. Run blind-reveal **planning poker**, a **retrospective**, a random **picker**, and a shared **timer** over one shareable link — no account, no database, nothing kept after the room ends. The facilitator switches activities live and everyone follows.
+An open-source, no-login, ephemeral sprint room. Run blind-reveal **planning poker**, a facilitated **retrospective**, a **roadmap board**, a random **picker**, and a shared **timer** over one shareable link — no account, no database, nothing kept after the room ends. The facilitator switches activities live and everyone follows.
 
 > **Scrumlo** *(SCRUM-lo)* — the agile loop that comes around each sprint, then clears. One link runs the whole ceremony; when everyone leaves, *poof*.
 
@@ -12,19 +12,21 @@ Other tools keep your boards; Scrumlo keeps **nothing** — on purpose. There's 
 
 ## What's in a room
 
-- **Estimate** — blind simultaneous reveal (values withheld server-side until reveal), 6 decks, color-coded consensus + a plain-logic outlier nudge ("not in sync — talk to the 3 and the 13"), re-vote, claimable facilitator baton.
-- **Retro** — 10 real formats (Start/Stop/Continue, Mad/Sad/Glad, 4Ls, Sailboat, Starfish, …), anonymous cards, dot-voting.
-- **Pick** — random person / shuffle order / pick-from-list.
-- **Timer** — a shared facilitator-run countdown.
-- **Export** — one-click Markdown of the session (client-side), so the team keeps what matters when the room forgets.
+- **Estimate** — blind simultaneous reveal (values withheld server-side until reveal), 6 built-in decks **plus custom decks**, color-coded consensus + a plain-logic outlier nudge ("not in sync — talk to the 3 and the 13"), re-vote, and a **story backlog** you can paste from CSV/Jira and step through (with per-story decisions in the export).
+- **Retro** — a free, zoomable **Miro-style canvas** with 14 formats (Start/Stop/Continue, Sailboat, Starfish, GoT, Avengers, …) and **facilitated phases**: blind **brainstorm** (others' notes withheld server-side until reveal) → group → vote → discuss. Drag-to-cluster (votes roll up), dot-voting, reactions, spotlight, **action items with owners**, live cursors, and a **fullscreen** mode with a floating toolbar.
+- **Roadmap** — a separate Now / Next / Later / Someday planning board on the same canvas, with its own cards: drop ideas, group, dot-vote priorities, export. Ephemeral planning, no database.
+- **Pick** — random person / shuffle order / pick-from-list, with a spinning wheel, no-repeats, and confetti.
+- **Timer** — a shared facilitator-run countdown, with quick presets and a full-screen "time's up" nudge.
+- **Export** — one-click **Markdown** or a **full-board PNG/PDF** of the session (client-side), so the team keeps what matters when the room forgets.
 
 ## Using a room
 
 1. **Open the app** and hit *Start a room* — you get a private link like `scrumlo.com/r/brave-otter-42`.
 2. **Share the link.** Anyone who opens it lands as a spectator and renders instantly; they **drop a name** to grab a seat and act. No sign-up.
-3. **The facilitator drives.** Whoever claims the baton switches between **Estimate / Retro / Pick** and starts the shared **timer** — everyone's screen follows live.
-   - **Estimate:** pick a card (or press a number key; `R` reveals). Votes stay hidden until everyone's in, then reveal together. Queue a backlog of stories and step through them.
-   - **Retro:** pick a format, drop stickies anywhere on the zoomable canvas, drag to arrange, dot-vote, react, and spotlight a card for the room. You can see everyone's **live cursors**.
+3. **The facilitator drives.** Whoever claims the baton switches between **Estimate / Retro / Roadmap / Pick** and starts the shared **timer** — everyone's screen follows live.
+   - **Estimate:** pick a card (or press a number key; `R` reveals). Votes stay hidden until everyone's in, then reveal together. Build a custom deck, queue a backlog (paste CSV/Jira), step through it, and export the results.
+   - **Retro:** pick a format, then step the room through brainstorm → group → vote → discuss (notes stay hidden until the reveal). Drop stickies on the zoomable canvas, drag to cluster, dot-vote, react, flag action items with owners, and see everyone's **live cursors**.
+   - **Roadmap:** a Now/Next/Later/Someday board with its own cards — plan, group, dot-vote, export.
    - **Pick:** spin the wheel for a random person, shuffle an order, or pick from a comma-separated list — with confetti and no repeats.
 4. **Export before you go.** One click gives you **Markdown** or a **full-board PNG/PDF** — the only thing that survives the room.
 5. **Leave.** When the last person leaves (or the room idles out), it **deletes itself**. Nothing to clean up.

@@ -43,6 +43,13 @@ export const IconPick = ({ className }: IconProps) => (
   </svg>
 );
 
+export const IconBoard = ({ className }: IconProps) => (
+  <svg {...svg(className)}>
+    <path d="M5 17V3" />
+    <path d="M5 3.5h10l-2.2 3L15 9.5H5" />
+  </svg>
+);
+
 export const IconPerson = ({ className }: IconProps) => (
   <svg {...svg(className)}>
     <circle cx="10" cy="7" r="3" />

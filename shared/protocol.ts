@@ -10,7 +10,7 @@ export type Member = {
 };
 
 /** A room runs one activity at a time; the facilitator switches between them. */
-export type Activity = "estimate" | "retro" | "pick";
+export type Activity = "estimate" | "retro" | "pick" | "board";
 
 // ---- Estimation ----
 
@@ -316,6 +316,7 @@ export type Snapshot = {
   activity: Activity;
   estimate: EstimateView;
   retro: RetroView;
+  board: RetroView; // a separate planning board (roadmap) — same canvas, own cards
   pick: PickView;
   /** shared countdown: epoch-ms when it ends, or null. Clients render the remaining time. */
   timerEndsAt: number | null;

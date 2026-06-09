@@ -11,12 +11,14 @@ export function RetroBoard({
   canAct,
   client,
   you,
+  isBoard = false,
 }: {
   retro: RetroView;
   isFacil: boolean;
   canAct: boolean;
   client: RoomClient;
   you: string;
+  isBoard?: boolean;
 }) {
   const spotlit = retro.cards.find((c) => c.id === retro.spotlightId) ?? null;
   const total = retro.cards.length;
@@ -25,7 +27,8 @@ export function RetroBoard({
   const theme = retroTheme(retro.template);
   return (
     <>
-      <PhaseStepper phase={retro.phase} isFacil={isFacil} client={client} />
+      {/* the planning board has no facilitated phases — just an open canvas */}
+      {!isBoard && <PhaseStepper phase={retro.phase} isFacil={isFacil} client={client} />}
 
       <div className="mb-4 flex items-center gap-3">
         {/* format is chosen via the Format picker (toolbar button); here we keep the

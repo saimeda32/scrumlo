@@ -17,6 +17,7 @@ type RoomState = {
   activity: Activity;
   estimate: EstimateView | null;
   retro: RetroView | null;
+  board: RetroView | null;
   pick: PickView | null;
   timerEndsAt: number | null;
   timerDurationMs: number | null;
@@ -34,6 +35,7 @@ export const useRoom = create<RoomState>((set) => ({
   activity: "estimate",
   estimate: null,
   retro: null,
+  board: null,
   pick: null,
   timerEndsAt: null,
   timerDurationMs: null,
@@ -47,6 +49,7 @@ export const useRoom = create<RoomState>((set) => ({
       activity: s.activity,
       estimate: s.estimate,
       retro: s.retro,
+      board: s.board,
       pick: s.pick,
       timerEndsAt: s.timerEndsAt,
       timerDurationMs: s.timerDurationMs,

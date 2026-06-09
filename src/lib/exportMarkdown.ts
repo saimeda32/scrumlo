@@ -12,9 +12,10 @@ export function buildSessionMarkdown(args: {
   members: Member[];
   estimate: EstimateView;
   retro: RetroView;
+  board?: RetroView;
   pick: PickView;
 }): string {
-  const { room, members, estimate, retro, pick } = args;
+  const { room, members, estimate, retro, board, pick } = args;
   const nameById = new Map(members.map((m) => [m.id, m.name]));
   const out: string[] = [`# Scrumlo — ${room}`, `_Exported ${new Date().toLocaleString()}_`];
 
@@ -86,6 +87,19 @@ export function buildSessionMarkdown(args: {
     for (const c of cards) out.push(`- ${c.text}${c.votes ? ` (▲ ${c.votes})` : ""}`);
   }
   if (!anyCards) out.push("_(no cards)_");
+
+  // Roadmap board (only if it has cards)
+  if (board && board.cards.some((c) => c.text.trim())) {
+    out.push("", "## Roadmap board");
+    for (const col of board.columns) {
+      const cards = board.cards
+        .filter((c) => c.column === col.id && c.text.trim())
+        .sort((a, b) => b.votes - a.votes);
+      if (!cards.length) continue;
+      out.push("", `### ${col.emoji} ${col.title}`);
+      for (const c of cards) out.push(`- ${c.text}${c.votes ? ` (▲ ${c.votes})` : ""}`);
+    }
+  }
 
   // Picker
   if (pick.result.length) {

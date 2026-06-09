@@ -31,6 +31,7 @@ export default function Room() {
     activity,
     estimate,
     retro,
+    board,
     pick,
     timerEndsAt,
     timerDurationMs,
@@ -108,7 +109,7 @@ export default function Room() {
     );
   }
 
-  if (!estimate || !retro || !pick) {
+  if (!estimate || !retro || !board || !pick) {
     return (
       <div className="grid min-h-screen place-items-center text-slate-400 [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(50rem_30rem_at_50%_-8rem,#1b1838,transparent_60%)]">
         <StatusTicker phrases={FLAVOR.connecting} />
@@ -216,21 +217,23 @@ export default function Room() {
             canSwitch={isFacil}
             onSwitch={(a) => client.switchActivity(a)}
           />
-          <button
-            onClick={() => setPickerOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-300 dark:hover:text-iris-300"
-            title="Browse formats with previews"
-          >
-            {activity === "retro" && (
-              <RetroGlyph
-                template={retro.template}
-                className="h-4 w-4"
-                style={{ color: retroTheme(retro.template).glow }}
-              />
-            )}
-            {formatLabel}
-            <span className="text-slate-400">▾</span>
-          </button>
+          {activity !== "board" && (
+            <button
+              onClick={() => setPickerOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-300 dark:hover:text-iris-300"
+              title="Browse formats with previews"
+            >
+              {activity === "retro" && (
+                <RetroGlyph
+                  template={retro.template}
+                  className="h-4 w-4"
+                  style={{ color: retroTheme(retro.template).glow }}
+                />
+              )}
+              {formatLabel}
+              <span className="text-slate-400">▾</span>
+            </button>
+          )}
         </div>
         <p className="mt-2 mb-5 text-xs text-slate-500 dark:text-slate-400">
           One link runs your whole ceremony:{" "}
@@ -259,6 +262,15 @@ export default function Room() {
               client={client}
               you={you ?? ""}
             />
+          ) : activity === "board" ? (
+            <RetroBoard
+              retro={board}
+              isFacil={isFacil}
+              canAct={canAct}
+              client={client}
+              you={you ?? ""}
+              isBoard
+            />
           ) : (
             <PickerBoard pick={pick} members={members} isFacil={isFacil} client={client} />
           )}
@@ -267,7 +279,7 @@ export default function Room() {
         {showExport && (
           <ExportSheet
             room={room}
-            markdown={buildSessionMarkdown({ room, members, estimate, retro, pick })}
+            markdown={buildSessionMarkdown({ room, members, estimate, retro, board, pick })}
             onClose={() => setShowExport(false)}
           />
         )}

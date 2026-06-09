@@ -125,6 +125,17 @@ export class RoomDO extends DurableObject<Env> {
     discussed: [],
     phase: "brainstorm",
   };
+  // A separate planning board (roadmap): same canvas, its own cards. It's a plain
+  // open board (names shown, no blind brainstorm), so its phase is fixed to "vote"
+  // (no masking, voting enabled) and the phase rail is hidden for it.
+  private board: RetroState = {
+    template: "roadmap",
+    cards: [],
+    anonymous: false,
+    spotlightId: null,
+    discussed: [],
+    phase: "vote",
+  };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0, recent: [] };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
@@ -164,6 +175,24 @@ export class RoomDO extends DurableObject<Env> {
           }
         });
       }
+      const b = await ctx.storage.get<RetroState>("board");
+      if (b) {
+        this.board = b;
+        this.board.anonymous ??= false;
+        this.board.phase = "vote"; // the board is always an open, votable canvas
+        this.board.spotlightId ??= null;
+        this.board.discussed ??= [];
+        this.board.template = "roadmap";
+        this.board.cards.forEach((c, i) => {
+          c.reactions ??= {};
+          c.order ??= i;
+          if (c.groupId === undefined) c.groupId = null;
+          if (typeof c.x !== "number" || typeof c.y !== "number") {
+            c.x = 22;
+            c.y = 96 + (i % 12) * 88;
+          }
+        });
+      }
       const p = await ctx.storage.get<PickState>("pick");
       if (p) {
         this.pick = p;
@@ -182,6 +211,7 @@ export class RoomDO extends DurableObject<Env> {
   private async persist(): Promise<void> {
     await this.ctx.storage.put("estimate", this.estimate);
     await this.ctx.storage.put("retro", this.retro);
+    await this.ctx.storage.put("board", this.board);
     await this.ctx.storage.put("pick", this.pick);
     await this.ctx.storage.put("clients", this.clients);
     await this.ctx.storage.put("activity", this.activity);
@@ -237,6 +267,11 @@ export class RoomDO extends DurableObject<Env> {
       this.scheduleCursorFlush();
       return;
     }
+
+    // Retro-style messages act on whichever canvas is the active tab: the retro or
+    // the separate planning board. (You can only interact with the active board, so
+    // routing by activity is safe.)
+    const R = this.activity === "board" ? this.board : this.retro;
 
     switch (msg.t) {
       case "hello": {
@@ -454,38 +489,39 @@ export class RoomDO extends DurableObject<Env> {
       // ---- activity + retro ----
       case "switchActivity": {
         if (!this.isFacilitator(me)) return;
-        if (msg.activity !== "estimate" && msg.activity !== "retro" && msg.activity !== "pick")
-          return;
+        if (!["estimate", "retro", "pick", "board"].includes(msg.activity)) return;
         this.activity = msg.activity;
         break;
       }
       case "retroSetTemplate": {
         if (!this.isFacilitator(me)) return;
+        if (this.activity === "board") return; // the board's format is fixed (roadmap)
         if (!RETRO_TEMPLATES[msg.template]) return;
-        this.retro.template = msg.template;
-        this.retro.cards = []; // changing template resets the board
-        this.retro.spotlightId = null;
-        this.retro.discussed = [];
-        this.retro.phase = "brainstorm"; // a fresh board starts a fresh facilitation
+        R.template = msg.template;
+        R.cards = []; // changing template resets the board
+        R.spotlightId = null;
+        R.discussed = [];
+        R.phase = "brainstorm"; // a fresh board starts a fresh facilitation
         break;
       }
       case "retroSetPhase": {
         if (!this.isFacilitator(me)) return;
+        if (this.activity === "board") return; // the board has no facilitated phases
         if (!["brainstorm", "group", "vote", "discuss"].includes(msg.phase)) return;
-        this.retro.phase = msg.phase as RetroPhase;
+        R.phase = msg.phase as RetroPhase;
         break;
       }
       case "retroAddCard": {
         if (!me) return;
-        const tpl = RETRO_TEMPLATES[this.retro.template];
+        const tpl = RETRO_TEMPLATES[R.template];
         if (!tpl || !tpl.columns.some((c) => c.id === msg.column)) return;
         const text = String(msg.text ?? "").trim().slice(0, 280);
         if (!text) return;
-        if (this.retro.cards.length >= 300) return; // hard cap
-        const tplA = RETRO_TEMPLATES[this.retro.template] ?? RETRO_TEMPLATES.ssc;
-        const inZone = this.retro.cards.filter((c) => c.column === msg.column).length;
+        if (R.cards.length >= 300) return; // hard cap
+        const tplA = RETRO_TEMPLATES[R.template] ?? RETRO_TEMPLATES.ssc;
+        const inZone = R.cards.filter((c) => c.column === msg.column).length;
         const zi = Math.max(0, tplA.columns.findIndex((c) => c.id === msg.column));
-        this.retro.cards.push({
+        R.cards.push({
           id: crypto.randomUUID(),
           column: msg.column,
           text,
@@ -502,11 +538,11 @@ export class RoomDO extends DurableObject<Env> {
       case "retroMoveXY": {
         // Free placement on the canvas. The sticky's zone (column) follows its x band.
         if (!me) return;
-        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        const card = R.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
         // During blind brainstorm you can only move your OWN notes (others' are masked).
-        if (this.retro.phase === "brainstorm" && card.authorId !== me.id) return;
-        const tplM = RETRO_TEMPLATES[this.retro.template] ?? RETRO_TEMPLATES.ssc;
+        if (R.phase === "brainstorm" && card.authorId !== me.id) return;
+        const tplM = RETRO_TEMPLATES[R.template] ?? RETRO_TEMPLATES.ssc;
         card.x = Math.max(0, Math.min(Math.round(Number(msg.x) || 0), tplM.columns.length * ZONE_W));
         card.y = Math.max(0, Math.min(Math.round(Number(msg.y) || 0), CANVAS_H));
         const zi2 = Math.max(0, Math.min(Math.floor(card.x / ZONE_W), tplM.columns.length - 1));
@@ -518,30 +554,30 @@ export class RoomDO extends DurableObject<Env> {
         // Collaborative rearrange: any participant can drag a sticky within or across columns.
         // Moving to a column also pulls the card OUT of any group it was in.
         if (!me) return;
-        const tpl = RETRO_TEMPLATES[this.retro.template];
+        const tpl = RETRO_TEMPLATES[R.template];
         if (!tpl || !tpl.columns.some((c) => c.id === msg.toColumn)) return;
-        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        const card = R.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
-        if (this.retro.phase === "brainstorm" && card.authorId !== me.id) return;
+        if (R.phase === "brainstorm" && card.authorId !== me.id) return;
         const wasGroup = card.groupId;
         card.column = msg.toColumn;
         card.groupId = null;
-        const col = this.retro.cards
+        const col = R.cards
           .filter((c) => c.column === msg.toColumn && c.id !== card.id)
           .sort((a, b) => a.order - b.order);
         const idx = Math.max(0, Math.min(Math.trunc(Number(msg.toIndex)) || 0, col.length));
         col.splice(idx, 0, card);
         col.forEach((c, i) => (c.order = i)); // renumber the target column
-        this.dissolveSingletonGroups(wasGroup);
+        this.dissolveSingletonGroups(R.cards, wasGroup);
         break;
       }
       case "retroGroupCard": {
         // Stack one sticky onto another → they share a groupId (votes display summed client-side).
         if (!me) return;
-        if (this.retro.phase === "brainstorm") return; // no grouping masked notes
+        if (R.phase === "brainstorm") return; // no grouping masked notes
         if (msg.cardId === msg.ontoCardId) return;
-        const card = this.retro.cards.find((c) => c.id === msg.cardId);
-        const onto = this.retro.cards.find((c) => c.id === msg.ontoCardId);
+        const card = R.cards.find((c) => c.id === msg.cardId);
+        const onto = R.cards.find((c) => c.id === msg.ontoCardId);
         if (!card || !onto) return;
         const gid = onto.groupId ?? crypto.randomUUID();
         onto.groupId = gid;
@@ -549,23 +585,23 @@ export class RoomDO extends DurableObject<Env> {
         card.groupId = gid;
         card.column = onto.column; // a group lives in one column
         card.order = onto.order + 0.5; // sit next to its new groupmate
-        const col = this.retro.cards
+        const col = R.cards
           .filter((c) => c.column === onto.column)
           .sort((a, b) => a.order - b.order);
         col.forEach((c, i) => (c.order = i));
         // Snap the dropped sticky into a tidy cascade on top of its new group so
         // the cluster reads as a stack on the free canvas, not a random overlap.
-        const stackN = this.retro.cards.filter((c) => c.groupId === gid && c.id !== card.id).length;
+        const stackN = R.cards.filter((c) => c.groupId === gid && c.id !== card.id).length;
         card.x = Math.round(onto.x + 16 * stackN);
         card.y = Math.round(onto.y + 16 * stackN);
-        this.dissolveSingletonGroups(wasGroup);
+        this.dissolveSingletonGroups(R.cards, wasGroup);
         break;
       }
       case "retroSetAction": {
         // Promote/demote a sticky as an action item, with an optional owner. This
         // is the one artifact that outlives the room (it lands in the export).
         if (!me) return;
-        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        const card = R.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
         card.action = !!msg.on;
         if (!card.action) card.owner = null;
@@ -574,14 +610,14 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "retroVote": {
         if (!me) return;
-        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        const card = R.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
         const i = card.voters.indexOf(me.id);
         if (i >= 0) {
           card.voters.splice(i, 1); // toggle off (always allowed, e.g. to reclaim a dot)
         } else {
-          if (this.retro.phase !== "vote") return; // dots are only cast in the vote phase
-          const used = this.retro.cards.filter((c) => c.voters.includes(me.id)).length;
+          if (R.phase !== "vote") return; // dots are only cast in the vote phase
+          const used = R.cards.filter((c) => c.voters.includes(me.id)).length;
           if (used >= RETRO_VOTE_BUDGET) return; // out of dots
           card.voters.push(me.id);
         }
@@ -589,7 +625,7 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "retroEditCard": {
         if (!me) return;
-        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        const card = R.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
         if (card.authorId !== me.id && !this.isFacilitator(me)) return; // author or facilitator
         const text = String(msg.text ?? "").trim().slice(0, 280);
@@ -598,18 +634,18 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "retroDeleteCard": {
         if (!me) return;
-        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        const card = R.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
         if (card.authorId !== me.id && !this.isFacilitator(me)) return;
-        this.retro.cards = this.retro.cards.filter((c) => c.id !== msg.cardId);
-        if (this.retro.spotlightId === msg.cardId) this.retro.spotlightId = null;
-        this.retro.discussed = this.retro.discussed.filter((id) => id !== msg.cardId);
+        R.cards = R.cards.filter((c) => c.id !== msg.cardId);
+        if (R.spotlightId === msg.cardId) R.spotlightId = null;
+        R.discussed = R.discussed.filter((id) => id !== msg.cardId);
         break;
       }
       case "retroReact": {
         if (!me) return;
         if (!RETRO_REACTIONS.includes(msg.emoji as (typeof RETRO_REACTIONS)[number])) return;
-        const card = this.retro.cards.find((c) => c.id === msg.cardId);
+        const card = R.cards.find((c) => c.id === msg.cardId);
         if (!card) return;
         const list = (card.reactions[msg.emoji] ??= []);
         const i = list.indexOf(me.id);
@@ -620,32 +656,32 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "retroSetAnonymous": {
         if (!this.isFacilitator(me)) return;
-        this.retro.anonymous = !!msg.on;
+        R.anonymous = !!msg.on;
         break;
       }
       case "retroSpotlight": {
         if (!this.isFacilitator(me)) return;
-        if (this.retro.phase === "brainstorm") return; // notes are masked — nothing to spotlight
-        if (msg.cardId === null) this.retro.spotlightId = null;
-        else if (this.retro.cards.some((c) => c.id === msg.cardId)) this.retro.spotlightId = msg.cardId;
+        if (R.phase === "brainstorm") return; // notes are masked — nothing to spotlight
+        if (msg.cardId === null) R.spotlightId = null;
+        else if (R.cards.some((c) => c.id === msg.cardId)) R.spotlightId = msg.cardId;
         break;
       }
       case "retroPickRandom": {
         // Discuss cards in random order, each once — picked → spotlight it + mark discussed.
         if (!this.isFacilitator(me)) return;
-        if (this.retro.phase === "brainstorm") return; // can't surface a masked note
-        const done = new Set(this.retro.discussed);
-        const pool = this.retro.cards.filter((c) => !done.has(c.id));
+        if (R.phase === "brainstorm") return; // can't surface a masked note
+        const done = new Set(R.discussed);
+        const pool = R.cards.filter((c) => !done.has(c.id));
         if (pool.length === 0) return; // all discussed → no-op (client offers reset)
         const pick = pool[Math.floor(Math.random() * pool.length)];
-        this.retro.spotlightId = pick.id;
-        this.retro.discussed.push(pick.id);
+        R.spotlightId = pick.id;
+        R.discussed.push(pick.id);
         break;
       }
       case "retroResetDiscussed": {
         if (!this.isFacilitator(me)) return;
-        this.retro.discussed = [];
-        this.retro.spotlightId = null;
+        R.discussed = [];
+        R.spotlightId = null;
         break;
       }
 
@@ -760,7 +796,7 @@ export class RoomDO extends DurableObject<Env> {
       delete this.estimate.rationales[id];
       changed = true;
     }
-    for (const c of this.retro.cards) {
+    for (const c of [...this.retro.cards, ...this.board.cards]) {
       const vi = c.voters.indexOf(id);
       if (vi >= 0) {
         c.voters.splice(vi, 1);
@@ -916,10 +952,67 @@ export class RoomDO extends DurableObject<Env> {
     }
   }
 
-  /** A group of one isn't a group — clear its lone member's groupId. */
-  private dissolveSingletonGroups(gid: string | null): void {
+  /** Build one socket's view of a retro/board surface (with server-side masking + redaction). */
+  private buildRetroView(state: RetroState, meId: string | null, nameById: Map<string, string>): RetroView {
+    const tpl = RETRO_TEMPLATES[state.template] ?? RETRO_TEMPLATES.ssc;
+    const groupTotals = new Map<string, { votes: number; size: number }>();
+    for (const c of state.cards) {
+      if (!c.groupId) continue;
+      const g = groupTotals.get(c.groupId) ?? { votes: 0, size: 0 };
+      g.votes += c.voters.length;
+      g.size += 1;
+      groupTotals.set(c.groupId, g);
+    }
+    const blind = state.phase === "brainstorm";
+    let used = 0;
+    const cards = state.cards.map((c) => {
+      const masked = blind && c.authorId !== meId;
+      const youVoted = meId ? c.voters.includes(meId) : false;
+      if (youVoted) used++;
+      const author =
+        state.anonymous && state.phase !== "discuss" ? null : (nameById.get(c.authorId) ?? null);
+      return {
+        id: c.id,
+        column: c.column,
+        text: masked ? "" : c.text,
+        mine: meId ? c.authorId === meId : false,
+        author: masked ? null : author,
+        votes: c.voters.length,
+        youVoted,
+        reactions: masked
+          ? []
+          : RETRO_REACTIONS.filter((e) => (c.reactions[e]?.length ?? 0) > 0).map((e) => ({
+              emoji: e,
+              count: c.reactions[e].length,
+              mine: meId ? c.reactions[e].includes(meId) : false,
+            })),
+        discussed: state.discussed.includes(c.id),
+        order: c.order ?? 0,
+        groupId: c.groupId ?? null,
+        groupVotes: c.groupId ? (groupTotals.get(c.groupId)?.votes ?? c.voters.length) : c.voters.length,
+        groupSize: c.groupId ? (groupTotals.get(c.groupId)?.size ?? 1) : 1,
+        action: masked ? false : !!c.action,
+        owner: masked ? null : (c.owner ?? null),
+        masked,
+        x: c.x ?? 0,
+        y: c.y ?? 0,
+      };
+    });
+    return {
+      template: state.template,
+      columns: tpl.columns,
+      cards,
+      votesLeft: meId ? RETRO_VOTE_BUDGET - used : RETRO_VOTE_BUDGET,
+      anonymous: state.anonymous,
+      spotlightId: state.spotlightId,
+      phase: state.phase,
+    };
+  }
+
+  /** A group of one isn't a group — clear its lone member's groupId (on the given surface). */
+  private dissolveSingletonGroups(cards: RetroCard[], gid: string | null): void {
     if (!gid) return;
-    const members = this.retro.cards.filter((c) => c.groupId === gid);
+    const members = cards.filter((c) => c.groupId === gid);
     if (members.length === 1) members[0].groupId = null;
   }
 
@@ -958,7 +1051,6 @@ export class RoomDO extends DurableObject<Env> {
 
     const revealed = this.estimate.phase === "revealed";
     const votedIds = Object.keys(this.estimate.votes);
-    const tpl = RETRO_TEMPLATES[this.retro.template] ?? RETRO_TEMPLATES.ssc;
     const pick: PickView = this.pick; // same view for everyone (not redacted)
 
     // ---- SHARED work: computed ONCE per event, not once per socket ----
@@ -979,44 +1071,6 @@ export class RoomDO extends DurableObject<Env> {
       log: this.estimate.log,
     };
 
-    const groupTotals = new Map<string, { votes: number; size: number }>();
-    for (const c of this.retro.cards) {
-      if (!c.groupId) continue;
-      const g = groupTotals.get(c.groupId) ?? { votes: 0, size: 0 };
-      g.votes += c.voters.length;
-      g.size += 1;
-      groupTotals.set(c.groupId, g);
-    }
-
-    // Base card data with the membership arrays kept alongside so the per-socket pass
-    // is a cheap O(1) `.includes` rather than re-filtering reactions and re-counting.
-    const baseCards = this.retro.cards.map((c) => ({
-      id: c.id,
-      column: c.column,
-      text: c.text,
-      authorId: c.authorId,
-      // Anonymous hides authors — except in Discuss, where seeing who raised a theme
-      // helps the conversation (names are revealed once voting's done).
-      author:
-        this.retro.anonymous && this.retro.phase !== "discuss" ? null : (nameById.get(c.authorId) ?? null),
-      votes: c.voters.length,
-      voters: c.voters,
-      reactions: RETRO_REACTIONS.filter((e) => (c.reactions[e]?.length ?? 0) > 0).map((e) => ({
-        emoji: e,
-        count: c.reactions[e].length,
-        members: c.reactions[e],
-      })),
-      discussed: this.retro.discussed.includes(c.id),
-      order: c.order ?? 0,
-      groupId: c.groupId ?? null,
-      groupVotes: c.groupId ? (groupTotals.get(c.groupId)?.votes ?? c.voters.length) : c.voters.length,
-      groupSize: c.groupId ? (groupTotals.get(c.groupId)?.size ?? 1) : 1,
-      action: !!c.action,
-      owner: c.owner ?? null,
-      x: c.x ?? 0,
-      y: c.y ?? 0,
-    }));
-
     for (const w of sockets) {
       // me === null → a spectator (connected, no name yet). They still get a
       // read-only snapshot (you="") so the room renders before they commit a name.
@@ -1028,53 +1082,6 @@ export class RoomDO extends DurableObject<Env> {
         yourVote: meId ? (this.estimate.votes[meId] ?? null) : null,
       };
 
-      // Blind brainstorm: until the facilitator reveals, you only see your own
-      // notes — everyone else's text/author/reactions are withheld at the SERVER
-      // (not just hidden in CSS), so early ideas can't anchor the room.
-      const blind = this.retro.phase === "brainstorm";
-      let used = 0;
-      const cards = baseCards.map((b) => {
-        const masked = blind && b.authorId !== meId;
-        const youVoted = meId ? b.voters.includes(meId) : false;
-        if (youVoted) used++;
-        return {
-          id: b.id,
-          column: b.column,
-          text: masked ? "" : b.text,
-          mine: meId ? b.authorId === meId : false,
-          author: masked ? null : b.author,
-          votes: b.votes,
-          youVoted,
-          reactions: masked
-            ? []
-            : b.reactions.map((r) => ({
-                emoji: r.emoji,
-                count: r.count,
-                mine: meId ? r.members.includes(meId) : false,
-              })),
-          discussed: b.discussed,
-          order: b.order,
-          groupId: b.groupId,
-          groupVotes: b.groupVotes,
-          groupSize: b.groupSize,
-          action: masked ? false : b.action,
-          owner: masked ? null : b.owner,
-          masked,
-          x: b.x,
-          y: b.y,
-        };
-      });
-
-      const retro: RetroView = {
-        template: this.retro.template,
-        columns: tpl.columns,
-        cards,
-        votesLeft: meId ? RETRO_VOTE_BUDGET - used : RETRO_VOTE_BUDGET,
-        anonymous: this.retro.anonymous,
-        spotlightId: this.retro.spotlightId,
-        phase: this.retro.phase,
-      };
-
       const snapshot: ServerMsg = {
         t: "snapshot",
         v: 1,
@@ -1083,7 +1090,8 @@ export class RoomDO extends DurableObject<Env> {
         members,
         activity: this.activity,
         estimate,
-        retro,
+        retro: this.buildRetroView(this.retro, meId, nameById),
+        board: this.buildRetroView(this.board, meId, nameById),
         pick,
         timerEndsAt: this.timerEndsAt,
         timerDurationMs: this.timerDurationMs,

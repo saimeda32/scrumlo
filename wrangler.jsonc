@@ -3,12 +3,11 @@
   "name": "scrumlo",
   "main": "worker/index.ts",
   "compatibility_date": "2026-06-01",
-  // Custom domains: Cloudflare auto-provisions the DNS records + TLS certs on deploy
-  // (the scrumlo.com zone must be active in this account).
-  "routes": [
-    { "pattern": "scrumlo.com", "custom_domain": true },
-    { "pattern": "www.scrumlo.com", "custom_domain": true }
-  ],
+  "workers_dev": true,
+  // NOTE: scrumlo.com must be an ACTIVE zone in this Cloudflare account (nameservers
+  // pointed at Cloudflare) before custom_domain routes can be provisioned. It's still
+  // on GoDaddy today, so we ship on workers.dev until the zone is moved over, then add:
+  //   "routes": [{ "pattern": "scrumlo.com", "custom_domain": true }]
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

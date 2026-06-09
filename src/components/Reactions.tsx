@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { EMOTES } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { useEmotes } from "../store/emoteStore";
@@ -11,27 +11,31 @@ export function ReactionLayer() {
   return (
     <div className="pointer-events-none fixed inset-0 z-[55] overflow-hidden" aria-hidden>
       {emotes.map((e) => (
-        <FloatingEmote key={e.id} emoji={e.emoji} x={e.x} name={e.name} onDone={() => remove(e.id)} />
+        <FloatingEmote key={e.id} id={e.id} emoji={e.emoji} x={e.x} name={e.name} remove={remove} />
       ))}
     </div>
   );
 }
 
-function FloatingEmote({
+// Stable id + remove (zustand actions are stable) so the removal timer is set ONCE
+// per emote instead of being reset on every render during a burst.
+const FloatingEmote = memo(function FloatingEmote({
+  id,
   emoji,
   x,
   name,
-  onDone,
+  remove,
 }: {
+  id: number;
   emoji: string;
   x: number;
   name?: string;
-  onDone: () => void;
+  remove: (id: number) => void;
 }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 2600);
+    const t = setTimeout(() => remove(id), 2600);
     return () => clearTimeout(t);
-  }, [onDone]);
+  }, [id, remove]);
   return (
     <span
       className="animate-emote absolute bottom-20 flex flex-col items-center gap-0.5"
@@ -45,7 +49,7 @@ function FloatingEmote({
       )}
     </span>
   );
-}
+});
 
 /** One bottom-right dock holding both room-wide controls: spin a name (facilitator
  *  only, greyed out for everyone else) and send a floating reaction. Grouping them in

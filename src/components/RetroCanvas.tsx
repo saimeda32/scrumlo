@@ -7,7 +7,6 @@ import { columnColor, type ColC } from "../lib/retroColors";
 import { retroTheme } from "../lib/retroThemes";
 import { RetroGlyph } from "./RetroGlyph";
 import { useCursors } from "../store/cursorStore";
-import { useShallow } from "zustand/react/shallow";
 import { memo } from "react";
 import { FullscreenBar } from "./FullscreenBar";
 import { LogoMark } from "./Logo";
@@ -68,6 +67,7 @@ export function RetroCanvas({
     client.cursor((e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom);
   }
   const cols = retro.columns;
+  const colIndex = new Map(cols.map((z, i) => [z.id, i])); // O(1) column lookup per card
   const W = cols.length * ZONE_W;
   // Board height fits the content (no giant empty scroll), capped at the canvas max.
   const boardH = Math.min(CANVAS_H, Math.max(720, ...retro.cards.map((c) => c.y + 200)));
@@ -214,18 +214,17 @@ export function RetroCanvas({
             })}
 
             {/* stickies */}
-            {retro.cards.map((card, i) => (
+            {retro.cards.map((card) => (
               <CanvasCard
                 key={card.id}
                 card={card}
-                c={columnColor(card.column, cols.findIndex((z) => z.id === card.column))}
+                c={columnColor(card.column, colIndex.get(card.column) ?? 0)}
                 zoom={zoom}
                 canAct={canAct}
                 canVote={canAct && retro.phase === "vote"}
                 isFacil={isFacil}
                 spotlit={retro.spotlightId === card.id}
                 client={client}
-                idx={i}
               />
             ))}
 
@@ -354,7 +353,6 @@ function CanvasCard({
   isFacil: boolean;
   spotlit: boolean;
   client: RoomClient;
-  idx: number;
 }) {
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const [editing, setEditing] = useState(false);
@@ -364,15 +362,10 @@ function CanvasCard({
   const moved = useRef(false);
   const lastLive = useRef(0);
 
-  // Subscribe to ONLY this card's live drag (a teammate dragging it pre-drop). The
-  // shallow selector means a cursor frame re-renders just the card being moved,
-  // not the whole board. Cards no one is dragging get `null` → no re-render.
-  const live = useCursors(
-    useShallow((s: { cursors: { drag?: { cardId: string; x: number; y: number } }[] }) => {
-      const d = s.cursors.find((cu) => cu.drag?.cardId === card.id)?.drag;
-      return d ? { x: d.x, y: d.y } : null;
-    }),
-  );
+  // Subscribe to ONLY this card's live drag (a teammate dragging it pre-drop), looked
+  // up O(1) from the normalized map. A card no one is dragging selects `null` every
+  // frame (stable), so only the card actually being moved re-renders.
+  const live = useCursors((s) => s.dragsByCard[card.id] ?? null);
 
   // Local drag wins; otherwise follow a teammate's live drag; else the resting spot.
   const x = drag?.x ?? live?.x ?? card.x;

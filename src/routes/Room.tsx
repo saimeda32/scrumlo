@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useParams } from "wouter";
 import { createRoomClient, type RoomClient } from "../net/socket";
 import { useRoom } from "../store/roomStore";
@@ -14,7 +14,11 @@ import { RetroBoard } from "../components/RetroBoard";
 import { PickerBoard } from "../components/PickerBoard";
 import { PulseBoard } from "../components/PulseBoard";
 import { PollBoard } from "../components/PollBoard";
-import { ExportSheet } from "../components/ExportSheet";
+// Modal-only and pulls the heavy capture/PDF code, so keep it off the room's
+// critical path and load it the first time someone opens Export.
+const ExportSheet = lazy(() =>
+  import("../components/ExportSheet").then((m) => ({ default: m.ExportSheet })),
+);
 import { StatusTicker } from "../components/StatusTicker";
 import { LogoMark } from "../components/Logo";
 import { TimerBanner } from "../components/TimerBanner";
@@ -301,11 +305,13 @@ export default function Room() {
         </div>
 
         {showExport && (
-          <ExportSheet
-            room={room}
-            markdown={buildSessionMarkdown({ room, members, estimate, retro, board, pulse, poll, pick })}
-            onClose={() => setShowExport(false)}
-          />
+          <Suspense fallback={null}>
+            <ExportSheet
+              room={room}
+              markdown={buildSessionMarkdown({ room, members, estimate, retro, board, pulse, poll, pick })}
+              onClose={() => setShowExport(false)}
+            />
+          </Suspense>
         )}
 
         {pickerOpen && (

@@ -96,11 +96,11 @@ export function RoomHeader({
         >
           ⤓ Export
         </button>
-        {!isFacil && (
+        {!isFacil && !facil && (
           <button
             onClick={onClaim}
             className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-            title="Become the facilitator (e.g. if they left)"
+            title="No active facilitator — take over"
           >
             Take over
           </button>

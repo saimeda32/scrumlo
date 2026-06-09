@@ -26,6 +26,7 @@ import {
 
 const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
 const EMPTY_GRACE_MS = 2 * 60 * 1000; // 2 min after the last person leaves (reconnect grace)
+const MAX_CONNECTIONS = 60; // hard cap on concurrent sockets per room (DoS guard; targets ~20)
 
 /** Numeric value of a deck card, or null for ?/☕/t-shirt sizes. "½" → 0.5. */
 function cardToNum(card: string): number | null {
@@ -191,6 +192,11 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   async fetch(_request: Request): Promise<Response> {
+    // Member cap: refuse new connections past a sane room size so one actor can't
+    // open thousands of sockets to exhaust a room's Durable Object.
+    if (this.ctx.getWebSockets().length >= MAX_CONNECTIONS) {
+      return new Response("room is full", { status: 503 });
+    }
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
@@ -398,6 +404,11 @@ export class RoomDO extends DurableObject<Env> {
       // ---- facilitation: anyone can take over the baton (ephemeral, low-stakes) ----
       case "claimFacilitator": {
         if (!me) return;
+        // Only take the baton when no facilitator is currently PRESENT — prevents an
+        // attacker from wresting control from an active facilitator and then ending or
+        // redirecting the room. A real handoff still happens automatically on leave.
+        const present = this.membersFrom(this.ctx.getWebSockets());
+        if (this.facilitatorId !== null && present.some((m) => m.id === this.facilitatorId)) return;
         this.facilitatorId = me.id;
         break;
       }
@@ -415,7 +426,14 @@ export class RoomDO extends DurableObject<Env> {
         const now = Date.now();
         this.reports = this.reports.filter((r) => now - r.at < 60_000 && r.id !== me.id);
         this.reports.push({ id: me.id, at: now });
-        if (this.reports.length >= 2) await this.terminate(); // 2 distinct reporters / 60s
+        // End only when ~30% of currently-PRESENT members agree (floor of 2), so a
+        // couple of throwaway tabs can't nuke a meeting full of real people, but a
+        // genuine chunk of the room still can.
+        const present = this.membersFrom(this.ctx.getWebSockets());
+        const presentIds = new Set(present.map((m) => m.id));
+        this.reports = this.reports.filter((r) => presentIds.has(r.id));
+        const threshold = Math.max(2, Math.ceil(present.length * 0.3));
+        if (this.reports.length >= threshold) await this.terminate();
         return;
       }
 

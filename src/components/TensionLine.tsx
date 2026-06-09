@@ -38,7 +38,12 @@ export function TensionLine({
   const nameOf = (id: string) => members.find((m) => m.id === id)?.name ?? "someone";
 
   // Equal-spaced positions by deck index (so 3→5 and 13→21 read as one step each).
-  const scale = (DECKS[estimate.deck] ?? DECKS.fib).filter((c) => numericValue(c) !== null);
+  // Custom decks aren't in DECKS, so resolve them the same way EstimateBoard/Deck do.
+  const deckCards =
+    estimate.deck === "custom" && estimate.customDeck?.length
+      ? estimate.customDeck
+      : (DECKS[estimate.deck] ?? DECKS.fib);
+  const scale = deckCards.filter((c) => numericValue(c) !== null);
   const posOf = (card: string) =>
     scale.length <= 1 ? 0.5 : Math.max(0, scale.indexOf(card)) / (scale.length - 1);
 
@@ -67,7 +72,7 @@ export function TensionLine({
   }
   const clusters: Cluster[] = [...byValue.entries()]
     .map(([value, ids]) => {
-      const card = scale.find((c) => numericValue(c) === value)!;
+      const card = scale.find((c) => numericValue(c) === value) ?? String(value);
       return {
         value,
         card,

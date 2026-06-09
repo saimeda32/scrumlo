@@ -22,10 +22,15 @@ const ADJ = ["brave", "calm", "swift", "bright", "quiet", "keen", "bold", "warm"
 const ANIMAL = ["otter", "lynx", "heron", "fox", "wren", "ibex", "koala", "tern", "puma", "civet"];
 
 function makeSlug(): string {
-  const a = ADJ[Math.floor(Math.random() * ADJ.length)];
-  const n = ANIMAL[Math.floor(Math.random() * ANIMAL.length)];
-  const d = Math.floor(10 + Math.random() * 90);
-  return `${a}-${n}-${d}`;
+  // Friendly but NOT enumerable: a cryptographically-random 6-char suffix (~1e9
+  // combos per name) so active rooms can't be brute-forced from the URL pattern.
+  const rand = crypto.getRandomValues(new Uint8Array(8));
+  const alphabet = "abcdefghijkmnpqrstuvwxyz23456789"; // no look-alikes (0/o/1/l)
+  const a = ADJ[rand[0] % ADJ.length];
+  const n = ANIMAL[rand[1] % ANIMAL.length];
+  let suffix = "";
+  for (let i = 2; i < 8; i++) suffix += alphabet[rand[i] % alphabet.length];
+  return `${a}-${n}-${suffix}`;
 }
 
 export default {

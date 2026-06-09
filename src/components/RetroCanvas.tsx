@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RetroView, RetroCardView } from "../../shared/protocol";
-import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS } from "../../shared/protocol";
+import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS, RETRO_PHASES } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { avatarColor, initials } from "../lib/colors";
 import { columnColor, type ColC } from "../lib/retroColors";
@@ -111,6 +111,28 @@ export function RetroCanvas({
           {full ? "⤡" : "⤢"}
         </button>
       </div>
+
+      {/* in fullscreen the phase rail is hidden — surface a compact phase control */}
+      {full && (
+        <div className="absolute left-3 top-3 z-20 flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-1.5 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/90">
+          <span className="text-xs font-bold tracking-tight text-iris-600 dark:text-iris-300">
+            {RETRO_PHASES.find((p) => p.id === retro.phase)?.label ?? "Retro"}
+          </span>
+          {isFacil &&
+            (() => {
+              const idx = RETRO_PHASES.findIndex((p) => p.id === retro.phase);
+              const next = RETRO_PHASES[idx + 1];
+              return next ? (
+                <button
+                  onClick={() => client.retroSetPhase(next.id)}
+                  className="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900"
+                >
+                  {retro.phase === "brainstorm" ? "Reveal →" : `${next.label} →`}
+                </button>
+              ) : null;
+            })()}
+        </div>
+      )}
 
       {/* pannable viewport (native scroll) */}
       <div
@@ -350,6 +372,9 @@ function CanvasCard({
   }
   function onMove(e: React.PointerEvent) {
     if (!drag) return;
+    // Don't let this bubble to the board's cursor handler — otherwise it sends a
+    // no-drag cursor that races ours and makes the card flicker for everyone else.
+    e.stopPropagation();
     const s = start.current;
     moved.current = true;
     const nx = s.cx + (e.clientX - s.px) / zoom;

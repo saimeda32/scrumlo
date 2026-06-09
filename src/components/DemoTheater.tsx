@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 // Retro stickies + a gliding cursor, then a Pick wheel with confetti. Pure
 // CSS/SVG, no backend, remounts each act so the entrance animations replay.
 
-const ACTS = ["Estimate", "Retro", "Roadmap", "Pulse", "Pick"] as const;
+const ACTS = ["Estimate", "Retro", "Roadmap", "Pulse", "Poll", "Pick"] as const;
 const ACT_MS = 4600;
 
 const SEATS = [
@@ -82,7 +82,8 @@ export function DemoTheater() {
           {act === 1 && <RetroAct />}
           {act === 2 && <RoadmapAct />}
           {act === 3 && <PulseAct />}
-          {act === 4 && <PickAct />}
+          {act === 4 && <PollAct />}
+          {act === 5 && <PickAct />}
         </div>
       </div>
 
@@ -226,6 +227,37 @@ function PulseAct() {
             </div>
             <span className="w-7 text-right text-[11px] font-bold tabular-nums" style={{ color: p.c }}>{p.v}</span>
           </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const CLOUD = [
+  { w: "blockers", s: 38, c: "#6366f1" },
+  { w: "shipped", s: 30, c: "#10b981" },
+  { w: "tests", s: 22, c: "#0ea5e9" },
+  { w: "scope", s: 34, c: "#ec4899" },
+  { w: "focus", s: 26, c: "#f59e0b" },
+  { w: "review", s: 20, c: "#8b5cf6" },
+  { w: "momentum", s: 28, c: "#14b8a6" },
+];
+
+function PollAct() {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="mb-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+        One word for the sprint?
+      </div>
+      <div className="flex flex-1 flex-wrap content-center items-center justify-center gap-x-3 gap-y-1">
+        {CLOUD.map((c, i) => (
+          <span
+            key={c.w}
+            className="animate-pop font-extrabold leading-tight"
+            style={{ fontSize: `${c.s}px`, color: c.c, animationDelay: `${i * 90}ms` }}
+          >
+            {c.w}
+          </span>
         ))}
       </div>
     </div>

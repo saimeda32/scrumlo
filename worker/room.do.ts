@@ -12,6 +12,8 @@ import type {
   RetroView,
   PickView,
   PulseView,
+  PollView,
+  PollMode,
   PickMode,
   Phase,
   Activity,
@@ -94,6 +96,12 @@ type PulseState = {
   votes: Record<string, Record<string, number>>; // memberId -> { dimension -> 1..5 }
 };
 
+type PollState = {
+  mode: PollMode;
+  prompt: string;
+  entries: { id: string; text: string; authorId: string; voters: string[] }[];
+};
+
 /**
  * One RoomDO per room. Authoritative, in-memory, ephemeral.
  *
@@ -148,6 +156,7 @@ export class RoomDO extends DurableObject<Env> {
   };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0, recent: [] };
   private pulse: PulseState = { dimensions: [...PULSE_DIMENSIONS], phase: "voting", votes: {} };
+  private poll: PollState = { mode: "open", prompt: "", entries: [] };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
   private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
@@ -211,6 +220,13 @@ export class RoomDO extends DurableObject<Env> {
         this.pulse.phase ??= "voting";
         this.pulse.votes ??= {};
       }
+      const po = await ctx.storage.get<PollState>("poll");
+      if (po) {
+        this.poll = po;
+        this.poll.mode ??= "open";
+        this.poll.prompt ??= "";
+        this.poll.entries ??= [];
+      }
       const p = await ctx.storage.get<PickState>("pick");
       if (p) {
         this.pick = p;
@@ -231,6 +247,7 @@ export class RoomDO extends DurableObject<Env> {
     await this.ctx.storage.put("retro", this.retro);
     await this.ctx.storage.put("board", this.board);
     await this.ctx.storage.put("pulse", this.pulse);
+    await this.ctx.storage.put("poll", this.poll);
     await this.ctx.storage.put("pick", this.pick);
     await this.ctx.storage.put("clients", this.clients);
     await this.ctx.storage.put("activity", this.activity);
@@ -522,7 +539,7 @@ export class RoomDO extends DurableObject<Env> {
       // ---- activity + retro ----
       case "switchActivity": {
         if (!this.isFacilitator(me)) return;
-        if (!["estimate", "retro", "pick", "board", "pulse"].includes(msg.activity)) return;
+        if (!["estimate", "retro", "pick", "board", "pulse", "poll"].includes(msg.activity)) return;
         this.activity = msg.activity;
         break;
       }
@@ -797,6 +814,49 @@ export class RoomDO extends DurableObject<Env> {
         break;
       }
 
+      // ---- poll / Q&A ----
+      case "pollSetMode": {
+        if (!this.isFacilitator(me)) return;
+        if (msg.mode !== "open" && msg.mode !== "cloud") return;
+        this.poll.mode = msg.mode;
+        this.poll.entries = []; // switching the format starts fresh
+        break;
+      }
+      case "pollSetPrompt": {
+        if (!this.isFacilitator(me)) return;
+        this.poll.prompt = String(msg.prompt ?? "").trim().slice(0, 140);
+        break;
+      }
+      case "pollSubmit": {
+        if (!me) return;
+        const max = this.poll.mode === "cloud" ? 24 : 160;
+        let text = String(msg.text ?? "").trim().slice(0, max);
+        if (this.poll.mode === "cloud") text = text.split(/\s+/)[0] ?? ""; // one word
+        if (!text) return;
+        if (this.poll.entries.length >= 300) return;
+        this.poll.entries.push({ id: crypto.randomUUID(), text, authorId: me.id, voters: [] });
+        break;
+      }
+      case "pollVote": {
+        if (!me) return;
+        const e = this.poll.entries.find((x) => x.id === msg.id);
+        if (!e) return;
+        const i = e.voters.indexOf(me.id);
+        if (i >= 0) e.voters.splice(i, 1);
+        else e.voters.push(me.id);
+        break;
+      }
+      case "pollRemove": {
+        if (!this.isFacilitator(me)) return;
+        this.poll.entries = this.poll.entries.filter((e) => e.id !== msg.id);
+        break;
+      }
+      case "pollClear": {
+        if (!this.isFacilitator(me)) return;
+        this.poll.entries = [];
+        break;
+      }
+
       default:
         return;
     }
@@ -854,6 +914,13 @@ export class RoomDO extends DurableObject<Env> {
     if (this.pulse.votes[id] !== undefined) {
       delete this.pulse.votes[id];
       changed = true;
+    }
+    for (const e of this.poll.entries) {
+      const vi = e.voters.indexOf(id);
+      if (vi >= 0) {
+        e.voters.splice(vi, 1);
+        changed = true;
+      }
     }
     for (const c of [...this.retro.cards, ...this.board.cards]) {
       const vi = c.voters.indexOf(id);
@@ -1009,6 +1076,33 @@ export class RoomDO extends DurableObject<Env> {
     if (nums.length) {
       this.estimate.history.push({ lo: Math.min(...nums), hi: Math.max(...nums), n: nums.length });
     }
+  }
+
+  /** Build the poll view: an upvoted Q&A list, or an aggregated word cloud. */
+  private buildPollView(meId: string | null): PollView {
+    const total = this.poll.entries.length;
+    if (this.poll.mode === "cloud") {
+      const counts = new Map<string, number>();
+      for (const e of this.poll.entries) {
+        const w = e.text.toLowerCase();
+        counts.set(w, (counts.get(w) ?? 0) + 1);
+      }
+      const cloud = [...counts.entries()]
+        .map(([word, count]) => ({ word, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 80);
+      return { mode: "cloud", prompt: this.poll.prompt, answers: [], cloud, total };
+    }
+    const answers = this.poll.entries
+      .map((e) => ({
+        id: e.id,
+        text: e.text,
+        votes: e.voters.length,
+        youVoted: meId ? e.voters.includes(meId) : false,
+        mine: meId ? e.authorId === meId : false,
+      }))
+      .sort((a, b) => b.votes - a.votes);
+    return { mode: "open", prompt: this.poll.prompt, answers, cloud: [], total };
   }
 
   /** Build the pulse view: votes are blind (only counts) until the facilitator reveals. */
@@ -1175,6 +1269,7 @@ export class RoomDO extends DurableObject<Env> {
         retro: this.buildRetroView(this.retro, meId, nameById),
         board: this.buildRetroView(this.board, meId, nameById),
         pulse: this.buildPulseView(meId),
+        poll: this.buildPollView(meId),
         pick,
         timerEndsAt: this.timerEndsAt,
         timerDurationMs: this.timerDurationMs,

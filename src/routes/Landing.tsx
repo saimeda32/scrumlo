@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { StatusTicker } from "../components/StatusTicker";
 import { FLAVOR } from "../lib/flavor";
-import { IconEstimate, IconRetro, IconPick, IconBoard, IconPulse } from "../components/icons";
+import { IconEstimate, IconRetro, IconPick, IconBoard, IconPulse, IconPoll } from "../components/icons";
 import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { DemoTheater } from "../components/DemoTheater";
@@ -162,7 +162,7 @@ export default function Landing() {
 
       {/* activities band */}
       <section className="mx-auto max-w-5xl px-6 py-12">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             {
               Icon: IconEstimate,
@@ -184,6 +184,11 @@ export default function Landing() {
               t: "Pulse",
               d: "A team health check: rate morale, clarity, delivery… 1–5, blind, then reveal an aggregate radar. Just votes — nothing kept.",
             },
+            {
+              Icon: IconPoll,
+              t: "Poll & Q&A",
+              d: "Ask the room a question: collect answers and upvote the best, or drop one word each into a live word cloud. Slido, without the login.",
+            },
             { Icon: IconPick, t: "Pick", d: "Who goes first? Spin for a name, shuffle an order, or pick from a list. No favorites." },
           ].map(({ Icon, t, d }) => (
             <div key={t} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
@@ -196,7 +201,7 @@ export default function Landing() {
           ))}
         </div>
         <p className="mt-5 text-center text-sm text-slate-500 dark:text-slate-400">
-          All five in one room · the facilitator switches live and everyone follows.
+          All six in one room · the facilitator switches live and everyone follows.
         </p>
       </section>
 

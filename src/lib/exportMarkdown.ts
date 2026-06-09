@@ -1,4 +1,4 @@
-import type { EstimateView, RetroView, PickView, PulseView, Member } from "../../shared/protocol";
+import type { EstimateView, RetroView, PickView, PulseView, PollView, Member } from "../../shared/protocol";
 import { RETRO_TEMPLATES } from "../../shared/protocol";
 import { numericValue } from "./colors";
 
@@ -14,9 +14,10 @@ export function buildSessionMarkdown(args: {
   retro: RetroView;
   board?: RetroView;
   pulse?: PulseView;
+  poll?: PollView;
   pick: PickView;
 }): string {
-  const { room, members, estimate, retro, board, pulse, pick } = args;
+  const { room, members, estimate, retro, board, pulse, poll, pick } = args;
   const nameById = new Map(members.map((m) => [m.id, m.name]));
   const out: string[] = [`# Scrumlo — ${room}`, `_Exported ${new Date().toLocaleString()}_`];
 
@@ -107,6 +108,16 @@ export function buildSessionMarkdown(args: {
     out.push("", "## Team health check");
     for (const r of pulse.results) {
       out.push(`- ${r.dim}: **${r.avg.toFixed(1)}** / 5 _(from ${r.count})_`);
+    }
+  }
+
+  // Poll / Q&A
+  if (poll && poll.total > 0) {
+    out.push("", `## Poll${poll.prompt ? ` — ${poll.prompt}` : ""}`);
+    if (poll.mode === "cloud") {
+      out.push(poll.cloud.map((c) => `${c.word} (${c.count})`).join(" · "));
+    } else {
+      for (const a of poll.answers) out.push(`- ${a.text}${a.votes ? ` (▲ ${a.votes})` : ""}`);
     }
   }
 

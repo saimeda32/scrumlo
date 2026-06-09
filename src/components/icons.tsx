@@ -56,6 +56,15 @@ export const IconPulse = ({ className }: IconProps) => (
   </svg>
 );
 
+export const IconPoll = ({ className }: IconProps) => (
+  <svg {...svg(className)}>
+    <path d="M7 14v4" />
+    <path d="M12 9v9" />
+    <path d="M17 11v7" />
+    <path d="M4 4h16" />
+  </svg>
+);
+
 export const IconPerson = ({ className }: IconProps) => (
   <svg {...svg(className)}>
     <circle cx="10" cy="7" r="3" />

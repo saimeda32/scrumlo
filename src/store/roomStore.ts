@@ -5,6 +5,7 @@ import type {
   RetroView,
   PickView,
   PulseView,
+  PollView,
   Activity,
   Snapshot,
 } from "../../shared/protocol";
@@ -20,6 +21,7 @@ type RoomState = {
   retro: RetroView | null;
   board: RetroView | null;
   pulse: PulseView | null;
+  poll: PollView | null;
   pick: PickView | null;
   timerEndsAt: number | null;
   timerDurationMs: number | null;
@@ -39,6 +41,7 @@ export const useRoom = create<RoomState>((set) => ({
   retro: null,
   board: null,
   pulse: null,
+  poll: null,
   pick: null,
   timerEndsAt: null,
   timerDurationMs: null,
@@ -54,6 +57,7 @@ export const useRoom = create<RoomState>((set) => ({
       retro: s.retro,
       board: s.board,
       pulse: s.pulse,
+      poll: s.poll,
       pick: s.pick,
       timerEndsAt: s.timerEndsAt,
       timerDurationMs: s.timerDurationMs,

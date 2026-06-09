@@ -630,6 +630,10 @@ export class RoomDO extends DurableObject<Env> {
         if (!this.isFacilitator(me)) return;
         if (!["estimate", "retro", "pick", "board", "pulse", "poll"].includes(msg.activity)) return;
         this.activity = msg.activity;
+        // Cursors belong to a surface; drop them so a frozen retro pointer doesn't
+        // render on Estimate/Poll after a switch.
+        this.cursors.clear();
+        this.broadcastCursors();
         break;
       }
       case "retroSetTemplate": {
@@ -687,6 +691,7 @@ export class RoomDO extends DurableObject<Env> {
         const zi2 = Math.max(0, Math.min(Math.floor(card.x / ZONE_W), tplM.columns.length - 1));
         card.column = tplM.columns[zi2].id;
         card.groupId = null; // free placement ungroups
+        this.endDrag(me.id); // authoritative drop: clear the live drag in the same tick
         break;
       }
       case "retroMoveCard": {
@@ -708,6 +713,7 @@ export class RoomDO extends DurableObject<Env> {
         col.splice(idx, 0, card);
         col.forEach((c, i) => (c.order = i)); // renumber the target column
         this.dissolveSingletonGroups(R.cards, wasGroup);
+        this.endDrag(me.id);
         break;
       }
       case "retroGroupCard": {
@@ -734,6 +740,7 @@ export class RoomDO extends DurableObject<Env> {
         card.x = Math.round(onto.x + 16 * stackN);
         card.y = Math.round(onto.y + 16 * stackN);
         this.dissolveSingletonGroups(R.cards, wasGroup);
+        this.endDrag(me.id);
         break;
       }
       case "retroSetAction": {
@@ -1007,9 +1014,16 @@ export class RoomDO extends DurableObject<Env> {
   private maybeAutoReveal(exclude?: WebSocket): void {
     if (this.estimate.phase !== "voting") return;
     const present = this.membersFrom(this.ctx.getWebSockets().filter((w) => w !== exclude));
-    if (present.length >= 2 && present.every((m) => this.estimate.votes[m.id] !== undefined)) {
-      this.recordReveal();
+    if (present.length < 2) return;
+    if (!present.every((m) => this.estimate.votes[m.id] !== undefined)) return;
+    // Don't reveal early on a transient disconnect: a member mid-reconnect (in the
+    // grace window) who still owes a vote blocks the reveal until they return or
+    // their grace expires (the alarm then prunes them and re-checks).
+    const now = Date.now();
+    for (const [id, at] of Object.entries(this.departed)) {
+      if (now - at < EMPTY_GRACE_MS && this.estimate.votes[id] === undefined) return;
     }
+    this.recordReveal();
   }
 
   /** Drop a departed member's votes/rationales/reactions. Returns whether anything changed. */
@@ -1119,6 +1133,16 @@ export class RoomDO extends DurableObject<Env> {
 
   private isFacilitator(me: Member | null): boolean {
     return !!me && me.id === this.facilitatorId;
+  }
+
+  /** Clear a member's live drag (on the authoritative drop) and push it out, so peers
+   *  don't see a card frozen mid-air if the separate drag-clear cursor frame is lost. */
+  private endDrag(meId: string): void {
+    const cur = this.cursors.get(meId);
+    if (cur?.drag) {
+      cur.drag = undefined;
+      this.broadcastCursors();
+    }
   }
 
   /** Per-connection flood-guard key for a socket that hasn't sent hello yet. */
@@ -1427,6 +1451,10 @@ export class RoomDO extends DurableObject<Env> {
     };
 
     for (const w of sockets) {
+      // Backpressure: a slow socket accumulates unbounded full-state snapshots, and
+      // all but the latest are waste. Skip it this round; the next snapshot (snapshots
+      // are last-wins) catches it up once it drains.
+      if (w.bufferedAmount > 512 * 1024) continue;
       // me === null → a spectator (connected, no name yet). They still get a
       // read-only snapshot (you="") so the room renders before they commit a name.
       const me = this.asMember(w);

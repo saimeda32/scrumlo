@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 // Retro stickies + a gliding cursor, then a Pick wheel with confetti. Pure
 // CSS/SVG, no backend, remounts each act so the entrance animations replay.
 
-const ACTS = ["Estimate", "Retro", "Pick"] as const;
+const ACTS = ["Estimate", "Retro", "Roadmap", "Pick"] as const;
 const ACT_MS = 4600;
 
 const SEATS = [
@@ -80,7 +80,8 @@ export function DemoTheater() {
         <div key={`${act}-${cycle}`} className="relative h-[260px] p-4">
           {act === 0 && <EstimateAct />}
           {act === 1 && <RetroAct />}
-          {act === 2 && <PickAct />}
+          {act === 2 && <RoadmapAct />}
+          {act === 3 && <PickAct />}
         </div>
       </div>
 
@@ -163,6 +164,39 @@ const WHEEL = [
   { n: "Max", c: "#fbbf24" },
   { n: "Lin", c: "#fb7185" },
 ];
+
+const ROADMAP = [
+  { col: "Now", accent: "text-rose-600 dark:text-rose-400", items: [{ t: "Billing CSV export", v: 5 }, { t: "Fix flaky deploys", v: 3 }] },
+  { col: "Next", accent: "text-amber-600 dark:text-amber-400", items: [{ t: "Search filters", v: 2 }, { t: "Dark mode polish", v: 1 }] },
+  { col: "Later", accent: "text-sky-600 dark:text-sky-400", items: [{ t: "Mobile app", v: 4 }] },
+];
+
+function RoadmapAct() {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="mb-2 text-xs font-semibold text-slate-700 dark:text-slate-200">Q3 roadmap · drag, group, vote</div>
+      <div className="grid flex-1 grid-cols-3 gap-2">
+        {ROADMAP.map((c, ci) => (
+          <div key={c.col} className="dot-grid rounded-lg border border-slate-200 p-1.5 dark:border-white/10">
+            <div className={`mb-1.5 px-1 text-[11px] font-bold ${c.accent}`}>{c.col}</div>
+            {c.items.map((it, i) => (
+              <div
+                key={i}
+                className="animate-pop mb-1.5 rounded-md bg-white px-2 py-1.5 text-[10px] font-semibold leading-snug text-slate-700 shadow-sm dark:bg-white/10 dark:text-slate-200"
+                style={{ animationDelay: `${(ci * 2 + i) * 160}ms` }}
+              >
+                {it.t}
+                <div className="mt-1 inline-flex items-center gap-0.5 rounded-full bg-iris-50 px-1.5 text-[9px] font-bold text-iris-600 dark:bg-iris-500/20 dark:text-iris-300">
+                  ▲ {it.v}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function PickAct() {
   // 6 slices · land the pointer (top) on "Jo" (index 3). Each slice = 60°.

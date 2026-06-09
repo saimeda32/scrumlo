@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { IconClock } from "./icons";
+import { useFocusTrap } from "../lib/useFocusTrap";
 
 function fmt(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -93,43 +94,71 @@ export function TimerBanner({
       </div>
 
       {done && !dismissed && (
-        <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/70 p-6 backdrop-blur-sm"
-          role="alertdialog"
-          aria-label="Time's up"
-          onClick={() => setDismissed(true)}
-        >
-          <div
-            className="animate-pop max-w-sm rounded-3xl border border-white/10 bg-[#14141b] p-10 text-center shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="animate-pulse-soft text-6xl">⏰</div>
-            <div className="mt-4 text-3xl font-extrabold text-white">Time’s up</div>
-            <p className="mt-2 text-sm text-slate-400">
-              {fmt(total)} is done. Wrap up and move on.
-            </p>
-            <div className="mt-6 flex justify-center gap-2">
-              <button
-                onClick={() => setDismissed(true)}
-                className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-              >
-                Got it
-              </button>
-              {isFacil && (
-                <button
-                  onClick={() => {
-                    onStop();
-                    setDismissed(true);
-                  }}
-                  className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/5"
-                >
-                  Clear timer
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <TimeUpDialog
+          total={total}
+          isFacil={isFacil}
+          onGotIt={() => setDismissed(true)}
+          onClear={() => {
+            onStop();
+            setDismissed(true);
+          }}
+        />
       )}
     </>
+  );
+}
+
+/** The full-screen "Time's up" alert · its own component so the focus trap mounts with it. */
+function TimeUpDialog({
+  total,
+  isFacil,
+  onGotIt,
+  onClear,
+}: {
+  total: number;
+  isFacil: boolean;
+  onGotIt: () => void;
+  onClear: () => void;
+}) {
+  const trapRef = useFocusTrap<HTMLDivElement>();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onGotIt();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onGotIt]);
+  return (
+    <div
+      ref={trapRef}
+      className="fixed inset-0 z-[60] grid place-items-center bg-slate-900/70 p-6 backdrop-blur-sm"
+      role="alertdialog"
+      aria-modal="true"
+      aria-label="Time's up"
+      onClick={onGotIt}
+    >
+      <div
+        className="animate-pop max-w-sm rounded-3xl border border-white/10 bg-[#14141b] p-10 text-center shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="animate-pulse-soft text-6xl">⏰</div>
+        <div className="mt-4 text-3xl font-extrabold text-white">Time’s up</div>
+        <p className="mt-2 text-sm text-slate-400">{fmt(total)} is done. Wrap up and move on.</p>
+        <div className="mt-6 flex justify-center gap-2">
+          <button
+            onClick={onGotIt}
+            className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+          >
+            Got it
+          </button>
+          {isFacil && (
+            <button
+              onClick={onClear}
+              className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/5"
+            >
+              Clear timer
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

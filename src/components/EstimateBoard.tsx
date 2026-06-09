@@ -243,11 +243,13 @@ export function EstimateBoard({
         </div>
       )}
 
-      {revealed ? (
-        <TensionLine estimate={estimate} members={members} you={you} isFacil={isFacil} client={client} />
-      ) : (
-        <Seats members={members} estimate={estimate} />
-      )}
+      <div aria-live="polite">
+        {revealed ? (
+          <TensionLine estimate={estimate} members={members} you={you} isFacil={isFacil} client={client} />
+        ) : (
+          <Seats members={members} estimate={estimate} />
+        )}
+      </div>
 
       {/* the card table */}
       <div className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white px-4 pb-2 pt-4 shadow-soft sm:px-6 dark:border-white/10 dark:bg-[#14141b]">

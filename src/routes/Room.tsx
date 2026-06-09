@@ -136,7 +136,12 @@ export default function Room() {
     <div className="flex min-h-screen flex-col [background:radial-gradient(54rem_32rem_at_50%_-10rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(54rem_32rem_at_50%_-10rem,#1b1838,transparent_60%)]">
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         {!connected && (
-          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700"
+          >
+            <span className="sr-only">Reconnecting to the room…</span>
             <StatusTicker phrases={FLAVOR.reconnecting} />
           </div>
         )}

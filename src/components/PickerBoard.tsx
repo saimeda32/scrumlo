@@ -142,7 +142,12 @@ export function PickerBoard({
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft dark:border-white/10 dark:bg-[#14141b]"
+      >
         {pick.mode === "order" ? (
           <div className="grid min-h-[160px] place-items-center">
             {pick.result.length === 0 ? (

@@ -108,6 +108,9 @@ export class RoomDO extends DurableObject<Env> {
   private typing = new Set<string>();
   // Live cursor positions on the retro canvas (memberId -> board coords). Live-only.
   private cursors = new Map<string, { x: number; y: number; drag?: { cardId: string; x: number; y: number } }>();
+  private cursorTimer: number | null = null; // coalesces cursor fan-out to ~1 send / 50ms
+  private lastActivityAt = Date.now(); // for idle-TTL; in-memory (hibernation resets it, which is fine)
+  private buckets = new Map<string, { t: number; at: number }>(); // per-member token bucket (flood guard)
   private retro: RetroState = {
     template: "ssc",
     cards: [],
@@ -199,6 +202,11 @@ export class RoomDO extends DurableObject<Env> {
 
     const me = ws.deserializeAttachment() as Member | null;
 
+    // Flood guard: a participant on a shared link can't hammer the room. A token
+    // bucket (burst 60, refill 30/s) comfortably covers cursors + real interaction
+    // but throttles a griefer spamming addCard/vote/spin.
+    if (me && !this.allow(me.id)) return;
+
     // Live cursors: high-frequency + ephemeral, so they bypass the persist/snapshot
     // path entirely and fan out as a tiny dedicated message.
     if (msg.t === "cursor") {
@@ -208,7 +216,7 @@ export class RoomDO extends DurableObject<Env> {
           ? { cardId: msg.drag.cardId, x: Math.round(Number(msg.drag.x) || 0), y: Math.round(Number(msg.drag.y) || 0) }
           : undefined;
       this.cursors.set(me.id, { x: Math.round(Number(msg.x) || 0), y: Math.round(Number(msg.y) || 0), drag });
-      await this.broadcastCursors();
+      this.scheduleCursorFlush();
       return;
     }
 
@@ -628,14 +636,18 @@ export class RoomDO extends DurableObject<Env> {
     // before the next event can't roll it back.
     await this.persist();
     await this.broadcast();
-    await this.ctx.storage.setAlarm(Date.now() + IDLE_MS); // any activity resets the idle clock
+    this.lastActivityAt = Date.now();
+    await this.ctx.storage.setAlarm(this.lastActivityAt + IDLE_MS); // any activity resets the idle clock
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
     const gone = ws.deserializeAttachment() as Member | null;
-    if (gone) this.cursors.delete(gone.id);
+    if (gone) {
+      this.cursors.delete(gone.id);
+      this.buckets.delete(gone.id);
+    }
     await this.broadcast(ws);
-    await this.broadcastCursors(); // their cursor disappears for everyone
+    this.broadcastCursors(); // their cursor disappears for everyone
     const remaining = this.ctx.getWebSockets().filter((w) => w !== ws).length;
     // Empty room → short grace (reconnect window) then evaporate; otherwise idle TTL.
     await this.ctx.storage.setAlarm(Date.now() + (remaining === 0 ? EMPTY_GRACE_MS : IDLE_MS));
@@ -645,9 +657,23 @@ export class RoomDO extends DurableObject<Env> {
     await this.broadcast(ws);
   }
 
-  /** Idle TTL / empty-grace fired: end the room. */
+  /**
+   * Idle TTL / empty-grace fired. Re-check reality rather than trusting the alarm:
+   * an empty room always dies (this is what stops a clobbered grace alarm from
+   * letting an empty room linger 30 min); a still-occupied room only dies if it's
+   * genuinely been idle, otherwise we re-arm to the real deadline.
+   */
   async alarm(): Promise<void> {
-    await this.terminate();
+    if (this.ctx.getWebSockets().length === 0) {
+      await this.terminate();
+      return;
+    }
+    const idleFor = Date.now() - this.lastActivityAt;
+    if (idleFor >= IDLE_MS) {
+      await this.terminate();
+      return;
+    }
+    await this.ctx.storage.setAlarm(this.lastActivityAt + IDLE_MS);
   }
 
   /** End the room now: tell everyone, close sockets, delete all state. */
@@ -661,6 +687,7 @@ export class RoomDO extends DurableObject<Env> {
         // ignore
       }
     }
+    await this.ctx.storage.deleteAlarm(); // don't let a stale alarm fire on a reborn DO
     await this.ctx.storage.deleteAll(); // no DB residue; the room is gone
   }
 
@@ -670,8 +697,38 @@ export class RoomDO extends DurableObject<Env> {
     return !!me && me.id === this.facilitatorId;
   }
 
+  /** Token bucket per member: returns false (drop) when the bucket is empty. */
+  private allow(id: string): boolean {
+    const CAP = 60;
+    const REFILL = 30; // tokens per second
+    const now = Date.now();
+    const b = this.buckets.get(id) ?? { t: CAP, at: now };
+    b.t = Math.min(CAP, b.t + ((now - b.at) / 1000) * REFILL);
+    b.at = now;
+    if (b.t < 1) {
+      this.buckets.set(id, b);
+      return false;
+    }
+    b.t -= 1;
+    this.buckets.set(id, b);
+    return true;
+  }
+
+  /**
+   * Coalesce cursor fan-out: many pointer messages can arrive within one frame, so
+   * we flush at most once per ~50ms instead of broadcasting on every message. This
+   * turns an N-senders × N-sockets storm into one batched send per tick.
+   */
+  private scheduleCursorFlush(): void {
+    if (this.cursorTimer !== null) return;
+    this.cursorTimer = setTimeout(() => {
+      this.cursorTimer = null;
+      this.broadcastCursors();
+    }, 50) as unknown as number;
+  }
+
   /** Fan out live cursors as a tiny dedicated message (never a full snapshot). */
-  private async broadcastCursors(): Promise<void> {
+  private broadcastCursors(): void {
     const sockets = this.ctx.getWebSockets();
     const nameById = new Map(this.membersFrom(sockets).map((m) => [m.id, m.name]));
     const cursors = [...this.cursors.entries()]
@@ -680,6 +737,9 @@ export class RoomDO extends DurableObject<Env> {
     // Send each socket everyone ELSE's cursor — never its own (a client should
     // see only the native OS pointer for itself, not a duplicated colored one).
     for (const w of sockets) {
+      // Skip clients whose send buffer is already backed up — dropping a cursor
+      // frame for a slow socket is harmless and keeps fast clients smooth.
+      if (w.bufferedAmount > 512 * 1024) continue;
       const me = w.deserializeAttachment() as Member | null;
       const mine = me?.id;
       const forThem = mine ? cursors.filter((c) => c.id !== mine) : cursors;
@@ -741,68 +801,103 @@ export class RoomDO extends DurableObject<Env> {
     const tpl = RETRO_TEMPLATES[this.retro.template] ?? RETRO_TEMPLATES.ssc;
     const pick: PickView = this.pick; // same view for everyone (not redacted)
 
+    // ---- SHARED work: computed ONCE per event, not once per socket ----
+    // A 20-person room used to rebuild + stringify the whole room 20×; now the heavy,
+    // identical-for-everyone parts are built once and only per-person fields are patched.
+    const estimateShared = {
+      story: this.estimate.story,
+      deck: this.estimate.deck,
+      phase: this.estimate.phase,
+      voted: votedIds,
+      votes: revealed ? { ...this.estimate.votes } : null,
+      rationales: Object.keys(this.estimate.rationales).length ? { ...this.estimate.rationales } : null,
+      history: this.estimate.history,
+      typing: [...this.typing],
+      decision: this.estimate.decision,
+      queue: this.estimate.queue,
+      log: this.estimate.log,
+    };
+
+    const groupTotals = new Map<string, { votes: number; size: number }>();
+    for (const c of this.retro.cards) {
+      if (!c.groupId) continue;
+      const g = groupTotals.get(c.groupId) ?? { votes: 0, size: 0 };
+      g.votes += c.voters.length;
+      g.size += 1;
+      groupTotals.set(c.groupId, g);
+    }
+
+    // Base card data with the membership arrays kept alongside so the per-socket pass
+    // is a cheap O(1) `.includes` rather than re-filtering reactions and re-counting.
+    const baseCards = this.retro.cards.map((c) => ({
+      id: c.id,
+      column: c.column,
+      text: c.text,
+      authorId: c.authorId,
+      author: this.retro.anonymous ? null : (nameById.get(c.authorId) ?? null),
+      votes: c.voters.length,
+      voters: c.voters,
+      reactions: RETRO_REACTIONS.filter((e) => (c.reactions[e]?.length ?? 0) > 0).map((e) => ({
+        emoji: e,
+        count: c.reactions[e].length,
+        members: c.reactions[e],
+      })),
+      discussed: this.retro.discussed.includes(c.id),
+      order: c.order ?? 0,
+      groupId: c.groupId ?? null,
+      groupVotes: c.groupId ? (groupTotals.get(c.groupId)?.votes ?? c.voters.length) : c.voters.length,
+      groupSize: c.groupId ? (groupTotals.get(c.groupId)?.size ?? 1) : 1,
+      action: !!c.action,
+      owner: c.owner ?? null,
+      x: c.x ?? 0,
+      y: c.y ?? 0,
+    }));
+
     for (const w of sockets) {
       // me === null → a spectator (connected, no name yet). They still get a
       // read-only snapshot (you="") so the room renders before they commit a name.
       const me = w.deserializeAttachment() as Member | null;
+      const meId = me?.id ?? null;
 
       const estimate: EstimateView = {
-        story: this.estimate.story,
-        deck: this.estimate.deck,
-        phase: this.estimate.phase,
-        voted: votedIds,
-        yourVote: me ? (this.estimate.votes[me.id] ?? null) : null,
-        votes: revealed ? { ...this.estimate.votes } : null,
-        // Rationales aren't secret like votes (they carry no number) — send them whenever
-        // they exist so a re-vote can show last round's takes. Empty {} → nothing to show.
-        rationales: Object.keys(this.estimate.rationales).length ? { ...this.estimate.rationales } : null,
-        history: this.estimate.history,
-        typing: [...this.typing],
-        decision: this.estimate.decision,
-        queue: this.estimate.queue,
-        log: this.estimate.log,
+        ...estimateShared,
+        yourVote: meId ? (this.estimate.votes[meId] ?? null) : null,
       };
 
-      // Roll dot-votes up per cluster so a group shows ONE total for its theme
-      // (the point of dot-voting is to rank themes, not individual stickies).
-      const groupTotals = new Map<string, { votes: number; size: number }>();
-      for (const c of this.retro.cards) {
-        if (!c.groupId) continue;
-        const g = groupTotals.get(c.groupId) ?? { votes: 0, size: 0 };
-        g.votes += c.voters.length;
-        g.size += 1;
-        groupTotals.set(c.groupId, g);
-      }
+      let used = 0;
+      const cards = baseCards.map((b) => {
+        const youVoted = meId ? b.voters.includes(meId) : false;
+        if (youVoted) used++;
+        return {
+          id: b.id,
+          column: b.column,
+          text: b.text,
+          mine: meId ? b.authorId === meId : false,
+          author: b.author,
+          votes: b.votes,
+          youVoted,
+          reactions: b.reactions.map((r) => ({
+            emoji: r.emoji,
+            count: r.count,
+            mine: meId ? r.members.includes(meId) : false,
+          })),
+          discussed: b.discussed,
+          order: b.order,
+          groupId: b.groupId,
+          groupVotes: b.groupVotes,
+          groupSize: b.groupSize,
+          action: b.action,
+          owner: b.owner,
+          x: b.x,
+          y: b.y,
+        };
+      });
 
       const retro: RetroView = {
         template: this.retro.template,
         columns: tpl.columns,
-        cards: this.retro.cards.map((c) => ({
-          id: c.id,
-          column: c.column,
-          text: c.text,
-          mine: me ? c.authorId === me.id : false,
-          author: this.retro.anonymous ? null : (nameById.get(c.authorId) ?? null),
-          votes: c.voters.length,
-          youVoted: me ? c.voters.includes(me.id) : false,
-          reactions: RETRO_REACTIONS.filter((e) => (c.reactions[e]?.length ?? 0) > 0).map((e) => ({
-            emoji: e,
-            count: c.reactions[e].length,
-            mine: me ? c.reactions[e].includes(me.id) : false,
-          })),
-          discussed: this.retro.discussed.includes(c.id),
-          order: c.order ?? 0,
-          groupId: c.groupId ?? null,
-          groupVotes: c.groupId ? (groupTotals.get(c.groupId)?.votes ?? c.voters.length) : c.voters.length,
-          groupSize: c.groupId ? (groupTotals.get(c.groupId)?.size ?? 1) : 1,
-          action: !!c.action,
-          owner: c.owner ?? null,
-          x: c.x ?? 0,
-          y: c.y ?? 0,
-        })),
-        votesLeft: me
-          ? RETRO_VOTE_BUDGET - this.retro.cards.filter((c) => c.voters.includes(me.id)).length
-          : RETRO_VOTE_BUDGET,
+        cards,
+        votesLeft: meId ? RETRO_VOTE_BUDGET - used : RETRO_VOTE_BUDGET,
         anonymous: this.retro.anonymous,
         spotlightId: this.retro.spotlightId,
       };
@@ -810,7 +905,7 @@ export class RoomDO extends DurableObject<Env> {
       const snapshot: ServerMsg = {
         t: "snapshot",
         v: 1,
-        you: me?.id ?? "",
+        you: meId ?? "",
         facilitator: this.facilitatorId,
         members,
         activity: this.activity,

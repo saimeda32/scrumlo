@@ -29,6 +29,7 @@ import {
   RETRO_CANVAS_H as CANVAS_H,
   EMOTES,
   PULSE_DIMENSIONS,
+  PROTOCOL_VERSION,
 } from "../shared/protocol";
 
 const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
@@ -286,12 +287,25 @@ export class RoomDO extends DurableObject<Env> {
     let msg: ClientMsg;
     try {
       const text = typeof raw === "string" ? raw : new TextDecoder().decode(raw);
-      msg = JSON.parse(text) as ClientMsg;
+      if (text.length > 16_384) return; // frame-size cap: no oversized frames
+      const parsed: unknown = JSON.parse(text);
+      // Validate the envelope before trusting it as a ClientMsg: it must be a
+      // versioned object with a string `t`. Rejects "null", 42, "hi", and any
+      // frame from a skewed protocol version instead of field-accessing junk.
+      if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        typeof (parsed as { t?: unknown }).t !== "string" ||
+        (parsed as { v?: unknown }).v !== PROTOCOL_VERSION
+      ) {
+        return;
+      }
+      msg = parsed as ClientMsg;
     } catch {
       return;
     }
 
-    const me = ws.deserializeAttachment() as Member | null;
+    const me = this.asMember(ws);
 
     // Flood guard: a participant on a shared link can't hammer the room. A token
     // bucket (burst 60, refill 30/s) comfortably covers cursors + real interaction
@@ -329,7 +343,7 @@ export class RoomDO extends DurableObject<Env> {
     // (server-authoritative, so it's fair and everyone lands on the same name) and
     // fans the result out like an emote. Nothing is persisted.
     if (msg.t === "spotlightPick") {
-      if (!this.isFacilitator(me)) return; // only the host spins the room
+      if (!me || !this.isFacilitator(me)) return; // only the host spins the room
       const present = this.membersFrom(this.ctx.getWebSockets());
       if (present.length === 0) return;
       const pick = present[crypto.getRandomValues(new Uint32Array(1))[0] % present.length];
@@ -903,8 +917,13 @@ export class RoomDO extends DurableObject<Env> {
         break;
       }
 
-      default:
+      default: {
+        // Compile-time exhaustiveness: if a new ClientMsg variant is added without a
+        // handler here, this line fails to type-check instead of silently no-op'ing.
+        const _exhaustive: never = msg;
+        void _exhaustive;
         return;
+      }
     }
 
     // Persist the mutation BEFORE broadcasting, so a hibernation eviction
@@ -916,7 +935,7 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
-    const gone = ws.deserializeAttachment() as Member | null;
+    const gone = this.asMember(ws);
     if (gone) {
       this.cursors.delete(gone.id);
       this.buckets.delete(gone.id);
@@ -1053,6 +1072,17 @@ export class RoomDO extends DurableObject<Env> {
     return !!me && me.id === this.facilitatorId;
   }
 
+  /** Validate the hibernation attachment rather than trusting the blob shape. */
+  private asMember(ws: WebSocket): Member | null {
+    const m = ws.deserializeAttachment();
+    return m &&
+      typeof m === "object" &&
+      typeof (m as Member).id === "string" &&
+      typeof (m as Member).name === "string"
+      ? (m as Member)
+      : null;
+  }
+
   /** The active deck's card values · a built-in or the facilitator's custom sequence. */
   private deckCards(): string[] {
     if (this.estimate.deck === "custom" && this.estimate.customDeck.length) return this.estimate.customDeck;
@@ -1102,7 +1132,7 @@ export class RoomDO extends DurableObject<Env> {
       // Skip clients whose send buffer is already backed up · dropping a cursor
       // frame for a slow socket is harmless and keeps fast clients smooth.
       if (w.bufferedAmount > 512 * 1024) continue;
-      const me = w.deserializeAttachment() as Member | null;
+      const me = this.asMember(w);
       const mine = me?.id;
       const forThem = mine ? cursors.filter((c) => c.id !== mine) : cursors;
       try {
@@ -1271,7 +1301,7 @@ export class RoomDO extends DurableObject<Env> {
     // the auto-reveal quorum, and picker odds aren't doubled.
     const byId = new Map<string, Member>();
     for (const w of sockets) {
-      const m = w.deserializeAttachment() as Member | null;
+      const m = this.asMember(w);
       if (m && typeof m.id === "string" && !byId.has(m.id)) byId.set(m.id, m);
     }
     return [...byId.values()];
@@ -1330,7 +1360,7 @@ export class RoomDO extends DurableObject<Env> {
     for (const w of sockets) {
       // me === null → a spectator (connected, no name yet). They still get a
       // read-only snapshot (you="") so the room renders before they commit a name.
-      const me = w.deserializeAttachment() as Member | null;
+      const me = this.asMember(w);
       const meId = me?.id ?? null;
 
       const estimate: EstimateView = {

@@ -13,7 +13,6 @@ export function FullscreenBar({
   isFacil,
   client,
   timerEndsAt,
-  timerDurationMs,
   onExit,
 }: {
   retro: RetroView;

@@ -16,8 +16,8 @@ function RoomsCounter() {
     let alive = true;
     const load = () =>
       fetch("/api/stats")
-        .then((r) => r.json())
-        .then((d: { count: number }) => alive && setTarget(d.count))
+        .then((r) => r.json() as Promise<{ count: number }>)
+        .then((d) => alive && setTarget(d.count))
         .catch(() => {});
     load();
     const id = setInterval(load, 15000); // gently live

@@ -15,7 +15,6 @@ function scoreColor(v: number): string {
 export function PulseBoard({
   pulse,
   members,
-  you,
   isFacil,
   canAct,
   client,

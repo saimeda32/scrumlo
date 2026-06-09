@@ -1,5 +1,29 @@
 import { WebSocket as ReconnectingWebSocket } from "partysocket";
 import type { ClientMsg, ServerMsg, Snapshot, Activity, PickMode } from "../../shared/protocol";
+import { PROTOCOL_VERSION } from "../../shared/protocol";
+
+/** A server frame is only trusted if it's a versioned object with a string `t`. */
+function isServerEnvelope(x: unknown): x is { t: string; v: number } {
+  return (
+    !!x &&
+    typeof x === "object" &&
+    typeof (x as { t?: unknown }).t === "string" &&
+    typeof (x as { v?: unknown }).v === "number"
+  );
+}
+
+/** Light shape check so a malformed snapshot can't crash the view on dispatch. */
+function isSnapshot(x: ServerMsg): x is Snapshot {
+  const s = x as Snapshot;
+  return (
+    x.t === "snapshot" &&
+    Array.isArray(s.members) &&
+    typeof s.activity === "string" &&
+    !!s.estimate &&
+    !!s.retro &&
+    !!s.pick
+  );
+}
 
 export type RoomClient = {
   join: (name: string) => void;
@@ -88,6 +112,7 @@ export function createRoomClient(
   ) => void,
   onEmote?: (emoji: string, from: string) => void,
   onSpotlight?: (name: string, by: string, nonce: number) => void,
+  onSkew?: () => void, // server speaks a different protocol version (deploy in progress)
 ): RoomClient {
   const clientId = clientIdFor(room);
   const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -138,9 +163,16 @@ export function createRoomClient(
   ws.addEventListener("close", () => onStatus(false));
   ws.addEventListener("message", (e) => {
     try {
-      const msg = JSON.parse(e.data as string) as ServerMsg;
-      if (msg.t === "snapshot") onSnapshot(msg);
-      else if (msg.t === "cursors") onCursors?.(msg.cursors);
+      const parsed: unknown = JSON.parse(e.data as string);
+      if (!isServerEnvelope(parsed)) return; // ignore non-envelope frames
+      if (parsed.v !== PROTOCOL_VERSION) {
+        onSkew?.(); // a deploy bumped the protocol; ask the user to refresh
+        return;
+      }
+      const msg = parsed as ServerMsg;
+      if (msg.t === "snapshot") {
+        if (isSnapshot(msg)) onSnapshot(msg); // a malformed snapshot can't crash the view
+      } else if (msg.t === "cursors") onCursors?.(msg.cursors);
       else if (msg.t === "emote") onEmote?.(msg.emoji, msg.from);
       else if (msg.t === "spotlight") onSpotlight?.(msg.name, msg.by, msg.nonce);
       else if (msg.t === "ended") {

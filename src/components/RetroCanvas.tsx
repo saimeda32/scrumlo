@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RetroView, RetroCardView } from "../../shared/protocol";
-import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS, RETRO_PHASES } from "../../shared/protocol";
+import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { avatarColor, initials } from "../lib/colors";
 import { columnColor, type ColC } from "../lib/retroColors";

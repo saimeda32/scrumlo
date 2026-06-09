@@ -4,6 +4,7 @@ import type {
   EstimateView,
   RetroView,
   PickView,
+  PulseView,
   Activity,
   Snapshot,
 } from "../../shared/protocol";
@@ -18,6 +19,7 @@ type RoomState = {
   estimate: EstimateView | null;
   retro: RetroView | null;
   board: RetroView | null;
+  pulse: PulseView | null;
   pick: PickView | null;
   timerEndsAt: number | null;
   timerDurationMs: number | null;
@@ -36,6 +38,7 @@ export const useRoom = create<RoomState>((set) => ({
   estimate: null,
   retro: null,
   board: null,
+  pulse: null,
   pick: null,
   timerEndsAt: null,
   timerDurationMs: null,
@@ -50,6 +53,7 @@ export const useRoom = create<RoomState>((set) => ({
       estimate: s.estimate,
       retro: s.retro,
       board: s.board,
+      pulse: s.pulse,
       pick: s.pick,
       timerEndsAt: s.timerEndsAt,
       timerDurationMs: s.timerDurationMs,

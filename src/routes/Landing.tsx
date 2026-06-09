@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { StatusTicker } from "../components/StatusTicker";
 import { FLAVOR } from "../lib/flavor";
-import { IconEstimate, IconRetro, IconPick, IconBoard } from "../components/icons";
+import { IconEstimate, IconRetro, IconPick, IconBoard, IconPulse } from "../components/icons";
 import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { DemoTheater } from "../components/DemoTheater";
@@ -162,7 +162,7 @@ export default function Landing() {
 
       {/* activities band */}
       <section className="mx-auto max-w-5xl px-6 py-12">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {[
             {
               Icon: IconEstimate,
@@ -177,7 +177,12 @@ export default function Landing() {
             {
               Icon: IconBoard,
               t: "Roadmap",
-              d: "A plain Now / Next / Later board on the same canvas. Drop ideas, group them, dot-vote priorities, export — ephemeral planning, no database.",
+              d: "A plain Now / Next / Later board on the same canvas. Group ideas, dot-vote priorities, export. Ephemeral planning, no database.",
+            },
+            {
+              Icon: IconPulse,
+              t: "Pulse",
+              d: "A team health check: rate morale, clarity, delivery… 1–5, blind, then reveal an aggregate radar. Just votes — nothing kept.",
             },
             { Icon: IconPick, t: "Pick", d: "Who goes first? Spin for a name, shuffle an order, or pick from a list. No favorites." },
           ].map(({ Icon, t, d }) => (
@@ -191,7 +196,7 @@ export default function Landing() {
           ))}
         </div>
         <p className="mt-5 text-center text-sm text-slate-500 dark:text-slate-400">
-          All four in one room · the facilitator switches live and everyone follows.
+          All five in one room · the facilitator switches live and everyone follows.
         </p>
       </section>
 

@@ -1,4 +1,4 @@
-import type { EstimateView, RetroView, PickView, Member } from "../../shared/protocol";
+import type { EstimateView, RetroView, PickView, PulseView, Member } from "../../shared/protocol";
 import { RETRO_TEMPLATES } from "../../shared/protocol";
 import { numericValue } from "./colors";
 
@@ -13,9 +13,10 @@ export function buildSessionMarkdown(args: {
   estimate: EstimateView;
   retro: RetroView;
   board?: RetroView;
+  pulse?: PulseView;
   pick: PickView;
 }): string {
-  const { room, members, estimate, retro, board, pick } = args;
+  const { room, members, estimate, retro, board, pulse, pick } = args;
   const nameById = new Map(members.map((m) => [m.id, m.name]));
   const out: string[] = [`# Scrumlo — ${room}`, `_Exported ${new Date().toLocaleString()}_`];
 
@@ -98,6 +99,14 @@ export function buildSessionMarkdown(args: {
       if (!cards.length) continue;
       out.push("", `### ${col.emoji} ${col.title}`);
       for (const c of cards) out.push(`- ${c.text}${c.votes ? ` (▲ ${c.votes})` : ""}`);
+    }
+  }
+
+  // Team health check (only once revealed)
+  if (pulse?.results && pulse.results.length) {
+    out.push("", "## Team health check");
+    for (const r of pulse.results) {
+      out.push(`- ${r.dim}: **${r.avg.toFixed(1)}** / 5 _(from ${r.count})_`);
     }
   }
 

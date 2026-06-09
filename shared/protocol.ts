@@ -10,7 +10,19 @@ export type Member = {
 };
 
 /** A room runs one activity at a time; the facilitator switches between them. */
-export type Activity = "estimate" | "retro" | "pick" | "board";
+export type Activity = "estimate" | "retro" | "pick" | "board" | "pulse";
+
+// ---- Pulse (team health check) ----
+export const PULSE_DIMENSIONS = ["Morale", "Clarity", "Delivery", "Collaboration", "Fun"] as const;
+
+export type PulseView = {
+  dimensions: string[];
+  phase: "voting" | "revealed";
+  voted: string[]; // member ids who've rated every dimension
+  yourVotes: Record<string, number> | null; // your dim -> 1..5 (null for spectators)
+  // per-dimension aggregate, only once revealed
+  results: { dim: string; avg: number; count: number; spread: number[] }[] | null;
+};
 
 // ---- Estimation ----
 
@@ -299,6 +311,10 @@ export type ClientMsg =
   | { t: "retroGroupCard"; v: 1; cardId: string; ontoCardId: string } // stack cardId onto onto's group
   | { t: "retroSetAction"; v: 1; cardId: string; on: boolean; owner?: string | null } // promote a sticky to an action item
   | { t: "retroSetPhase"; v: 1; phase: RetroPhase } // facilitator steps the retro phase
+  // pulse (health check)
+  | { t: "pulseVote"; v: 1; dim: string; value: number }
+  | { t: "pulseReveal"; v: 1 }
+  | { t: "pulseReset"; v: 1 }
   | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors
   | { t: "retroSpotlight"; v: 1; cardId: string | null } // facilitator: focus everyone on a card
   | { t: "retroPickRandom"; v: 1 } // facilitator: spotlight a random not-yet-discussed card
@@ -321,6 +337,7 @@ export type Snapshot = {
   estimate: EstimateView;
   retro: RetroView;
   board: RetroView; // a separate planning board (roadmap) — same canvas, own cards
+  pulse: PulseView; // team health check
   pick: PickView;
   /** shared countdown: epoch-ms when it ends, or null. Clients render the remaining time. */
   timerEndsAt: number | null;

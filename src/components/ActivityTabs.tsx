@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Activity } from "../../shared/protocol";
-import { IconEstimate, IconRetro, IconPick, IconBoard } from "./icons";
+import { IconEstimate, IconRetro, IconPick, IconBoard, IconPulse } from "./icons";
 
 export function ActivityTabs({
   activity,
@@ -37,6 +37,7 @@ export function ActivityTabs({
       {tab("estimate", "Estimate", <IconEstimate className="h-4 w-4" />)}
       {tab("retro", "Retro", <IconRetro className="h-4 w-4" />)}
       {tab("board", "Roadmap", <IconBoard className="h-4 w-4" />)}
+      {tab("pulse", "Pulse", <IconPulse className="h-4 w-4" />)}
       {tab("pick", "Pick", <IconPick className="h-4 w-4" />)}
     </div>
   );

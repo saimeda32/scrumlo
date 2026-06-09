@@ -50,6 +50,12 @@ export const IconBoard = ({ className }: IconProps) => (
   </svg>
 );
 
+export const IconPulse = ({ className }: IconProps) => (
+  <svg {...svg(className)}>
+    <path d="M3 12h3l2-5 3 9 2.5-6 1.5 2H21" />
+  </svg>
+);
+
 export const IconPerson = ({ className }: IconProps) => (
   <svg {...svg(className)}>
     <circle cx="10" cy="7" r="3" />

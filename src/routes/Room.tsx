@@ -10,6 +10,7 @@ import { ActivityTabs } from "../components/ActivityTabs";
 import { EstimateBoard } from "../components/EstimateBoard";
 import { RetroBoard } from "../components/RetroBoard";
 import { PickerBoard } from "../components/PickerBoard";
+import { PulseBoard } from "../components/PulseBoard";
 import { ExportSheet } from "../components/ExportSheet";
 import { StatusTicker } from "../components/StatusTicker";
 import { LogoMark } from "../components/Logo";
@@ -34,6 +35,7 @@ export default function Room() {
     estimate,
     retro,
     board,
+    pulse,
     pick,
     timerEndsAt,
     timerDurationMs,
@@ -118,7 +120,7 @@ export default function Room() {
     );
   }
 
-  if (!estimate || !retro || !board || !pick) {
+  if (!estimate || !retro || !board || !pulse || !pick) {
     return (
       <div className="grid min-h-screen place-items-center text-slate-400 [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(50rem_30rem_at_50%_-8rem,#1b1838,transparent_60%)]">
         <StatusTicker phrases={FLAVOR.connecting} />
@@ -226,7 +228,7 @@ export default function Room() {
             canSwitch={isFacil}
             onSwitch={(a) => client.switchActivity(a)}
           />
-          {activity !== "board" && (
+          {activity !== "board" && activity !== "pulse" && (
             <button
               onClick={() => setPickerOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-300 dark:hover:text-iris-300"
@@ -247,7 +249,9 @@ export default function Room() {
         <p className="mt-2 mb-5 text-xs text-slate-500 dark:text-slate-400">
           One link runs your whole ceremony:{" "}
           <span className="font-semibold text-slate-700 dark:text-slate-200">Estimate</span>,{" "}
-          <span className="font-semibold text-slate-700 dark:text-slate-200">Retro</span>, and{" "}
+          <span className="font-semibold text-slate-700 dark:text-slate-200">Retro</span>,{" "}
+          <span className="font-semibold text-slate-700 dark:text-slate-200">Roadmap</span>,{" "}
+          <span className="font-semibold text-slate-700 dark:text-slate-200">Pulse</span>, and{" "}
           <span className="font-semibold text-slate-700 dark:text-slate-200">Pick</span> in the same
           room; the facilitator switches and everyone follows.
         </p>
@@ -284,6 +288,8 @@ export default function Room() {
               timerEndsAt={timerEndsAt}
               timerDurationMs={timerDurationMs}
             />
+          ) : activity === "pulse" ? (
+            <PulseBoard pulse={pulse} members={members} you={you ?? ""} isFacil={isFacil} canAct={canAct} client={client} />
           ) : (
             <PickerBoard pick={pick} members={members} isFacil={isFacil} client={client} />
           )}
@@ -292,7 +298,7 @@ export default function Room() {
         {showExport && (
           <ExportSheet
             room={room}
-            markdown={buildSessionMarkdown({ room, members, estimate, retro, board, pick })}
+            markdown={buildSessionMarkdown({ room, members, estimate, retro, board, pulse, pick })}
             onClose={() => setShowExport(false)}
           />
         )}

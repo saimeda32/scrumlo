@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 // Retro stickies + a gliding cursor, then a Pick wheel with confetti. Pure
 // CSS/SVG, no backend, remounts each act so the entrance animations replay.
 
-const ACTS = ["Estimate", "Retro", "Roadmap", "Pick"] as const;
+const ACTS = ["Estimate", "Retro", "Roadmap", "Pulse", "Pick"] as const;
 const ACT_MS = 4600;
 
 const SEATS = [
@@ -81,7 +81,8 @@ export function DemoTheater() {
           {act === 0 && <EstimateAct />}
           {act === 1 && <RetroAct />}
           {act === 2 && <RoadmapAct />}
-          {act === 3 && <PickAct />}
+          {act === 3 && <PulseAct />}
+          {act === 4 && <PickAct />}
         </div>
       </div>
 
@@ -191,6 +192,39 @@ function RoadmapAct() {
                 </div>
               </div>
             ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const PULSE = [
+  { d: "Morale", v: 4.2, c: "#10b981" },
+  { d: "Clarity", v: 3.1, c: "#84cc16" },
+  { d: "Delivery", v: 2.4, c: "#f59e0b" },
+  { d: "Collaboration", v: 4.6, c: "#10b981" },
+  { d: "Fun", v: 3.8, c: "#84cc16" },
+];
+
+function PulseAct() {
+  return (
+    <div className="flex h-full flex-col justify-center">
+      <div className="mb-3 flex items-baseline gap-2">
+        <span className="text-2xl font-extrabold text-lime-600 dark:text-lime-400">3.6</span>
+        <span className="text-[11px] text-slate-500 dark:text-slate-400">team health · out of 5</span>
+      </div>
+      <div className="space-y-2">
+        {PULSE.map((p, i) => (
+          <div key={p.d} className="flex items-center gap-2">
+            <span className="w-24 shrink-0 text-[11px] font-semibold text-slate-600 dark:text-slate-300">{p.d}</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+              <div
+                className="animate-draw h-full rounded-full"
+                style={{ width: `${(p.v / 5) * 100}%`, background: p.c, transformOrigin: "left center", animationDelay: `${i * 120}ms` }}
+              />
+            </div>
+            <span className="w-7 text-right text-[11px] font-bold tabular-nums" style={{ color: p.c }}>{p.v}</span>
           </div>
         ))}
       </div>

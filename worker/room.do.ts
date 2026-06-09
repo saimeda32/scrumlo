@@ -11,6 +11,7 @@ import type {
   EstimateView,
   RetroView,
   PickView,
+  PulseView,
   PickMode,
   Phase,
   Activity,
@@ -24,6 +25,7 @@ import {
   RETRO_ZONE_W as ZONE_W,
   RETRO_CANVAS_H as CANVAS_H,
   EMOTES,
+  PULSE_DIMENSIONS,
 } from "../shared/protocol";
 
 const IDLE_MS = 30 * 60 * 1000; // 30 min with no activity → the room ends
@@ -86,6 +88,12 @@ type PickState = {
   recent: string[]; // already-picked names/items, excluded until the pool is exhausted
 };
 
+type PulseState = {
+  dimensions: string[];
+  phase: "voting" | "revealed";
+  votes: Record<string, Record<string, number>>; // memberId -> { dimension -> 1..5 }
+};
+
 /**
  * One RoomDO per room. Authoritative, in-memory, ephemeral.
  *
@@ -139,6 +147,7 @@ export class RoomDO extends DurableObject<Env> {
     phase: "vote",
   };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0, recent: [] };
+  private pulse: PulseState = { dimensions: [...PULSE_DIMENSIONS], phase: "voting", votes: {} };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
   private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
@@ -195,6 +204,13 @@ export class RoomDO extends DurableObject<Env> {
           }
         });
       }
+      const pu = await ctx.storage.get<PulseState>("pulse");
+      if (pu) {
+        this.pulse = pu;
+        this.pulse.dimensions ??= [...PULSE_DIMENSIONS];
+        this.pulse.phase ??= "voting";
+        this.pulse.votes ??= {};
+      }
       const p = await ctx.storage.get<PickState>("pick");
       if (p) {
         this.pick = p;
@@ -214,6 +230,7 @@ export class RoomDO extends DurableObject<Env> {
     await this.ctx.storage.put("estimate", this.estimate);
     await this.ctx.storage.put("retro", this.retro);
     await this.ctx.storage.put("board", this.board);
+    await this.ctx.storage.put("pulse", this.pulse);
     await this.ctx.storage.put("pick", this.pick);
     await this.ctx.storage.put("clients", this.clients);
     await this.ctx.storage.put("activity", this.activity);
@@ -505,7 +522,7 @@ export class RoomDO extends DurableObject<Env> {
       // ---- activity + retro ----
       case "switchActivity": {
         if (!this.isFacilitator(me)) return;
-        if (!["estimate", "retro", "pick", "board"].includes(msg.activity)) return;
+        if (!["estimate", "retro", "pick", "board", "pulse"].includes(msg.activity)) return;
         this.activity = msg.activity;
         break;
       }
@@ -758,6 +775,28 @@ export class RoomDO extends DurableObject<Env> {
         break;
       }
 
+      // ---- pulse (team health check) ----
+      case "pulseVote": {
+        if (!me) return;
+        if (this.pulse.phase !== "voting") return; // votes are blind; locked after reveal
+        if (!this.pulse.dimensions.includes(msg.dim)) return;
+        const value = Math.round(Number(msg.value) || 0);
+        if (value < 1 || value > 5) return;
+        (this.pulse.votes[me.id] ??= {})[msg.dim] = value;
+        break;
+      }
+      case "pulseReveal": {
+        if (!this.isFacilitator(me)) return;
+        this.pulse.phase = "revealed";
+        break;
+      }
+      case "pulseReset": {
+        if (!this.isFacilitator(me)) return;
+        this.pulse.votes = {};
+        this.pulse.phase = "voting";
+        break;
+      }
+
       default:
         return;
     }
@@ -810,6 +849,10 @@ export class RoomDO extends DurableObject<Env> {
     }
     if (this.estimate.rationales[id] !== undefined) {
       delete this.estimate.rationales[id];
+      changed = true;
+    }
+    if (this.pulse.votes[id] !== undefined) {
+      delete this.pulse.votes[id];
       changed = true;
     }
     for (const c of [...this.retro.cards, ...this.board.cards]) {
@@ -968,6 +1011,29 @@ export class RoomDO extends DurableObject<Env> {
     }
   }
 
+  /** Build the pulse view: votes are blind (only counts) until the facilitator reveals. */
+  private buildPulseView(meId: string | null): PulseView {
+    const dims = this.pulse.dimensions;
+    const ids = Object.keys(this.pulse.votes);
+    const voted = ids.filter((id) => dims.every((d) => this.pulse.votes[id]?.[d] !== undefined));
+    const revealed = this.pulse.phase === "revealed";
+    return {
+      dimensions: dims,
+      phase: this.pulse.phase,
+      voted,
+      yourVotes: meId ? (this.pulse.votes[meId] ?? {}) : null,
+      results: revealed
+        ? dims.map((d) => {
+            const vals = ids
+              .map((id) => this.pulse.votes[id]?.[d])
+              .filter((v): v is number => typeof v === "number");
+            const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+            return { dim: d, avg, count: vals.length, spread: vals };
+          })
+        : null,
+    };
+  }
+
   /** Build one socket's view of a retro/board surface (with server-side masking + redaction). */
   private buildRetroView(state: RetroState, meId: string | null, nameById: Map<string, string>): RetroView {
     const tpl = RETRO_TEMPLATES[state.template] ?? RETRO_TEMPLATES.ssc;
@@ -1108,6 +1174,7 @@ export class RoomDO extends DurableObject<Env> {
         estimate,
         retro: this.buildRetroView(this.retro, meId, nameById),
         board: this.buildRetroView(this.board, meId, nameById),
+        pulse: this.buildPulseView(meId),
         pick,
         timerEndsAt: this.timerEndsAt,
         timerDurationMs: this.timerDurationMs,

@@ -6,7 +6,10 @@
   "workers_dev": true,
   // scrumlo.com is an active Cloudflare zone, attached as a custom domain (the old
   // GoDaddy apex A records were removed). workers.dev stays on as a fallback.
-  "routes": [{ "pattern": "scrumlo.com", "custom_domain": true }],
+  "routes": [
+    { "pattern": "scrumlo.com", "custom_domain": true },
+    { "pattern": "www.scrumlo.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

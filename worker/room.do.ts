@@ -108,6 +108,8 @@ type PollState = {
   mode: PollMode;
   prompt: string;
   multi: boolean; // choice mode: allow more than one pick per person
+  blind: boolean; // hide results until the facilitator reveals (anti-anchoring)
+  phase: "answering" | "revealed"; // only gates anything while blind
   entries: { id: string; text: string; authorId: string; voters: string[] }[];
 };
 
@@ -169,7 +171,7 @@ export class RoomDO extends DurableObject<Env> {
   };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0, recent: [] };
   private pulse: PulseState = { dimensions: [...PULSE_DIMENSIONS], phase: "voting", votes: {} };
-  private poll: PollState = { mode: "open", prompt: "", multi: false, entries: [] };
+  private poll: PollState = { mode: "open", prompt: "", multi: false, blind: true, phase: "answering", entries: [] };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
   private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
@@ -241,6 +243,8 @@ export class RoomDO extends DurableObject<Env> {
         this.poll.mode ??= "open";
         this.poll.multi ??= false;
         this.poll.prompt ??= "";
+        this.poll.blind ??= true;
+        this.poll.phase ??= "answering";
         this.poll.entries ??= [];
       }
       const p = await ctx.storage.get<PickState>("pick");
@@ -672,8 +676,8 @@ export class RoomDO extends DurableObject<Env> {
         if (!me) return;
         const tpl = RETRO_TEMPLATES[R.template];
         if (!tpl || !tpl.columns.some((c) => c.id === msg.column)) return;
+        // Blank is allowed: the UI drops an empty sticky and focuses it for typing.
         const text = String(msg.text ?? "").trim().slice(0, 280);
-        if (!text) return;
         if (R.cards.length >= 300) return; // hard cap
         const tplA = RETRO_TEMPLATES[R.template] ?? RETRO_TEMPLATES.ssc;
         const inZone = R.cards.filter((c) => c.column === msg.column).length;
@@ -943,6 +947,7 @@ export class RoomDO extends DurableObject<Env> {
         if (msg.mode !== "open" && msg.mode !== "cloud" && msg.mode !== "choice") return;
         this.poll.mode = msg.mode;
         this.poll.entries = []; // switching the format starts fresh
+        this.poll.phase = "answering";
         break;
       }
       case "pollSetMulti": {
@@ -976,6 +981,8 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "pollVote": {
         if (!me) return;
+        // Blind Q&A: upvoting opens only at reveal (you can't rank answers you can't see).
+        if (this.poll.mode === "open" && this.poll.blind && this.poll.phase === "answering") return;
         const e = this.poll.entries.find((x) => x.id === msg.id);
         if (!e) return;
         const i = e.voters.indexOf(me.id);
@@ -994,13 +1001,30 @@ export class RoomDO extends DurableObject<Env> {
         break;
       }
       case "pollRemove": {
-        if (!this.isFacilitator(me)) return;
+        if (!me) return;
+        // Facilitator removes anything; an author can withdraw their own entry
+        // (the UI has always offered this on Q&A answers).
+        const entry = this.poll.entries.find((e) => e.id === msg.id);
+        if (!entry) return;
+        if (!this.isFacilitator(me) && entry.authorId !== me.id) return;
         this.poll.entries = this.poll.entries.filter((e) => e.id !== msg.id);
         break;
       }
       case "pollClear": {
         if (!this.isFacilitator(me)) return;
         this.poll.entries = [];
+        this.poll.phase = "answering"; // a fresh question starts blind again
+        break;
+      }
+      case "pollSetBlind": {
+        if (!this.isFacilitator(me)) return;
+        this.poll.blind = !!msg.on;
+        if (this.poll.blind) this.poll.phase = "answering"; // re-hiding re-arms the reveal
+        break;
+      }
+      case "pollReveal": {
+        if (!this.isFacilitator(me)) return;
+        this.poll.phase = "revealed";
         break;
       }
 
@@ -1324,10 +1348,32 @@ export class RoomDO extends DurableObject<Env> {
     return best;
   }
 
-  /** Build the poll view: an upvoted Q&A list, or an aggregated word cloud. */
-  private buildPollView(meId: string | null): PollView {
+  /** Build the poll view: an upvoted Q&A list, or an aggregated word cloud.
+   *  While blind + answering, results stay server-side for EVERYONE (facilitator
+   *  included) — clients get only their own entries plus the answered/eligible
+   *  counters, so early answers can't anchor the room and devtools can't peek. */
+  private buildPollView(meId: string | null, eligible: number): PollView {
     const total = this.poll.entries.length;
+    // Who has answered: distinct pickers in choice mode, distinct authors otherwise.
+    const answeredIds = new Set<string>();
+    for (const e of this.poll.entries) {
+      if (this.poll.mode === "choice") for (const v of e.voters) answeredIds.add(v);
+      else answeredIds.add(e.authorId);
+    }
+    const hidden = this.poll.blind && this.poll.phase === "answering";
+    const base = {
+      mode: this.poll.mode,
+      prompt: this.poll.prompt,
+      multi: this.poll.multi,
+      blind: this.poll.blind,
+      phase: this.poll.phase,
+      answered: answeredIds.size,
+      eligible,
+      youAnswered: meId ? answeredIds.has(meId) : false,
+      total,
+    };
     if (this.poll.mode === "cloud") {
+      if (hidden) return { ...base, answers: [], cloud: [] };
       // Count DISTINCT submitters per word, so the cloud measures how many people
       // feel a thing, not who typed the most. One person spamming a word counts once.
       const submitters = new Map<string, Set<string>>();
@@ -1339,18 +1385,28 @@ export class RoomDO extends DurableObject<Env> {
         .map(([word, authors]) => ({ word, count: authors.size }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 80);
-      return { mode: "cloud", prompt: this.poll.prompt, multi: this.poll.multi, answers: [], cloud, total };
+      return { ...base, answers: [], cloud };
     }
-    const answers = this.poll.entries.map((e) => ({
+    let answers = this.poll.entries.map((e) => ({
       id: e.id,
       text: e.text,
       votes: e.voters.length,
       youVoted: meId ? e.voters.includes(meId) : false,
       mine: meId ? e.authorId === meId : false,
     }));
+    if (hidden) {
+      if (this.poll.mode === "open") {
+        // Blind Q&A: you see only what YOU wrote (so you can withdraw it).
+        answers = answers.filter((a) => a.mine);
+      } else {
+        // Blind choice: options stay visible (you have to see them to pick) but
+        // every count is masked until reveal.
+        answers = answers.map((a) => ({ ...a, votes: 0 }));
+      }
+    }
     // open sorts answers by votes; choice keeps the facilitator's option order.
-    if (this.poll.mode !== "choice") answers.sort((a, b) => b.votes - a.votes);
-    return { mode: this.poll.mode, prompt: this.poll.prompt, multi: this.poll.multi, answers, cloud: [], total };
+    if (this.poll.mode !== "choice" && !hidden) answers.sort((a, b) => b.votes - a.votes);
+    return { ...base, answers, cloud: [] };
   }
 
   /** Build the pulse view: votes are blind (only counts) until the facilitator reveals. */
@@ -1540,7 +1596,7 @@ export class RoomDO extends DurableObject<Env> {
         retro: this.buildRetroView(this.retro, meId, nameById, meId === this.facilitatorId),
         board: this.buildRetroView(this.board, meId, nameById, meId === this.facilitatorId),
         pulse: this.buildPulseView(meId),
-        poll: this.buildPollView(meId),
+        poll: this.buildPollView(meId, members.length),
         pick,
         timerEndsAt: this.timerEndsAt,
         timerDurationMs: this.timerDurationMs,

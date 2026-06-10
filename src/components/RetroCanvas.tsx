@@ -42,8 +42,6 @@ export function RetroCanvas({
   // and each card subscribes to only its own live-drag, so a mouse move re-renders
   // just those tiny pieces, never the board/backdrop.
   const [zoom, setZoom] = useState(0.8);
-  const [addingZone, setAddingZone] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
   const [full, setFull] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -94,11 +92,10 @@ export function RetroCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [full]);
 
+  // One tap drops a fresh sticky right away — no typing, no Enter. Double-click
+  // it to edit the text in place.
   function addInZone(colId: string) {
-    const t = draft.trim();
-    if (t) client.retroAddCard(colId, t);
-    setDraft("");
-    setAddingZone(null);
+    client.retroAddCard(colId, "");
   }
 
   return (
@@ -177,36 +174,12 @@ export function RetroCanvas({
                   </div>
                   {canAct && (
                     <div className="px-4 pt-2">
-                      {addingZone === col.id ? (
-                        <textarea
-                          autoFocus
-                          value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              addInZone(col.id);
-                            } else if (e.key === "Escape") {
-                              setDraft("");
-                              setAddingZone(null);
-                            }
-                          }}
-                          onBlur={() => !draft.trim() && setAddingZone(null)}
-                          placeholder="Type it, Enter to add."
-                          rows={2}
-                          className={`w-full resize-none rounded-[10px] px-3 py-2 text-sm font-medium text-slate-800 shadow ${c.note}`}
-                        />
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setDraft("");
-                            setAddingZone(col.id);
-                          }}
-                          className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-2 border-dashed border-slate-300 py-2 text-sm font-semibold text-slate-400 transition hover:border-iris-400 hover:text-iris-600 dark:border-white/15 dark:text-slate-500 dark:hover:text-iris-300"
-                        >
-                          <span className="text-base leading-none">+</span> Add a sticky
-                        </button>
-                      )}
+                      <button
+                        onClick={() => addInZone(col.id)}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-2 border-dashed border-slate-300 py-2 text-sm font-semibold text-slate-400 transition hover:border-iris-400 hover:text-iris-600 dark:border-white/15 dark:text-slate-500 dark:hover:text-iris-300"
+                      >
+                        <span className="text-base leading-none">+</span> Add a sticky
+                      </button>
                     </div>
                   )}
                 </div>
@@ -355,7 +328,8 @@ function CanvasCard({
   client: RoomClient;
 }) {
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
-  const [editing, setEditing] = useState(false);
+  // A just-dropped sticky (yours + still blank) opens straight into edit, focused.
+  const [editing, setEditing] = useState(card.mine && card.text === "");
   const [text, setText] = useState(card.text);
   const [pick, setPick] = useState(false);
   const start = useRef({ px: 0, py: 0, cx: 0, cy: 0 });
@@ -432,7 +406,8 @@ function CanvasCard({
   }
   function saveEdit() {
     const t = text.trim();
-    if (t && t !== card.text) client.retroEditCard(card.id, t);
+    if (!t) { client.retroDeleteCard(card.id); return; } // left blank → drop it
+    if (t !== card.text) client.retroEditCard(card.id, t);
     setEditing(false);
   }
   // Keyboard accessibility: nudge a focused sticky with the arrow keys (Shift = bigger
@@ -460,7 +435,7 @@ function CanvasCard({
       onKeyDown={onKey}
       tabIndex={canAct ? 0 : -1}
       role="group"
-      aria-label={`Sticky: ${card.text}. Arrow keys to move.`}
+      aria-label={`Sticky: ${card.text || "(empty)"}. Arrow keys to move.`}
       style={{ left: x, top: y, width: CARD_W, touchAction: "none", rotate: spotlit || drag || live ? "0deg" : `${tiltOf(card.id)}deg` }}
       className={`group absolute select-none rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_16px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
         canAct ? "cursor-grab active:cursor-grabbing" : ""
@@ -509,7 +484,10 @@ function CanvasCard({
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               saveEdit();
-            } else if (e.key === "Escape") setEditing(false);
+            } else if (e.key === "Escape") {
+              if (!card.text) client.retroDeleteCard(card.id); // never-filled blank → drop it
+              else setEditing(false);
+            }
           }}
           onBlur={saveEdit}
           rows={2}
@@ -520,7 +498,8 @@ function CanvasCard({
           className="whitespace-pre-wrap break-words font-medium"
           onDoubleClick={() => canAct && card.mine && (setText(card.text), setEditing(true))}
         >
-          {card.text}
+          {/* An abandoned blank (author bailed mid-add) shouldn't look like a broken box. */}
+          {card.text || <span className="italic text-slate-400">…</span>}
         </div>
       )}
 

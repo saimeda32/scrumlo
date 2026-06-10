@@ -73,6 +73,8 @@ export type RoomClient = {
   pollVote: (id: string) => void;
   pollRemove: (id: string) => void;
   pollClear: () => void;
+  pollSetBlind: (on: boolean) => void;
+  pollReveal: () => void;
   retroSetAnonymous: (on: boolean) => void;
   retroSetBlind: (on: boolean) => void;
   retroSpotlight: (cardId: string | null) => void;
@@ -242,6 +244,8 @@ export function createRoomClient(
     pollVote: (id) => send({ t: "pollVote", v: 1, id }),
     pollRemove: (id) => send({ t: "pollRemove", v: 1, id }),
     pollClear: () => send({ t: "pollClear", v: 1 }),
+    pollSetBlind: (on) => send({ t: "pollSetBlind", v: 1, on }),
+    pollReveal: () => send({ t: "pollReveal", v: 1 }),
     retroSetAnonymous: (on) => send({ t: "retroSetAnonymous", v: 1, on }),
     retroSetBlind: (on) => send({ t: "retroSetBlind", v: 1, on }),
     retroSpotlight: (cardId) => send({ t: "retroSpotlight", v: 1, cardId }),

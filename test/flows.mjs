@@ -448,6 +448,7 @@ await flow("poll: choice single-select keeps one pick per person", async (t) => 
   a.send({ t: "switchActivity", v: 1, activity: "poll" });
   await sleep(120);
   a.send({ t: "pollSetMode", v: 1, mode: "choice" });
+  a.send({ t: "pollSetBlind", v: 1, on: false }); // these flows test LIVE results
   await sleep(120);
   a.send({ t: "pollSubmit", v: 1, text: "Option A" });
   a.send({ t: "pollSubmit", v: 1, text: "Option B" });
@@ -475,6 +476,7 @@ await flow("poll: choice multi-select allows several picks", async (t) => {
   a.send({ t: "switchActivity", v: 1, activity: "poll" });
   await sleep(120);
   a.send({ t: "pollSetMode", v: 1, mode: "choice" });
+  a.send({ t: "pollSetBlind", v: 1, on: false });
   a.send({ t: "pollSetMulti", v: 1, on: true });
   await sleep(120);
   a.send({ t: "pollSubmit", v: 1, text: "Red" });
@@ -498,6 +500,7 @@ await flow("poll: open Q&A sorts by votes, vote toggles", async (t) => {
   const [a, b] = t(await room(["Alice", "Bob"]));
   a.send({ t: "switchActivity", v: 1, activity: "poll" });
   await sleep(150);
+  a.send({ t: "pollSetBlind", v: 1, on: false });
   a.send({ t: "pollSubmit", v: 1, text: "Less meetings" });
   b.send({ t: "pollSubmit", v: 1, text: "More pairing" });
   await sleep(250);
@@ -517,6 +520,7 @@ await flow("poll: word-cloud mode aggregates word counts", async (t) => {
   a.send({ t: "switchActivity", v: 1, activity: "poll" });
   await sleep(120);
   a.send({ t: "pollSetMode", v: 1, mode: "cloud" });
+  a.send({ t: "pollSetBlind", v: 1, on: false });
   await sleep(150);
   a.send({ t: "pollSubmit", v: 1, text: "focus" });
   b.send({ t: "pollSubmit", v: 1, text: "focus" });
@@ -536,6 +540,111 @@ await flow("poll: switching mode clears entries", async (t) => {
   a.send({ t: "pollSetMode", v: 1, mode: "cloud" });
   await sleep(200);
   eq(a.snap.poll.total, 0, "entries cleared on mode switch");
+});
+
+await flow("poll: blind cloud hides results for EVERYONE until reveal", async (t) => {
+  const [a, b, c] = t(await room(["Alice", "Bob", "Cara"])); // Alice facilitator
+  a.send({ t: "switchActivity", v: 1, activity: "poll" });
+  await sleep(120);
+  a.send({ t: "pollSetMode", v: 1, mode: "cloud" });
+  await sleep(150);
+  eq(a.snap.poll.blind, true, "blind is the default");
+  eq(a.snap.poll.phase, "answering", "starts in answering");
+  b.send({ t: "pollSubmit", v: 1, text: "focus" });
+  c.send({ t: "pollSubmit", v: 1, text: "focus" });
+  await sleep(250);
+  eq(a.snap.poll.cloud, [], "facilitator can't see the cloud either");
+  eq(b.snap.poll.cloud, [], "participant can't see the cloud");
+  eq(a.snap.poll.answered, 2, "answered counter ticks");
+  eq(a.snap.poll.eligible, 3, "eligible = present members");
+  eq(b.snap.poll.youAnswered, true, "Bob knows he answered");
+  eq(a.snap.poll.youAnswered, false, "Alice hasn't");
+  a.send({ t: "pollReveal", v: 1 });
+  await sleep(250);
+  eq(b.snap.poll.phase, "revealed", "revealed for everyone");
+  eq(b.snap.poll.cloud, [{ word: "focus", count: 2 }], "cloud appears with merged count");
+});
+
+await flow("poll: blind Q&A shows only your answers, upvotes open at reveal", async (t) => {
+  const [a, b, c] = t(await room(["Alice", "Bob", "Cara"]));
+  a.send({ t: "switchActivity", v: 1, activity: "poll" });
+  await sleep(150);
+  b.send({ t: "pollSubmit", v: 1, text: "Bob's idea" });
+  c.send({ t: "pollSubmit", v: 1, text: "Cara's idea" });
+  await sleep(250);
+  eq(b.snap.poll.answers.map((x) => x.text), ["Bob's idea"], "Bob sees only his own");
+  eq(a.snap.poll.answers, [], "facilitator sees none while blind");
+  const bobsId = b.snap.poll.answers[0].id;
+  c.send({ t: "pollVote", v: 1, id: bobsId }); // upvoting is closed while blind
+  a.send({ t: "pollReveal", v: 1 });
+  await sleep(250);
+  const bobs = a.snap.poll.answers.find((x) => x.text === "Bob's idea");
+  eq(bobs.votes, 0, "blind-phase upvote was rejected");
+  eq(a.snap.poll.answers.length, 2, "everything visible after reveal");
+  c.send({ t: "pollVote", v: 1, id: bobsId });
+  await sleep(200);
+  eq(a.snap.poll.answers.find((x) => x.text === "Bob's idea").votes, 1, "upvotes work after reveal");
+});
+
+// ============================ POLL AT SCALE (20 users) ============================
+const TWENTY = Array.from({ length: 20 }, (_, i) => `User${i + 1}`);
+
+await flow("poll @20: blind word cloud — hidden while answering, exact merged counts on reveal", async (t) => {
+  const users = t(await room(TWENTY)); // User1 facilitator
+  const facil = users[0];
+  facil.send({ t: "switchActivity", v: 1, activity: "poll" });
+  await sleep(150);
+  facil.send({ t: "pollSetMode", v: 1, mode: "cloud" });
+  await sleep(200);
+  // Known distribution: 8× focus, 5× tired, 4× shipit, 3× wow
+  const words = [...Array(8).fill("focus"), ...Array(5).fill("tired"), ...Array(4).fill("shipit"), ...Array(3).fill("wow")];
+  users.forEach((u, i) => u.send({ t: "pollSubmit", v: 1, text: words[i] }));
+  // One user spams their word — distinct-submitter counting must ignore it.
+  users[1].send({ t: "pollSubmit", v: 1, text: "focus" });
+  await sleep(600);
+  for (const u of users) eq(u.snap.poll.cloud, [], `cloud hidden for ${u.name} while answering`);
+  eq(facil.snap.poll.answered, 20, "all 20 counted as answered");
+  eq(facil.snap.poll.eligible, 20, "20 eligible");
+  facil.send({ t: "pollReveal", v: 1 });
+  await sleep(500);
+  const expect = [
+    { word: "focus", count: 8 },
+    { word: "tired", count: 5 },
+    { word: "shipit", count: 4 },
+    { word: "wow", count: 3 },
+  ];
+  for (const u of users) eq(u.snap.poll.cloud, expect, `revealed cloud identical + correct for ${u.name}`);
+});
+
+await flow("poll @20: blind choice — counts masked while voting, exact bars on reveal", async (t) => {
+  const users = t(await room(TWENTY));
+  const facil = users[0];
+  facil.send({ t: "switchActivity", v: 1, activity: "poll" });
+  await sleep(150);
+  facil.send({ t: "pollSetMode", v: 1, mode: "choice" });
+  await sleep(200);
+  facil.send({ t: "pollSubmit", v: 1, text: "Option A" });
+  facil.send({ t: "pollSubmit", v: 1, text: "Option B" });
+  facil.send({ t: "pollSubmit", v: 1, text: "Option C" });
+  await sleep(300);
+  const opts = users[5].snap.poll.answers;
+  eq(opts.length, 3, "all 20 users see the 3 options while blind");
+  // 19 non-facilitators vote: 10×A, 6×B, 3×C
+  users.slice(1).forEach((u, i) => {
+    const pick = i < 10 ? opts[0] : i < 16 ? opts[1] : opts[2];
+    u.send({ t: "pollVote", v: 1, id: pick.id });
+  });
+  await sleep(600);
+  for (const u of users) {
+    eq(u.snap.poll.answers.map((x) => x.votes), [0, 0, 0], `counts masked for ${u.name} while blind`);
+  }
+  eq(users[3].snap.poll.answers.find((x) => x.id === opts[0].id).youVoted, true, "you still see your own pick");
+  eq(facil.snap.poll.answered, 19, "19 voters counted");
+  facil.send({ t: "pollReveal", v: 1 });
+  await sleep(500);
+  for (const u of users) {
+    eq(u.snap.poll.answers.map((x) => x.votes), [10, 6, 3], `true counts for ${u.name} after reveal`);
+  }
 });
 
 // ============================ PICK ============================

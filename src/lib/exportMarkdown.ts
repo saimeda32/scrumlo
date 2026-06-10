@@ -138,7 +138,10 @@ export function buildSessionMarkdown(args: {
   // Poll / Q&A
   if (poll && poll.total > 0) {
     out.push("", `## Poll${poll.prompt ? ` · ${poll.prompt}` : ""}`);
-    if (poll.mode === "cloud") out.push(poll.cloud.map((c) => `${c.word} (${c.count})`).join(" · "));
+    // Blind + unrevealed: the snapshot only carries this user's own entries, so a
+    // full export would silently misrepresent the room. Say so instead.
+    if (poll.blind && poll.phase === "answering") out.push("_Results were still hidden (not yet revealed) at export time._");
+    else if (poll.mode === "cloud") out.push(poll.cloud.map((c) => `${c.word} (${c.count})`).join(" · "));
     else for (const a of poll.answers) out.push(`- ${a.text}${a.votes ? ` (▲ ${a.votes})` : ""}`);
   }
 

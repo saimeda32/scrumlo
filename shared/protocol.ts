@@ -21,6 +21,14 @@ export type PollView = {
   mode: PollMode;
   prompt: string;
   multi: boolean; // choice mode: allow picking more than one option
+  // Blind mode: results stay server-side until the facilitator reveals, so early
+  // answers can't anchor the room. While answering, non-facilitators get only
+  // their OWN entries (so they can edit/remove) — never counts or the cloud.
+  blind: boolean;
+  phase: "answering" | "revealed"; // only meaningful while blind
+  answered: number; // distinct people who have answered
+  eligible: number; // present non-spectator members
+  youAnswered: boolean;
   // open + choice: answers/options, with votes (sorted by votes desc)
   answers: { id: string; text: string; votes: number; youVoted: boolean; mine: boolean }[];
   // cloud mode: aggregated word frequencies
@@ -344,6 +352,8 @@ export type ClientMsg =
   | { t: "pollVote"; v: 1; id: string }
   | { t: "pollRemove"; v: 1; id: string }
   | { t: "pollClear"; v: 1 }
+  | { t: "pollSetBlind"; v: 1; on: boolean } // facilitator: hide results until reveal
+  | { t: "pollReveal"; v: 1 } // facilitator: show the blind results to everyone
   | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors
   | { t: "retroSetBlind"; v: 1; on: boolean } // facilitator: hide/show other people's card bodies
   | { t: "retroSpotlight"; v: 1; cardId: string | null } // facilitator: focus everyone on a card

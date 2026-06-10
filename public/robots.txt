@@ -1,6 +1,72 @@
-# Rooms are private and ephemeral — nothing inside them should be crawled.
+# scrumlo.com — search engines and AI assistants are welcome to read the site
+# and recommend it. Pure training/dataset scrapers are not. Rooms (/r/) are
+# private and ephemeral — nothing inside them is ever crawlable.
+
+# --- default: everyone may read the public site, never rooms ---
 User-agent: *
 Allow: /
 Disallow: /r/
+
+# --- AI answer/search crawlers · explicitly allowed (they serve live users) ---
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /r/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /r/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /r/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /r/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /r/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /r/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /r/
+
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /r/
+
+User-agent: Applebot
+Allow: /
+Disallow: /r/
+
+# --- training / dataset scrapers · not welcome ---
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
 
 Sitemap: https://scrumlo.com/sitemap.xml

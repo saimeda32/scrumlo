@@ -14,38 +14,62 @@
   <meta property="og:image" content="https://scrumlo.com/og.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <style>
-    :root { --iris: #6366f1; --ink: #0f172a; --mut: #475569; --soft: #64748b; }
+    @font-face { font-family: "Inter Variable"; src: url("/fonts/inter.woff2") format("woff2-variations"); font-weight: 100 900; font-display: swap; }
+    :root { --iris-50:#eef1ff; --iris-100:#e0e5ff; --iris-400:#828bf6; --iris-500:#6366f1; --iris-600:#5249e6; --iris-700:#463bcb; --violet:#8b5cf6; --ink:#0f172a; --mut:#475569; --soft:#64748b; }
     * { box-sizing: border-box; margin: 0; }
-    body { font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--ink); background: radial-gradient(60rem 36rem at 50% -10%, #eef0ff, transparent 60%), #f6f7fb; line-height: 1.6; }
-    .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.5rem; }
-    header { padding: 1.4rem 0; }
-    header .wrap { display: flex; align-items: center; justify-content: space-between; }
-    .brand { font-weight: 800; font-size: 1.1rem; color: var(--ink); text-decoration: none; }
-    .brand span { color: var(--iris); }
-    .cta { display: inline-block; background: var(--iris); color: #fff; font-weight: 700; padding: 0.7rem 1.4rem; border-radius: 0.8rem; text-decoration: none; box-shadow: 0 10px 22px -10px rgba(99,102,241,.6); }
-    .cta:hover { background: #5558e6; }
-    h1 { font-size: 2.1rem; line-height: 1.2; letter-spacing: -0.02em; margin: 2.2rem 0 0.8rem; }
-    .sub { color: var(--mut); font-size: 1.05rem; }
-    h2 { font-size: 1.3rem; margin: 2.6rem 0 0.8rem; letter-spacing: -0.01em; }
+    body { font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--ink); background: linear-gradient(to bottom, rgba(238,241,255,.6), #f8fafc 30%, #f8fafc); line-height: 1.6; }
+    .wrap { max-width: 64rem; margin: 0 auto; padding: 0 1.5rem; }
+    .narrow { max-width: 44rem; margin: 0 auto; padding: 0 1.5rem; }
+    nav.top { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 0; }
+    .logo { display: inline-flex; align-items: center; gap: 0.65rem; text-decoration: none; }
+    .logo .mark { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 9px; background: linear-gradient(135deg, var(--iris-500), var(--violet)); box-shadow: 0 4px 12px -3px rgba(99,102,241,.55); }
+    .logo .word { font-size: 15px; font-weight: 300; letter-spacing: 0.34em; text-transform: uppercase; color: var(--ink); }
+    .oss-pill { border: 1px solid #e2e8f0; background: rgba(255,255,255,.7); border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 500; color: var(--soft); }
+    .badge { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; background: var(--iris-100); color: var(--iris-700); font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; }
+    h1 { margin-top: 1.25rem; font-size: clamp(2.3rem, 5vw, 3.4rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.025em; }
+    h1 .accent { color: var(--iris-600); }
+    .sub { margin-top: 1.25rem; max-width: 36rem; font-size: 1.1rem; color: var(--mut); }
+    .cta { display: inline-block; background: var(--iris-600); color: #fff; font-weight: 600; font-size: 1rem; padding: 0.75rem 1.5rem; border-radius: 0.75rem; text-decoration: none; box-shadow: 0 10px 15px -3px rgba(82,73,230,.2); transition: background .15s; }
+    .cta:hover { background: var(--iris-500); }
+    .hero { padding: 2rem 0 1rem; }
+    h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; margin: 2.6rem 0 0.8rem; }
     p, li { color: var(--mut); font-size: 0.97rem; }
     ul, ol { padding-left: 1.2rem; display: grid; gap: 0.45rem; }
-    .faq h3 { font-size: 1rem; margin: 1.3rem 0 0.2rem; }
-    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1.2rem 1.4rem; margin-top: 1rem; box-shadow: 0 8px 24px -16px rgba(15,23,42,.25); }
-    footer { margin: 3.5rem 0 2.5rem; text-align: center; font-size: 0.8rem; color: var(--soft); }
-    footer a { color: var(--soft); margin: 0 0.5rem; }
-    .center { text-align: center; margin: 2.2rem 0; }
+    strong { color: var(--ink); }
+    a { color: var(--iris-600); }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem; padding: 1.4rem 1.6rem; margin-top: 1rem; box-shadow: 0 18px 40px -24px rgba(15,23,42,.25); }
+    .card h2 { margin-top: 0.2rem; }
+    .wedge { background: #0f172a; color: #fff; text-align: center; padding: 3.5rem 1.5rem; margin-top: 3.5rem; }
+    .wedge h2 { margin: 0 auto; max-width: 36rem; font-size: 1.7rem; }
+    .wedge .accent { color: var(--iris-400); }
+    .wedge p { color: #cbd5e1; max-width: 36rem; margin: 1rem auto 0; }
+    .wedge .cta { background: #fff; color: var(--ink); margin-top: 1.75rem; box-shadow: none; }
+    .wedge .cta:hover { background: #f1f5f9; }
+    .faq h3 { font-size: 1rem; font-weight: 700; margin: 1.3rem 0 0.2rem; color: var(--ink); }
+    footer { padding: 2.5rem 1.5rem; text-align: center; font-size: 0.78rem; color: var(--soft); }
+    footer a { color: var(--soft); margin: 0 0.55rem; font-weight: 500; }
+    footer a:hover { color: var(--iris-600); }
   </style>
 </head>
 <body>
-  <header><div class="wrap">
-    <a class="brand" href="/">scrum<span>lo</span></a>
-    <a class="cta" href="/">Start a free room →</a>
-  </div></header>
+  <div class="wrap">
+    <nav class="top">
+      <a class="logo" href="/" aria-label="Scrumlo home">
+        <span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><g stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-8.5-8.5c2.4 0 4.66.95 6.36 2.6L20.5 8"/><path d="M20.5 3v5h-5"/></g><circle cx="12" cy="12" r="2.4" fill="white"/></svg></span>
+        <span class="word">Scrumlo</span>
+      </a>
+      <span class="oss-pill">Open source · AGPL-3.0</span>
+    </nav>
 
-  <main class="wrap">
-    <h1>Free planning poker, no signup — blind reveal, real consensus</h1>
-    <p class="sub">Scrumlo runs estimation the way it's meant to work: everyone votes simultaneously, the server keeps every vote hidden until the reveal, and nobody anchors the room. One link, no accounts, nothing stored afterwards.</p>
+    <section class="hero">
+      <span class="badge">No login · Nothing stored · Deleted when you leave</span>
+      <h1>Planning poker.<br /><span class="accent">Blind. Free. Forgotten.</span></h1>
+      <p class="sub">Everyone votes simultaneously, the server keeps every vote hidden until the reveal, and nobody anchors the room. One link, no accounts, nothing stored afterwards.</p>
+      <p style="margin-top:1.75rem"><a class="cta" href="/">Create a room →</a></p>
+    </section>
+  </div>
 
+  <main class="narrow">
     <h2>How it works</h2>
     <ol>
       <li><strong>Start a room</strong> — one click, you get a private link like <em>scrumlo.com/r/brave-otter-42</em>.</li>
@@ -54,7 +78,7 @@
     </ol>
 
     <div class="card">
-      <h2 style="margin-top:0.2rem">What you get</h2>
+      <h2>What you get</h2>
       <ul>
         <li><strong>Blind simultaneous reveal</strong> — votes are withheld server-side, not just hidden in the UI.</li>
         <li><strong>6 built-in decks + custom decks</strong> — Fibonacci, t-shirt sizes, powers of two, or your own.</li>
@@ -63,9 +87,6 @@
         <li><strong>Markdown export</strong> — keep the decisions; the room keeps nothing.</li>
       </ul>
     </div>
-
-    <h2>Why ephemeral matters</h2>
-    <p>Most estimation tools store your boards forever and gate features behind a subscription. Scrumlo's rooms are single ephemeral servers that delete themselves when the team leaves — no database, no account, no data to leak. It's open-source, so that's verifiable architecture, not a privacy-policy promise.</p>
 
     <section class="faq">
       <h2>FAQ</h2>
@@ -81,11 +102,15 @@
       <p>A full scrum team and more — rooms are tested with 20+ simultaneous participants.</p>
     </section>
 
-    <div class="center"><a class="cta" href="/">Start estimating free →</a></div>
-
     <h2>More in the same room</h2>
     <p>The same link also runs <a href="/retro">sprint retrospectives</a>, <a href="/word-cloud-poll">polls &amp; word clouds</a>, team health checks, a roadmap board, and a random picker — the facilitator switches activities and everyone follows.</p>
   </main>
+
+  <section class="wedge">
+    <h2>Other tools keep your boards. Scrumlo keeps <span class="accent">nothing</span>.</h2>
+    <p>No database to leak, no account to manage. Each room is one little server that holds your votes and cards only while you're there, then deletes itself.</p>
+    <a class="cta" href="/">Start estimating free →</a>
+  </section>
 
   <footer>
     <nav><a href="/">Home</a><a href="/retro">Retro tool</a><a href="/word-cloud-poll">Word cloud polls</a><a href="https://github.com/saimeda32/scrumlo">GitHub</a></nav>

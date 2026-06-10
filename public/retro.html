@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Sprint Retrospective Tool — 14 Formats, No Login | Scrumlo</title>
+  <meta name="description" content="Run sprint retros free: 14 formats (Start/Stop/Continue, Sailboat, Starfish…), blind brainstorm, dot-voting, clustering, action items with owners. No accounts, nothing stored." />
+  <link rel="canonical" href="https://scrumlo.com/retro" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%236366f1'/%3E%3Cg fill='none' stroke='white' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.5 12a8.5 8.5 0 1 1-8.5-8.5c2.4 0 4.66.95 6.36 2.6L20.5 8'/%3E%3Cpath d='M20.5 3v5h-5'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='2.4' fill='white'/%3E%3C/svg%3E" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://scrumlo.com/retro" />
+  <meta property="og:title" content="Free Sprint Retrospective Tool — 14 Formats, No Login" />
+  <meta property="og:description" content="Blind brainstorm → group → vote → discuss, on a zoomable canvas. Free, open-source, ephemeral — nothing stored after the retro." />
+  <meta property="og:image" content="https://scrumlo.com/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    :root { --iris: #6366f1; --ink: #0f172a; --mut: #475569; --soft: #64748b; }
+    * { box-sizing: border-box; margin: 0; }
+    body { font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--ink); background: radial-gradient(60rem 36rem at 50% -10%, #eef0ff, transparent 60%), #f6f7fb; line-height: 1.6; }
+    .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.5rem; }
+    header { padding: 1.4rem 0; }
+    header .wrap { display: flex; align-items: center; justify-content: space-between; }
+    .brand { font-weight: 800; font-size: 1.1rem; color: var(--ink); text-decoration: none; }
+    .brand span { color: var(--iris); }
+    .cta { display: inline-block; background: var(--iris); color: #fff; font-weight: 700; padding: 0.7rem 1.4rem; border-radius: 0.8rem; text-decoration: none; box-shadow: 0 10px 22px -10px rgba(99,102,241,.6); }
+    .cta:hover { background: #5558e6; }
+    h1 { font-size: 2.1rem; line-height: 1.2; letter-spacing: -0.02em; margin: 2.2rem 0 0.8rem; }
+    .sub { color: var(--mut); font-size: 1.05rem; }
+    h2 { font-size: 1.3rem; margin: 2.6rem 0 0.8rem; letter-spacing: -0.01em; }
+    p, li { color: var(--mut); font-size: 0.97rem; }
+    ul, ol { padding-left: 1.2rem; display: grid; gap: 0.45rem; }
+    .faq h3 { font-size: 1rem; margin: 1.3rem 0 0.2rem; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1.2rem 1.4rem; margin-top: 1rem; box-shadow: 0 8px 24px -16px rgba(15,23,42,.25); }
+    footer { margin: 3.5rem 0 2.5rem; text-align: center; font-size: 0.8rem; color: var(--soft); }
+    footer a { color: var(--soft); margin: 0 0.5rem; }
+    .center { text-align: center; margin: 2.2rem 0; }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <a class="brand" href="/">scrum<span>lo</span></a>
+    <a class="cta" href="/">Start a free retro →</a>
+  </div></header>
+
+  <main class="wrap">
+    <h1>A free sprint retrospective tool that forgets on purpose</h1>
+    <p class="sub">Run honest retros on a zoomable Miro-style canvas: blind brainstorming so nobody copies the loudest voice, dot-voting, drag-to-cluster, and action items with owners. No accounts, no stored boards — export what matters, the room deletes the rest.</p>
+
+    <h2>The facilitated flow</h2>
+    <ol>
+      <li><strong>Brainstorm (blind)</strong> — everyone adds stickies; other people's notes stay hidden server-side until the reveal, so ideas are independent.</li>
+      <li><strong>Group</strong> — drag stickies onto each other to cluster themes; votes roll up automatically.</li>
+      <li><strong>Vote</strong> — dot-vote the themes that deserve discussion time.</li>
+      <li><strong>Discuss</strong> — spotlight cards one by one, mark them discussed, capture action items with owners.</li>
+    </ol>
+
+    <div class="card">
+      <h2 style="margin-top:0.2rem">What you get</h2>
+      <ul>
+        <li><strong>14 retro formats</strong> — Start/Stop/Continue, Sailboat, Starfish, Mad/Sad/Glad, 4Ls and more.</li>
+        <li><strong>Anonymous mode</strong> — when the topic is touchy, names come off the stickies in every phase.</li>
+        <li><strong>Live cursors, reactions, spotlight</strong> — it feels like one shared board, because it is.</li>
+        <li><strong>Action items with owners</strong> — flagged on the board and listed first in the export.</li>
+        <li><strong>Export</strong> — Markdown summary or a full-board PNG/PDF, generated in your browser.</li>
+      </ul>
+    </div>
+
+    <h2>Why no login is a feature</h2>
+    <p>Retro honesty drops when people wonder who can read the board later. Scrumlo rooms hold your stickies only in memory, only while the room is live — there's no database and no account system. When the team leaves, the room deletes itself. Open-source, so the architecture is the proof.</p>
+
+    <section class="faq">
+      <h2>FAQ</h2>
+      <h3>Is the retro tool free?</h3>
+      <p>Yes, entirely — no seat limits, no premium formats. And it's open-source.</p>
+      <h3>Can teammates see my stickies while I write?</h3>
+      <p>Not during blind brainstorm — the server withholds everyone's notes until the facilitator reveals. Independent ideas first, discussion second.</p>
+      <h3>Can we run it anonymously?</h3>
+      <p>Yes — the facilitator can switch the retro to anonymous and author names disappear from stickies in every phase, including discussion.</p>
+      <h3>How do we keep the outcomes?</h3>
+      <p>One click exports a Markdown summary (action items first) or a PNG/PDF of the whole board — before the room forgets everything.</p>
+      <h3>What size team does it handle?</h3>
+      <p>Rooms are tested with 20+ people on the board at once, cursors and all.</p>
+    </section>
+
+    <div class="center"><a class="cta" href="/">Run your retro free →</a></div>
+
+    <h2>More in the same room</h2>
+    <p>The same link also runs <a href="/planning-poker">planning poker</a>, <a href="/word-cloud-poll">polls &amp; word clouds</a>, anonymous team health checks, a Now/Next/Later roadmap board, a random picker wheel and a shared timer.</p>
+  </main>
+
+  <footer>
+    <nav><a href="/">Home</a><a href="/planning-poker">Planning poker</a><a href="/word-cloud-poll">Word cloud polls</a><a href="https://github.com/saimeda32/scrumlo">GitHub</a></nav>
+    <p style="margin-top:0.5rem">Scrumlo · Estimate. Retro. Forgotten.</p>
+  </footer>
+</body>
+</html>

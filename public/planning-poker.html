@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Planning Poker Online — No Signup, Blind Reveal | Scrumlo</title>
+  <meta name="description" content="Run planning poker free, with no accounts: blind simultaneous reveal, custom decks, a story backlog from CSV/Jira, and Markdown export. Nothing stored after the session." />
+  <link rel="canonical" href="https://scrumlo.com/planning-poker" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%236366f1'/%3E%3Cg fill='none' stroke='white' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.5 12a8.5 8.5 0 1 1-8.5-8.5c2.4 0 4.66.95 6.36 2.6L20.5 8'/%3E%3Cpath d='M20.5 3v5h-5'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='2.4' fill='white'/%3E%3C/svg%3E" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://scrumlo.com/planning-poker" />
+  <meta property="og:title" content="Free Planning Poker Online — No Signup, Blind Reveal" />
+  <meta property="og:description" content="Blind-reveal estimation for agile teams: custom decks, story backlog, consensus highlighting. Free, open-source, nothing stored." />
+  <meta property="og:image" content="https://scrumlo.com/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    :root { --iris: #6366f1; --ink: #0f172a; --mut: #475569; --soft: #64748b; }
+    * { box-sizing: border-box; margin: 0; }
+    body { font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--ink); background: radial-gradient(60rem 36rem at 50% -10%, #eef0ff, transparent 60%), #f6f7fb; line-height: 1.6; }
+    .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.5rem; }
+    header { padding: 1.4rem 0; }
+    header .wrap { display: flex; align-items: center; justify-content: space-between; }
+    .brand { font-weight: 800; font-size: 1.1rem; color: var(--ink); text-decoration: none; }
+    .brand span { color: var(--iris); }
+    .cta { display: inline-block; background: var(--iris); color: #fff; font-weight: 700; padding: 0.7rem 1.4rem; border-radius: 0.8rem; text-decoration: none; box-shadow: 0 10px 22px -10px rgba(99,102,241,.6); }
+    .cta:hover { background: #5558e6; }
+    h1 { font-size: 2.1rem; line-height: 1.2; letter-spacing: -0.02em; margin: 2.2rem 0 0.8rem; }
+    .sub { color: var(--mut); font-size: 1.05rem; }
+    h2 { font-size: 1.3rem; margin: 2.6rem 0 0.8rem; letter-spacing: -0.01em; }
+    p, li { color: var(--mut); font-size: 0.97rem; }
+    ul, ol { padding-left: 1.2rem; display: grid; gap: 0.45rem; }
+    .faq h3 { font-size: 1rem; margin: 1.3rem 0 0.2rem; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1.2rem 1.4rem; margin-top: 1rem; box-shadow: 0 8px 24px -16px rgba(15,23,42,.25); }
+    footer { margin: 3.5rem 0 2.5rem; text-align: center; font-size: 0.8rem; color: var(--soft); }
+    footer a { color: var(--soft); margin: 0 0.5rem; }
+    .center { text-align: center; margin: 2.2rem 0; }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <a class="brand" href="/">scrum<span>lo</span></a>
+    <a class="cta" href="/">Start a free room →</a>
+  </div></header>
+
+  <main class="wrap">
+    <h1>Free planning poker, no signup — blind reveal, real consensus</h1>
+    <p class="sub">Scrumlo runs estimation the way it's meant to work: everyone votes simultaneously, the server keeps every vote hidden until the reveal, and nobody anchors the room. One link, no accounts, nothing stored afterwards.</p>
+
+    <h2>How it works</h2>
+    <ol>
+      <li><strong>Start a room</strong> — one click, you get a private link like <em>scrumlo.com/r/brave-otter-42</em>.</li>
+      <li><strong>Share the link</strong> — teammates open it and type a display name. That's the whole onboarding.</li>
+      <li><strong>Vote blind, reveal together</strong> — pick a card (or press a number key), watch the "voted" count, hit reveal. Consensus is highlighted; outliers get a friendly nudge to talk it out.</li>
+    </ol>
+
+    <div class="card">
+      <h2 style="margin-top:0.2rem">What you get</h2>
+      <ul>
+        <li><strong>Blind simultaneous reveal</strong> — votes are withheld server-side, not just hidden in the UI.</li>
+        <li><strong>6 built-in decks + custom decks</strong> — Fibonacci, t-shirt sizes, powers of two, or your own.</li>
+        <li><strong>Story backlog</strong> — paste stories from CSV or Jira, step through them, log a decision per story.</li>
+        <li><strong>Re-votes, rationales and outlier nudges</strong> — built for the conversation, not just the number.</li>
+        <li><strong>Markdown export</strong> — keep the decisions; the room keeps nothing.</li>
+      </ul>
+    </div>
+
+    <h2>Why ephemeral matters</h2>
+    <p>Most estimation tools store your boards forever and gate features behind a subscription. Scrumlo's rooms are single ephemeral servers that delete themselves when the team leaves — no database, no account, no data to leak. It's open-source, so that's verifiable architecture, not a privacy-policy promise.</p>
+
+    <section class="faq">
+      <h2>FAQ</h2>
+      <h3>Is it really free?</h3>
+      <p>Yes — free with no tiers and no trial countdown. The code is open-source on GitHub.</p>
+      <h3>Do my teammates need accounts?</h3>
+      <p>No. Anyone with the room link joins by typing a display name. Spectators can watch without joining.</p>
+      <h3>Can people see votes before the reveal?</h3>
+      <p>No — the server doesn't send anyone's vote to anyone until the facilitator reveals, so votes can't be peeked even in browser dev tools.</p>
+      <h3>What happens to our estimates afterwards?</h3>
+      <p>Export them as Markdown (per-story decisions included) before you leave. The room itself deletes everything when it empties.</p>
+      <h3>How many people can vote?</h3>
+      <p>A full scrum team and more — rooms are tested with 20+ simultaneous participants.</p>
+    </section>
+
+    <div class="center"><a class="cta" href="/">Start estimating free →</a></div>
+
+    <h2>More in the same room</h2>
+    <p>The same link also runs <a href="/retro">sprint retrospectives</a>, <a href="/word-cloud-poll">polls &amp; word clouds</a>, team health checks, a roadmap board, and a random picker — the facilitator switches activities and everyone follows.</p>
+  </main>
+
+  <footer>
+    <nav><a href="/">Home</a><a href="/retro">Retro tool</a><a href="/word-cloud-poll">Word cloud polls</a><a href="https://github.com/saimeda32/scrumlo">GitHub</a></nav>
+    <p style="margin-top:0.5rem">Scrumlo · Estimate. Retro. Forgotten.</p>
+  </footer>
+</body>
+</html>

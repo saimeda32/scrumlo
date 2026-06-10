@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Live Word Cloud & Team Polls — Hide Until Reveal | Scrumlo</title>
+  <meta name="description" content="Run live word clouds, polls and Q&A free, with no signup. Results stay hidden until the facilitator reveals — no anchoring. Save the cloud as an image. Nothing stored." />
+  <link rel="canonical" href="https://scrumlo.com/word-cloud-poll" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%236366f1'/%3E%3Cg fill='none' stroke='white' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.5 12a8.5 8.5 0 1 1-8.5-8.5c2.4 0 4.66.95 6.36 2.6L20.5 8'/%3E%3Cpath d='M20.5 3v5h-5'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='2.4' fill='white'/%3E%3C/svg%3E" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://scrumlo.com/word-cloud-poll" />
+  <meta property="og:title" content="Free Live Word Cloud & Team Polls — Hide Until Reveal" />
+  <meta property="og:description" content="A Slido-style word cloud and polls for team meetings: blind until reveal, question queue, save as image. Free, no accounts, nothing stored." />
+  <meta property="og:image" content="https://scrumlo.com/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    :root { --iris: #6366f1; --ink: #0f172a; --mut: #475569; --soft: #64748b; }
+    * { box-sizing: border-box; margin: 0; }
+    body { font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--ink); background: radial-gradient(60rem 36rem at 50% -10%, #eef0ff, transparent 60%), #f6f7fb; line-height: 1.6; }
+    .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.5rem; }
+    header { padding: 1.4rem 0; }
+    header .wrap { display: flex; align-items: center; justify-content: space-between; }
+    .brand { font-weight: 800; font-size: 1.1rem; color: var(--ink); text-decoration: none; }
+    .brand span { color: var(--iris); }
+    .cta { display: inline-block; background: var(--iris); color: #fff; font-weight: 700; padding: 0.7rem 1.4rem; border-radius: 0.8rem; text-decoration: none; box-shadow: 0 10px 22px -10px rgba(99,102,241,.6); }
+    .cta:hover { background: #5558e6; }
+    h1 { font-size: 2.1rem; line-height: 1.2; letter-spacing: -0.02em; margin: 2.2rem 0 0.8rem; }
+    .sub { color: var(--mut); font-size: 1.05rem; }
+    h2 { font-size: 1.3rem; margin: 2.6rem 0 0.8rem; letter-spacing: -0.01em; }
+    p, li { color: var(--mut); font-size: 0.97rem; }
+    ul, ol { padding-left: 1.2rem; display: grid; gap: 0.45rem; }
+    .faq h3 { font-size: 1rem; margin: 1.3rem 0 0.2rem; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1.2rem 1.4rem; margin-top: 1rem; box-shadow: 0 8px 24px -16px rgba(15,23,42,.25); }
+    footer { margin: 3.5rem 0 2.5rem; text-align: center; font-size: 0.8rem; color: var(--soft); }
+    footer a { color: var(--soft); margin: 0 0.5rem; }
+    .center { text-align: center; margin: 2.2rem 0; }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <a class="brand" href="/">scrum<span>lo</span></a>
+    <a class="cta" href="/">Start a free poll →</a>
+  </div></header>
+
+  <main class="wrap">
+    <h1>Live word clouds and team polls — without the anchoring</h1>
+    <p class="sub">Ask the room a question and watch a word cloud grow, run a quick poll, or collect upvoted Q&A. By default results stay hidden until everyone's in and the facilitator reveals — so early answers never steer the rest. Free, no signup, nothing stored.</p>
+
+    <h2>Three formats, one link</h2>
+    <ul>
+      <li><strong>Word cloud</strong> — everyone drops one word; duplicates merge and grow. Popular words tower over one-offs, and the reveal lands with confetti.</li>
+      <li><strong>Poll</strong> — facilitator-defined options, single- or multi-select, with clean bar results.</li>
+      <li><strong>Q&amp;A</strong> — open answers, upvoted by the room, sorted by votes — town-hall style.</li>
+    </ul>
+
+    <div class="card">
+      <h2 style="margin-top:0.2rem">Built for honest answers</h2>
+      <ul>
+        <li><strong>Hidden until reveal (default)</strong> — the server withholds all results from everyone, facilitator included, until the reveal. No peeking, no herd effect.</li>
+        <li><strong>Live progress</strong> — everyone sees "7 of 12 answered" while they wait, with a playful activity stream.</li>
+        <li><strong>Question queue</strong> — the facilitator preps questions, steps through them, and earlier results archive automatically.</li>
+        <li><strong>Save the cloud as an image</strong> — one click renders a PNG of the revealed word cloud to drop straight into Slack.</li>
+        <li><strong>One person, one weight</strong> — repeating a word a hundred times still counts once per person.</li>
+      </ul>
+    </div>
+
+    <h2>No accounts, nothing retained</h2>
+    <p>Scrumlo is a free, open-source alternative to slide-deck polling add-ons: a room is a single ephemeral server that deletes itself when everyone leaves. Export the results (or the cloud image) if you want to keep them — the room won't.</p>
+
+    <section class="faq">
+      <h2>FAQ</h2>
+      <h3>Is the word cloud free?</h3>
+      <p>Yes — polls, word clouds, Q&amp;A and everything else in a Scrumlo room are free, with no participant limits or paywalls.</p>
+      <h3>Do participants need to install or sign up for anything?</h3>
+      <p>No. They open your room link in any browser and type a display name. That's it.</p>
+      <h3>Can people see results while voting?</h3>
+      <p>Only if you want them to. By default results are hidden server-side until the facilitator hits Reveal — so answers can't influence each other.</p>
+      <h3>Can I ask several questions in a row?</h3>
+      <p>Yes — queue questions in advance, step through them, and each finished question's results are archived in the room and included in the Markdown export.</p>
+      <h3>Is it anonymous?</h3>
+      <p>Word cloud submissions and poll picks aren't shown with names. Rooms delete all data when they empty; nothing is logged to a database.</p>
+    </section>
+
+    <div class="center"><a class="cta" href="/">Ask your room something →</a></div>
+
+    <h2>More in the same room</h2>
+    <p>The same link also runs <a href="/planning-poker">planning poker</a>, <a href="/retro">sprint retrospectives</a>, anonymous team health checks, a roadmap board, a random picker wheel and a shared timer.</p>
+  </main>
+
+  <footer>
+    <nav><a href="/">Home</a><a href="/planning-poker">Planning poker</a><a href="/retro">Retro tool</a><a href="https://github.com/saimeda32/scrumlo">GitHub</a></nav>
+    <p style="margin-top:0.5rem">Scrumlo · Estimate. Retro. Forgotten.</p>
+  </footer>
+</body>
+</html>

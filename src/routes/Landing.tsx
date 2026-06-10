@@ -264,9 +264,53 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* FAQ · plain Q&A — both humans and answer engines lift from this */}
+      <section className="mx-auto max-w-3xl px-6 py-14">
+        <h2 className="text-center text-2xl font-bold text-slate-900 dark:text-slate-100">Questions, answered</h2>
+        <div className="mt-8 space-y-6">
+          {[
+            {
+              q: "Is Scrumlo free?",
+              a: "Yes — completely free, no paid tier, no trial clock. It's open-source too.",
+            },
+            {
+              q: "Do I need an account?",
+              a: "No. Start a room, share the link, and teammates just type a display name to join. Spectators can watch without joining at all.",
+            },
+            {
+              q: "Where is my data stored?",
+              a: "Only in memory, in a single ephemeral room server, and only while the room is live. There is no database — when everyone leaves, the room deletes itself. Export to Markdown, PNG or PDF before you go if you want to keep the results.",
+            },
+            {
+              q: "What can I run in a room?",
+              a: "Planning poker with blind reveal and custom decks, retrospectives in 14 formats, a Now/Next/Later roadmap board, polls and live word clouds with hide-until-reveal, anonymous team health checks, a random picker wheel, and a shared timer — all behind one link.",
+            },
+            {
+              q: "How many people can join?",
+              a: "A whole scrum team and then some — rooms are tested with 20+ simultaneous participants voting and revealing together.",
+            },
+            {
+              q: "Can votes be influenced by what others picked?",
+              a: "No — estimation votes, retro brainstorms, polls and health checks are all blind by default: the server withholds everyone's answers until the reveal, so nobody anchors anybody.",
+            },
+          ].map((f) => (
+            <div key={f.q}>
+              <h3 className="font-bold text-slate-800 dark:text-slate-200">{f.q}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <footer className="mx-auto max-w-3xl px-6 py-10 text-center text-xs leading-relaxed text-slate-500 dark:text-slate-500">
+        <nav className="mb-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 font-medium">
+          <a href="/planning-poker" className="hover:text-iris-600">Planning poker</a>
+          <a href="/retro" className="hover:text-iris-600">Retro tool</a>
+          <a href="/word-cloud-poll" className="hover:text-iris-600">Word cloud polls</a>
+          <a href="https://github.com/saimeda32/scrumlo" className="hover:text-iris-600">GitHub</a>
+        </nav>
         Free, open-source planning poker and sprint retrospectives · no login, no database,
-        anonymous, ephemeral, self-hostable. Estimate. Retro. Forgotten.
+        anonymous, ephemeral. Estimate. Retro. Forgotten.
       </footer>
     </main>
   );

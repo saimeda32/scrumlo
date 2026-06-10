@@ -1,0 +1,6 @@
+# Rooms are private and ephemeral — nothing inside them should be crawled.
+User-agent: *
+Allow: /
+Disallow: /r/
+
+Sitemap: https://scrumlo.com/sitemap.xml

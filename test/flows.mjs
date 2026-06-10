@@ -443,6 +443,57 @@ await flow("pulse: reset clears votes and phase", async (t) => {
 });
 
 // ============================ POLL ============================
+await flow("poll: choice single-select keeps one pick per person", async (t) => {
+  const [a, b, c] = t(await room(["Alice", "Bob", "Cara"])); // Alice facilitator
+  a.send({ t: "switchActivity", v: 1, activity: "poll" });
+  await sleep(120);
+  a.send({ t: "pollSetMode", v: 1, mode: "choice" });
+  await sleep(120);
+  a.send({ t: "pollSubmit", v: 1, text: "Option A" });
+  a.send({ t: "pollSubmit", v: 1, text: "Option B" });
+  await sleep(200);
+  eq(a.snap.poll.mode, "choice", "choice mode active");
+  eq(a.snap.poll.answers.length, 2, "two options");
+  // a non-facilitator cannot add options in choice mode
+  c.send({ t: "pollSubmit", v: 1, text: "Sneaky option" });
+  await sleep(200);
+  eq(a.snap.poll.answers.length, 2, "non-facilitator can't add options");
+  const [optA, optB] = a.snap.poll.answers;
+  b.send({ t: "pollVote", v: 1, id: optA.id });
+  c.send({ t: "pollVote", v: 1, id: optA.id });
+  await sleep(200);
+  eq(a.snap.poll.answers.find((x) => x.id === optA.id).votes, 2, "A has two votes");
+  // Bob switches to B: single-select must move his vote, not add a second
+  b.send({ t: "pollVote", v: 1, id: optB.id });
+  await sleep(200);
+  eq(a.snap.poll.answers.find((x) => x.id === optA.id).votes, 1, "A drops to one");
+  eq(a.snap.poll.answers.find((x) => x.id === optB.id).votes, 1, "B gains one");
+});
+
+await flow("poll: choice multi-select allows several picks", async (t) => {
+  const [a, b] = t(await room(["Alice", "Bob"]));
+  a.send({ t: "switchActivity", v: 1, activity: "poll" });
+  await sleep(120);
+  a.send({ t: "pollSetMode", v: 1, mode: "choice" });
+  a.send({ t: "pollSetMulti", v: 1, on: true });
+  await sleep(120);
+  a.send({ t: "pollSubmit", v: 1, text: "Red" });
+  a.send({ t: "pollSubmit", v: 1, text: "Green" });
+  await sleep(200);
+  const [red, green] = a.snap.poll.answers;
+  b.send({ t: "pollVote", v: 1, id: red.id });
+  b.send({ t: "pollVote", v: 1, id: green.id });
+  await sleep(200);
+  eq(a.snap.poll.multi, true, "multi-select on");
+  eq(a.snap.poll.answers.find((x) => x.id === red.id).votes, 1, "Red kept");
+  eq(a.snap.poll.answers.find((x) => x.id === green.id).votes, 1, "Green kept too (multi)");
+  // Tightening back to single-select trims everyone to one pick
+  a.send({ t: "pollSetMulti", v: 1, on: false });
+  await sleep(200);
+  const totalAfter = a.snap.poll.answers.reduce((s, x) => s + x.votes, 0);
+  eq(totalAfter, 1, "single-select leaves Bob with exactly one pick");
+});
+
 await flow("poll: open Q&A sorts by votes, vote toggles", async (t) => {
   const [a, b] = t(await room(["Alice", "Bob"]));
   a.send({ t: "switchActivity", v: 1, activity: "poll" });

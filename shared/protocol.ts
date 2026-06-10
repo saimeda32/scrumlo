@@ -13,11 +13,15 @@ export type Member = {
 export type Activity = "estimate" | "retro" | "pick" | "board" | "pulse" | "poll";
 
 // ---- Poll / Q&A (Slido-lite): ask the room a question ----
-export type PollMode = "open" | "cloud"; // open = Q&A with upvotes; cloud = one-word cloud
+// open   = Q&A: anyone submits a text answer, everyone upvotes, sorted by votes
+// choice = facilitator defines options; people pick (single- or multi-select), bar results
+// cloud  = one-word live word cloud
+export type PollMode = "open" | "choice" | "cloud";
 export type PollView = {
   mode: PollMode;
   prompt: string;
-  // open mode: submitted answers, with upvotes (sorted by votes desc)
+  multi: boolean; // choice mode: allow picking more than one option
+  // open + choice: answers/options, with votes (sorted by votes desc)
   answers: { id: string; text: string; votes: number; youVoted: boolean; mine: boolean }[];
   // cloud mode: aggregated word frequencies
   cloud: { word: string; count: number }[];
@@ -334,6 +338,7 @@ export type ClientMsg =
   | { t: "pulseReset"; v: 1 }
   // poll / Q&A
   | { t: "pollSetMode"; v: 1; mode: PollMode }
+  | { t: "pollSetMulti"; v: 1; on: boolean } // choice mode: single- vs multi-select
   | { t: "pollSetPrompt"; v: 1; prompt: string }
   | { t: "pollSubmit"; v: 1; text: string }
   | { t: "pollVote"; v: 1; id: string }

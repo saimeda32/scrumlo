@@ -107,6 +107,7 @@ type PulseState = {
 type PollState = {
   mode: PollMode;
   prompt: string;
+  multi: boolean; // choice mode: allow more than one pick per person
   entries: { id: string; text: string; authorId: string; voters: string[] }[];
 };
 
@@ -168,7 +169,7 @@ export class RoomDO extends DurableObject<Env> {
   };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0, recent: [] };
   private pulse: PulseState = { dimensions: [...PULSE_DIMENSIONS], phase: "voting", votes: {} };
-  private poll: PollState = { mode: "open", prompt: "", entries: [] };
+  private poll: PollState = { mode: "open", prompt: "", multi: false, entries: [] };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
   private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
@@ -238,6 +239,7 @@ export class RoomDO extends DurableObject<Env> {
       if (po) {
         this.poll = po;
         this.poll.mode ??= "open";
+        this.poll.multi ??= false;
         this.poll.prompt ??= "";
         this.poll.entries ??= [];
       }
@@ -938,9 +940,21 @@ export class RoomDO extends DurableObject<Env> {
       // ---- poll / Q&A ----
       case "pollSetMode": {
         if (!this.isFacilitator(me)) return;
-        if (msg.mode !== "open" && msg.mode !== "cloud") return;
+        if (msg.mode !== "open" && msg.mode !== "cloud" && msg.mode !== "choice") return;
         this.poll.mode = msg.mode;
         this.poll.entries = []; // switching the format starts fresh
+        break;
+      }
+      case "pollSetMulti": {
+        if (!this.isFacilitator(me)) return;
+        this.poll.multi = !!msg.on; // choice mode: single- vs multi-select
+        // Tightening to single-select drops everyone to at most one pick.
+        if (!this.poll.multi) {
+          const seen = new Set<string>();
+          for (const e of this.poll.entries) {
+            e.voters = e.voters.filter((id) => !seen.has(id) && (seen.add(id), true));
+          }
+        }
         break;
       }
       case "pollSetPrompt": {
@@ -950,6 +964,8 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "pollSubmit": {
         if (!me) return;
+        // In choice mode the OPTIONS are facilitator-defined; in open/cloud anyone submits.
+        if (this.poll.mode === "choice" && !this.isFacilitator(me)) return;
         const max = this.poll.mode === "cloud" ? 24 : 160;
         let text = String(msg.text ?? "").trim().slice(0, max);
         if (this.poll.mode === "cloud") text = text.split(/\s+/)[0] ?? ""; // one word
@@ -963,8 +979,18 @@ export class RoomDO extends DurableObject<Env> {
         const e = this.poll.entries.find((x) => x.id === msg.id);
         if (!e) return;
         const i = e.voters.indexOf(me.id);
-        if (i >= 0) e.voters.splice(i, 1);
-        else e.voters.push(me.id);
+        if (i >= 0) {
+          e.voters.splice(i, 1); // toggle off
+        } else {
+          // Single-select choice: clear this member's vote from every other option first.
+          if (this.poll.mode === "choice" && !this.poll.multi) {
+            for (const other of this.poll.entries) {
+              const j = other.voters.indexOf(me.id);
+              if (j >= 0) other.voters.splice(j, 1);
+            }
+          }
+          e.voters.push(me.id);
+        }
         break;
       }
       case "pollRemove": {
@@ -1313,18 +1339,18 @@ export class RoomDO extends DurableObject<Env> {
         .map(([word, authors]) => ({ word, count: authors.size }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 80);
-      return { mode: "cloud", prompt: this.poll.prompt, answers: [], cloud, total };
+      return { mode: "cloud", prompt: this.poll.prompt, multi: this.poll.multi, answers: [], cloud, total };
     }
-    const answers = this.poll.entries
-      .map((e) => ({
-        id: e.id,
-        text: e.text,
-        votes: e.voters.length,
-        youVoted: meId ? e.voters.includes(meId) : false,
-        mine: meId ? e.authorId === meId : false,
-      }))
-      .sort((a, b) => b.votes - a.votes);
-    return { mode: "open", prompt: this.poll.prompt, answers, cloud: [], total };
+    const answers = this.poll.entries.map((e) => ({
+      id: e.id,
+      text: e.text,
+      votes: e.voters.length,
+      youVoted: meId ? e.voters.includes(meId) : false,
+      mine: meId ? e.authorId === meId : false,
+    }));
+    // open sorts answers by votes; choice keeps the facilitator's option order.
+    if (this.poll.mode !== "choice") answers.sort((a, b) => b.votes - a.votes);
+    return { mode: this.poll.mode, prompt: this.poll.prompt, multi: this.poll.multi, answers, cloud: [], total };
   }
 
   /** Build the pulse view: votes are blind (only counts) until the facilitator reveals. */

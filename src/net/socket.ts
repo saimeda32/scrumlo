@@ -66,7 +66,8 @@ export type RoomClient = {
   pulseVote: (dim: string, value: number) => void;
   pulseReveal: () => void;
   pulseReset: () => void;
-  pollSetMode: (mode: "open" | "cloud") => void;
+  pollSetMode: (mode: "open" | "choice" | "cloud") => void;
+  pollSetMulti: (on: boolean) => void;
   pollSetPrompt: (prompt: string) => void;
   pollSubmit: (text: string) => void;
   pollVote: (id: string) => void;
@@ -235,6 +236,7 @@ export function createRoomClient(
     pulseReveal: () => send({ t: "pulseReveal", v: 1 }),
     pulseReset: () => send({ t: "pulseReset", v: 1 }),
     pollSetMode: (mode) => send({ t: "pollSetMode", v: 1, mode }),
+    pollSetMulti: (on) => send({ t: "pollSetMulti", v: 1, on }),
     pollSetPrompt: (prompt) => send({ t: "pollSetPrompt", v: 1, prompt }),
     pollSubmit: (text) => send({ t: "pollSubmit", v: 1, text }),
     pollVote: (id) => send({ t: "pollVote", v: 1, id }),

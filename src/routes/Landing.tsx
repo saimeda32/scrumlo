@@ -264,14 +264,18 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FAQ · plain Q&A — both humans and answer engines lift from this */}
+      {/* FAQ · accordion cards — both humans and answer engines lift from this */}
       <section className="mx-auto max-w-3xl px-6 py-14">
-        <h2 className="text-center text-2xl font-bold text-slate-900 dark:text-slate-100">Questions, answered</h2>
-        <div className="mt-8 space-y-6">
+        <div className="mb-8 text-center">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">You're probably wondering…</h2>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">The short, honest answers.</p>
+        </div>
+        <div className="space-y-3">
           {[
             {
               q: "Is Scrumlo free?",
-              a: "Yes — completely free, no paid tier, no trial clock. It's open-source too.",
+              a: "Yes — completely free. No paid tier, no seat limits, no trial clock counting down on you. It's open-source too.",
+              open: true,
             },
             {
               q: "Do I need an account?",
@@ -294,10 +298,27 @@ export default function Landing() {
               a: "No — estimation votes, retro brainstorms, polls and health checks are all blind by default: the server withholds everyone's answers until the reveal, so nobody anchors anybody.",
             },
           ].map((f) => (
-            <div key={f.q}>
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">{f.q}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{f.a}</p>
-            </div>
+            <details
+              key={f.q}
+              open={f.open}
+              className="group rounded-2xl border border-slate-200 bg-white shadow-soft transition open:shadow-md dark:border-white/10 dark:bg-[#14141b]"
+            >
+              <summary className="flex cursor-pointer select-none items-center gap-3 px-5 py-4 font-semibold text-slate-800 marker:content-none [&::-webkit-details-marker]:hidden dark:text-slate-100">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-iris-50 text-sm font-bold text-iris-600 dark:bg-iris-500/15 dark:text-iris-300">
+                  ?
+                </span>
+                <span className="min-w-0 flex-1">{f.q}</span>
+                <svg
+                  className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </summary>
+              <p className="px-5 pb-4 pl-[3.75rem] text-sm leading-relaxed text-slate-600 dark:text-slate-400">{f.a}</p>
+            </details>
           ))}
         </div>
       </section>
@@ -307,7 +328,8 @@ export default function Landing() {
           <a href="/planning-poker" className="hover:text-iris-600">Planning poker</a>
           <a href="/retro" className="hover:text-iris-600">Retro tool</a>
           <a href="/word-cloud-poll" className="hover:text-iris-600">Word cloud polls</a>
-          <a href="https://github.com/saimeda32/scrumlo" className="hover:text-iris-600">GitHub</a>
+          {/* GitHub link parked for now — re-add when the repo is ready for visitors:
+              <a href="https://github.com/saimeda32/scrumlo" className="hover:text-iris-600">GitHub</a> */}
         </nav>
         Free, open-source planning poker and sprint retrospectives · no login, no database,
         anonymous, ephemeral. Estimate. Retro. Forgotten.

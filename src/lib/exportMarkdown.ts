@@ -136,13 +136,21 @@ export function buildSessionMarkdown(args: {
   }
 
   // Poll / Q&A
-  if (poll && poll.total > 0) {
-    out.push("", `## Poll${poll.prompt ? ` · ${poll.prompt}` : ""}`);
-    // Blind + unrevealed: the snapshot only carries this user's own entries, so a
-    // full export would silently misrepresent the room. Say so instead.
-    if (poll.blind && poll.phase === "answering") out.push("_Results were still hidden (not yet revealed) at export time._");
-    else if (poll.mode === "cloud") out.push(poll.cloud.map((c) => `${c.word} (${c.count})`).join(" · "));
-    else for (const a of poll.answers) out.push(`- ${a.text}${a.votes ? ` (▲ ${a.votes})` : ""}`);
+  if (poll && (poll.total > 0 || poll.log.length > 0)) {
+    out.push("", "## Poll");
+    // Earlier questions first (the order they were asked), then the live one.
+    for (const l of poll.log) {
+      out.push("", `### ${l.prompt}`);
+      out.push(l.results.map((r) => `${r.text}${r.count ? ` (${r.count})` : ""}`).join(" · "));
+    }
+    if (poll.total > 0) {
+      out.push("", `### ${poll.prompt || "Current question"}`);
+      // Blind + unrevealed: the snapshot only carries this user's own entries, so a
+      // full export would silently misrepresent the room. Say so instead.
+      if (poll.blind && poll.phase === "answering") out.push("_Results were still hidden (not yet revealed) at export time._");
+      else if (poll.mode === "cloud") out.push(poll.cloud.map((c) => `${c.word} (${c.count})`).join(" · "));
+      else for (const a of poll.answers) out.push(`- ${a.text}${a.votes ? ` (▲ ${a.votes})` : ""}`);
+    }
   }
 
   // Picker

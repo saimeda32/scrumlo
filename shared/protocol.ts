@@ -17,6 +17,10 @@ export type Activity = "estimate" | "retro" | "pick" | "board" | "pulse" | "poll
 // choice = facilitator defines options; people pick (single- or multi-select), bar results
 // cloud  = one-word live word cloud
 export type PollMode = "open" | "choice" | "cloud";
+// A finished question, archived when the facilitator moves to the next one.
+// Results are one unified shape across modes: cloud words, options, or answers,
+// each with its count — ready for the UI and the markdown export as-is.
+export type PollLogItem = { prompt: string; mode: PollMode; results: { text: string; count: number }[] };
 export type PollView = {
   mode: PollMode;
   prompt: string;
@@ -34,6 +38,11 @@ export type PollView = {
   // cloud mode: aggregated word frequencies
   cloud: { word: string; count: number }[];
   total: number; // how many submissions in total
+  // Question queue: upcoming prompts are the facilitator's secret (others get only
+  // the count, so questions can't be answered ahead); the log is for everyone.
+  queue: string[];
+  queueLen: number;
+  log: PollLogItem[];
 };
 
 // ---- Pulse (team health check) ----
@@ -354,6 +363,9 @@ export type ClientMsg =
   | { t: "pollClear"; v: 1 }
   | { t: "pollSetBlind"; v: 1; on: boolean } // facilitator: hide results until reveal
   | { t: "pollReveal"; v: 1 } // facilitator: show the blind results to everyone
+  | { t: "pollQueueAdd"; v: 1; prompt: string } // facilitator: queue an upcoming question
+  | { t: "pollQueueRemove"; v: 1; index: number }
+  | { t: "pollNext"; v: 1 } // facilitator: archive current results, load the next question
   | { t: "retroSetAnonymous"; v: 1; on: boolean } // facilitator: show/hide authors
   | { t: "retroSetBlind"; v: 1; on: boolean } // facilitator: hide/show other people's card bodies
   | { t: "retroSpotlight"; v: 1; cardId: string | null } // facilitator: focus everyone on a card

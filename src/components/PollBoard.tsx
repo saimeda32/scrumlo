@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PollView, PollMode } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 
@@ -43,11 +43,63 @@ export function PollBoard({
 }) {
   const [draft, setDraft] = useState("");
   const [prompt, setPrompt] = useState(poll.prompt);
+  const [queueDraft, setQueueDraft] = useState("");
+
+  // The prompt input mirrors the server value but is editable; resync it whenever the
+  // server changes it (Next question, another facilitator) and we're not mid-edit —
+  // otherwise a stale local copy silently reverts the question on blur.
+  const promptBox = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (document.activeElement !== promptBox.current) setPrompt(poll.prompt);
+  }, [poll.prompt]);
+
+  // Confetti when the reveal lands (answering → revealed transition).
+  const prevPhase = useRef(poll.phase);
+  const [burst, setBurst] = useState(0);
+  useEffect(() => {
+    const was = prevPhase.current;
+    prevPhase.current = poll.phase;
+    if (was === "answering" && poll.phase === "revealed") {
+      setBurst((b) => b + 1);
+      const t = setTimeout(() => setBurst(0), 1600);
+      return () => clearTimeout(t);
+    }
+  }, [poll.phase]);
 
   function submit() {
     const t = draft.trim();
     if (t) client.pollSubmit(t);
     setDraft("");
+  }
+
+  function queueAdd() {
+    const t = queueDraft.trim();
+    if (t) client.pollQueueAdd(t);
+    setQueueDraft("");
+  }
+
+  // Render the revealed cloud to a PNG, entirely in the browser (nothing sent),
+  // same approach as the board snapshot in ExportSheet.
+  const [saving, setSaving] = useState(false);
+  async function downloadCloud() {
+    const node = document.getElementById("scrumlo-cloudshot");
+    if (!node) return;
+    setSaving(true);
+    try {
+      const { toPng } = await import("html-to-image"); // lazy · keep it out of the initial bundle
+      const dark = document.documentElement.classList.contains("dark");
+      const dataUrl = await toPng(node as HTMLElement, {
+        pixelRatio: 2,
+        backgroundColor: dark ? "#14141b" : "#ffffff",
+        cacheBust: true,
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = "scrumlo-wordcloud.png";
+      a.click();
+    } finally {
+      setSaving(false);
+    }
   }
 
   // Blind + still answering → results are hidden for everyone (server enforces it).
@@ -66,6 +118,7 @@ export function PollBoard({
         <div className="flex flex-wrap items-center gap-3">
           {isFacil ? (
             <input
+              ref={promptBox}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onBlur={() => prompt !== poll.prompt && client.pollSetPrompt(prompt)}
@@ -166,6 +219,56 @@ export function PollBoard({
         )}
       </div>
 
+      {/* question queue · facilitator preps the ceremony, steps through it */}
+      {isFacil && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              Up next{poll.queue.length > 0 ? ` · ${poll.queue.length}` : ""}
+            </span>
+            <button
+              onClick={() => client.pollNext()}
+              disabled={poll.queueLen === 0 && poll.total === 0}
+              title="Archive this question's results and load the next one"
+              className="rounded-lg bg-slate-800 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-slate-700 disabled:cursor-default disabled:opacity-40 dark:bg-white dark:text-slate-900"
+            >
+              Next question →
+            </button>
+          </div>
+          {poll.queue.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {poll.queue.map((q, i) => (
+                <li key={`${i}-${q}`} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1.5 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-200">
+                  <span className="text-xs font-bold tabular-nums text-slate-400">{i + 1}.</span>
+                  <span className="min-w-0 flex-1 break-words">{q}</span>
+                  <button
+                    onClick={() => client.pollQueueRemove(i)}
+                    aria-label="Remove queued question"
+                    className="shrink-0 rounded px-1 text-slate-300 hover:text-rose-500"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-2 flex gap-2">
+            <input
+              value={queueDraft}
+              onChange={(e) => setQueueDraft(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && queueAdd()}
+              maxLength={140}
+              placeholder="Queue another question…"
+              aria-label="Queue a question"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-iris-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+            />
+            <button onClick={queueAdd} className="shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-300">
+              Add
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* blind progress: who's in, and (for the facilitator) the reveal button */}
       {hidden && (
         <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
@@ -190,8 +293,10 @@ export function PollBoard({
         </div>
       )}
 
-      {/* results */}
-      {poll.mode === "cloud" ? (
+      {/* results · the confetti layer sits over whichever mode is showing */}
+      <div className="relative">
+        {burst > 0 && <ConfettiBurst key={burst} />}
+        {poll.mode === "cloud" ? (
         hidden ? (
           poll.youAnswered ? (
             <WaitingPanel answered={poll.answered} />
@@ -199,11 +304,29 @@ export function PollBoard({
             <HiddenPlaceholder text="Drop a word — the cloud appears when the facilitator reveals." />
           )
         ) : (
-          <div className="min-h-[240px] rounded-2xl border border-slate-200 bg-white p-8 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
+          <div className="relative min-h-[240px] rounded-2xl border border-slate-200 bg-white shadow-soft dark:border-white/10 dark:bg-[#14141b]">
             {poll.cloud.length === 0 ? (
-              <p className="text-center text-sm text-slate-400 dark:text-slate-500">Drop a word to start the cloud.</p>
+              <p className="p-8 text-center text-sm text-slate-400 dark:text-slate-500">Drop a word to start the cloud.</p>
             ) : (
-              <WordCloud cloud={poll.cloud} epoch={poll.phase} />
+              <>
+                {/* everything inside #scrumlo-cloudshot lands in the saved image */}
+                <div id="scrumlo-cloudshot" className="p-8">
+                  {poll.prompt && (
+                    <div className="mb-4 text-center text-sm font-bold text-slate-600 dark:text-slate-300">{poll.prompt}</div>
+                  )}
+                  <WordCloud cloud={poll.cloud} epoch={poll.phase} />
+                  <div className="mt-5 text-center text-[10px] font-semibold tracking-wide text-slate-300 dark:text-slate-600">
+                    made together at scrumlo.com
+                  </div>
+                </div>
+                <button
+                  onClick={downloadCloud}
+                  disabled={saving}
+                  className="absolute right-3 top-3 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 disabled:opacity-50 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20"
+                >
+                  {saving ? "Saving…" : "📸 Save image"}
+                </button>
+              </>
             )}
           </div>
         )
@@ -318,7 +441,58 @@ export function PollBoard({
           )}
           {hidden && poll.youAnswered && <WaitingPanel answered={poll.answered} compact />}
         </div>
+        )}
+      </div>
+
+      {/* earlier questions · newest first, everyone sees them */}
+      {poll.log.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Asked earlier</h3>
+          {[...poll.log].reverse().map((l, i) => (
+            <div key={`${poll.log.length - i}-${l.prompt}`} className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
+              <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{l.prompt}</div>
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
+                {l.results.slice(0, 6).map((r) => (
+                  <span key={r.text}>
+                    <span className="font-semibold text-slate-600 dark:text-slate-300">{r.text}</span>
+                    {r.count > 0 && ` · ${r.count}`}
+                  </span>
+                ))}
+                {l.results.length > 6 && <span>+{l.results.length - 6} more</span>}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
+    </div>
+  );
+}
+
+/** A one-shot burst over the results when the reveal lands. Pure flavor. */
+function ConfettiBurst() {
+  const parts = useMemo(
+    () =>
+      Array.from({ length: 26 }, (_, i) => {
+        const angle = (i / 26) * Math.PI * 2;
+        const dist = 60 + Math.random() * 100;
+        return {
+          cx: `${Math.round(Math.cos(angle) * dist)}px`,
+          cy: `${Math.round(Math.sin(angle) * dist - 40)}px`,
+          c: CLOUD_COLORS[i % CLOUD_COLORS.length],
+          d: Math.random() * 0.25,
+        };
+      }),
+    [],
+  );
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-16 z-10" aria-hidden>
+      {parts.map((p, i) => (
+        <span
+          key={i}
+          className="animate-conf absolute h-2 w-2 rounded-[2px]"
+          style={{ background: p.c, ["--cx" as string]: p.cx, ["--cy" as string]: p.cy, animationDelay: `${p.d}s` }}
+        />
+      ))}
     </div>
   );
 }

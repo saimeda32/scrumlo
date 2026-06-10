@@ -15,6 +15,7 @@ import type {
   PulseView,
   PollView,
   PollMode,
+  PollLogItem,
   PickMode,
   Phase,
   Activity,
@@ -111,6 +112,8 @@ type PollState = {
   blind: boolean; // hide results until the facilitator reveals (anti-anchoring)
   phase: "answering" | "revealed"; // only gates anything while blind
   entries: { id: string; text: string; authorId: string; voters: string[] }[];
+  queue: string[]; // upcoming questions, facilitator-curated
+  log: PollLogItem[]; // finished questions with their final results
 };
 
 /**
@@ -171,7 +174,7 @@ export class RoomDO extends DurableObject<Env> {
   };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0, recent: [] };
   private pulse: PulseState = { dimensions: [...PULSE_DIMENSIONS], phase: "voting", votes: {} };
-  private poll: PollState = { mode: "open", prompt: "", multi: false, blind: true, phase: "answering", entries: [] };
+  private poll: PollState = { mode: "open", prompt: "", multi: false, blind: true, phase: "answering", entries: [], queue: [], log: [] };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
   private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
@@ -246,6 +249,8 @@ export class RoomDO extends DurableObject<Env> {
         this.poll.blind ??= true;
         this.poll.phase ??= "answering";
         this.poll.entries ??= [];
+        this.poll.queue ??= [];
+        this.poll.log ??= [];
       }
       const p = await ctx.storage.get<PickState>("pick");
       if (p) {
@@ -1027,6 +1032,33 @@ export class RoomDO extends DurableObject<Env> {
         this.poll.phase = "revealed";
         break;
       }
+      case "pollQueueAdd": {
+        if (!this.isFacilitator(me)) return;
+        const prompt = String(msg.prompt ?? "").trim().slice(0, 140);
+        if (!prompt || this.poll.queue.length >= 50) return;
+        this.poll.queue.push(prompt);
+        break;
+      }
+      case "pollQueueRemove": {
+        if (!this.isFacilitator(me)) return;
+        const i = Math.trunc(Number(msg.index));
+        if (i >= 0 && i < this.poll.queue.length) this.poll.queue.splice(i, 1);
+        break;
+      }
+      case "pollNext": {
+        if (!this.isFacilitator(me)) return;
+        // Archive the finished question (a question nobody answered is skipped, like
+        // an unestimated story), then load the next one and re-arm the blind phase.
+        const results = this.pollResults();
+        if (this.poll.prompt && results.length) {
+          this.poll.log.push({ prompt: this.poll.prompt, mode: this.poll.mode, results });
+          this.poll.log = this.poll.log.slice(-50);
+        }
+        this.poll.prompt = this.poll.queue.shift() ?? "";
+        this.poll.entries = [];
+        this.poll.phase = "answering";
+        break;
+      }
 
       default: {
         // Compile-time exhaustiveness: if a new ClientMsg variant is added without a
@@ -1348,6 +1380,27 @@ export class RoomDO extends DurableObject<Env> {
     return best;
   }
 
+  /** The current question's final results in one shape across modes: cloud words
+   *  by distinct submitters, or answers/options by votes. Sorted best-first. */
+  private pollResults(): { text: string; count: number }[] {
+    if (this.poll.mode === "cloud") {
+      // Count DISTINCT submitters per word, so the cloud measures how many people
+      // feel a thing, not who typed the most. One person spamming a word counts once.
+      const submitters = new Map<string, Set<string>>();
+      for (const e of this.poll.entries) {
+        const w = e.text.toLowerCase();
+        (submitters.get(w) ?? submitters.set(w, new Set()).get(w)!).add(e.authorId);
+      }
+      return [...submitters.entries()]
+        .map(([text, authors]) => ({ text, count: authors.size }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 80);
+    }
+    return this.poll.entries
+      .map((e) => ({ text: e.text, count: e.voters.length }))
+      .sort((a, b) => b.count - a.count);
+  }
+
   /** Build the poll view: an upvoted Q&A list, or an aggregated word cloud.
    *  While blind + answering, results stay server-side for EVERYONE (facilitator
    *  included) — clients get only their own entries plus the answered/eligible
@@ -1371,20 +1424,14 @@ export class RoomDO extends DurableObject<Env> {
       eligible,
       youAnswered: meId ? answeredIds.has(meId) : false,
       total,
+      // Upcoming questions stay the facilitator's secret; everyone gets the count.
+      queue: meId && meId === this.facilitatorId ? this.poll.queue : [],
+      queueLen: this.poll.queue.length,
+      log: this.poll.log,
     };
     if (this.poll.mode === "cloud") {
       if (hidden) return { ...base, answers: [], cloud: [] };
-      // Count DISTINCT submitters per word, so the cloud measures how many people
-      // feel a thing, not who typed the most. One person spamming a word counts once.
-      const submitters = new Map<string, Set<string>>();
-      for (const e of this.poll.entries) {
-        const w = e.text.toLowerCase();
-        (submitters.get(w) ?? submitters.set(w, new Set()).get(w)!).add(e.authorId);
-      }
-      const cloud = [...submitters.entries()]
-        .map(([word, authors]) => ({ word, count: authors.size }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 80);
+      const cloud = this.pollResults().map((r) => ({ word: r.text, count: r.count }));
       return { ...base, answers: [], cloud };
     }
     let answers = this.poll.entries.map((e) => ({

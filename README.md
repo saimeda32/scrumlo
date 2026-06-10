@@ -2,6 +2,8 @@
 
 **Estimate. Retro. Forgotten.**
 
+**▶ Try it live: [scrumlo.com](https://scrumlo.com)** · no install, no signup — start a room and share the link.
+
 An open-source, no-login, ephemeral sprint room. Run blind-reveal **planning poker**, a facilitated **retrospective**, a **roadmap board**, a random **picker**, and a shared **timer** over one shareable link · no account, no database, nothing kept after the room ends. The facilitator switches activities live and everyone follows.
 
 > **Scrumlo** *(SCRUM-lo)* · the agile loop that comes around each sprint, then clears. One link runs the whole ceremony; when everyone leaves, *poof*.

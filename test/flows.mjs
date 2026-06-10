@@ -586,6 +586,33 @@ await flow("poll: blind Q&A shows only your answers, upvotes open at reveal", as
   eq(a.snap.poll.answers.find((x) => x.text === "Bob's idea").votes, 1, "upvotes work after reveal");
 });
 
+await flow("poll: question queue — next archives results and loads the next prompt", async (t) => {
+  const [a, b, c] = t(await room(["Alice", "Bob", "Cara"])); // Alice facilitator
+  a.send({ t: "switchActivity", v: 1, activity: "poll" });
+  await sleep(120);
+  a.send({ t: "pollSetMode", v: 1, mode: "cloud" });
+  a.send({ t: "pollSetPrompt", v: 1, prompt: "One word for the sprint?" });
+  a.send({ t: "pollQueueAdd", v: 1, prompt: "One word for next sprint?" });
+  a.send({ t: "pollQueueAdd", v: 1, prompt: "Team lunch: where?" });
+  await sleep(250);
+  eq(a.snap.poll.queue, ["One word for next sprint?", "Team lunch: where?"], "facilitator sees the queue");
+  eq(b.snap.poll.queue, [], "participants don't see upcoming questions");
+  eq(b.snap.poll.queueLen, 2, "…but they see the count");
+  b.send({ t: "pollQueueAdd", v: 1, prompt: "sneaky" });
+  await sleep(200);
+  eq(a.snap.poll.queue.length, 2, "non-facilitator can't queue questions");
+  b.send({ t: "pollSubmit", v: 1, text: "focus" });
+  c.send({ t: "pollSubmit", v: 1, text: "focus" });
+  await sleep(250);
+  a.send({ t: "pollNext", v: 1 });
+  await sleep(250);
+  eq(a.snap.poll.prompt, "One word for next sprint?", "next prompt loaded");
+  eq(a.snap.poll.queueLen, 1, "queue shrank");
+  eq(a.snap.poll.total, 0, "entries cleared for the new question");
+  eq(a.snap.poll.phase, "answering", "blind phase re-armed");
+  eq(b.snap.poll.log, [{ prompt: "One word for the sprint?", mode: "cloud", results: [{ text: "focus", count: 2 }] }], "finished question archived with results, visible to everyone");
+});
+
 // ============================ POLL AT SCALE (20 users) ============================
 const TWENTY = Array.from({ length: 20 }, (_, i) => `User${i + 1}`);
 

@@ -33,6 +33,20 @@ export function PickerBoard({
   const candidates = pick.mode === "list" ? pick.items : members.map((m) => m.name);
   const wheelMode = pick.mode === "person" || pick.mode === "list";
 
+  // Effects run AFTER paint, so on the snapshot frame that bumps the nonce the
+  // `spinning` state is still false and the winner would flash on screen for a
+  // moment before the wheel starts. Derive "mid-spin" during render instead.
+  const justSpun = wheelMode && pick.nonce !== lastNonce.current && pick.result.length > 0;
+  const wheelBusy = spinning || justSpun;
+
+  // The server pushes the winner into `recent` the moment it spins, but the wheel is
+  // still turning — showing it in "Picked so far" would spoil the landing. Hold the
+  // newest entry back until the wheel settles.
+  const shownRecent =
+    wheelBusy && pick.recent.length > 0 && pick.recent[pick.recent.length - 1] === pick.result[0]
+      ? pick.recent.slice(0, -1)
+      : pick.recent;
+
   // When the server bumps the spin nonce, start the wheel (person/list); the Wheel
   // calls onSettle when it lands. Order mode reveals its list instantly.
   useEffect(() => {
@@ -89,7 +103,7 @@ export function PickerBoard({
             )}
             <button
               onClick={() => client.pickSpin()}
-              disabled={spinning}
+              disabled={wheelBusy}
               className="inline-flex items-center gap-1.5 rounded-xl bg-iris-600 px-5 py-2 text-sm font-semibold text-white hover:bg-iris-500 disabled:opacity-50"
             >
               <IconPick className="h-4 w-4" />
@@ -176,18 +190,34 @@ export function PickerBoard({
           </div>
         ) : (
           <div className="flex flex-col items-center">
-            <Wheel
-              candidates={candidates}
-              winner={pick.result[0] ?? null}
-              nonce={pick.nonce}
-              spinning={spinning}
-              onSettle={() => {
-                setSpinning(false);
-                fireConfetti();
+            {/* the wheel itself is a spin button for the facilitator */}
+            <div
+              role={isFacil ? "button" : undefined}
+              tabIndex={isFacil && !wheelBusy ? 0 : -1}
+              aria-label={isFacil ? spinLabel : undefined}
+              title={isFacil && !wheelBusy ? "Click to spin" : undefined}
+              onClick={() => isFacil && !wheelBusy && client.pickSpin()}
+              onKeyDown={(e) => {
+                if (isFacil && !wheelBusy && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  client.pickSpin();
+                }
               }}
-            />
+              className={isFacil && !wheelBusy ? "cursor-pointer rounded-full outline-none transition hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-iris-500 focus-visible:ring-offset-2" : ""}
+            >
+              <Wheel
+                candidates={candidates}
+                winner={pick.result[0] ?? null}
+                nonce={pick.nonce}
+                spinning={wheelBusy}
+                onSettle={() => {
+                  setSpinning(false);
+                  fireConfetti();
+                }}
+              />
+            </div>
             <div className="mt-3 flex h-12 flex-col justify-center text-center">
-              {!spinning && pick.result[0] ? (
+              {!wheelBusy && pick.result[0] ? (
                 <>
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                     {pick.mode === "person" ? "It’s" : "Picked"}
@@ -196,7 +226,7 @@ export function PickerBoard({
                     {pick.result[0]}
                   </div>
                 </>
-              ) : !spinning ? (
+              ) : !wheelBusy ? (
                 <div className="text-sm text-slate-400 dark:text-slate-500">
                   {isFacil ? `Hit "${spinLabel}"` : "Waiting for the facilitator to spin…"}
                 </div>
@@ -205,13 +235,13 @@ export function PickerBoard({
           </div>
         )}
 
-        {wheelMode && pick.recent.length > 0 && (
+        {wheelMode && shownRecent.length > 0 && (
           <div className="mt-4 border-t border-slate-100 pt-3 text-center dark:border-white/10">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
               Picked so far · no repeats until everyone’s had a turn
             </div>
             <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
-              {pick.recent.map((r, i) => (
+              {shownRecent.map((r, i) => (
                 <span
                   key={i}
                   className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500 dark:bg-white/10 dark:text-slate-400"

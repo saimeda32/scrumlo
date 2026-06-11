@@ -5,6 +5,10 @@ dist/
 .vite/
 *.log
 
+# playwright
+test-results/
+playwright-report/
+
 # brainstorm scratch (visual companion, workflow journals)
 .superpowers/
 

@@ -106,9 +106,10 @@ export function RetroCanvas({
           : "relative overflow-hidden rounded-3xl border border-slate-200/80 shadow-inner dark:border-white/10"
       }
     >
-      {/* branded fullscreen wordmark */}
+      {/* branded fullscreen wordmark · bottom center, clear of the control bar (top-left)
+          and zoom cluster (top-right), which can grow wide enough to cover it up top */}
       {full && (
-        <div className="pointer-events-none absolute left-1/2 top-3.5 z-20 flex -translate-x-1/2 items-center gap-2 opacity-80">
+        <div className="pointer-events-none absolute bottom-3.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 opacity-80">
           <LogoMark size={20} />
           <span className="text-[12px] font-light uppercase tracking-[0.3em] text-slate-700 dark:text-slate-200">
             Scrumlo
@@ -426,16 +427,28 @@ function CanvasCard({
     client.retroMoveXY(card.id, Math.round(card.x + dx), Math.round(card.y + dy));
   }
 
+  // Double-click opens the text for editing. This must live on the card root, not the
+  // text node: onDown takes pointer capture, which retargets the derived click/dblclick
+  // events to the capturing element, so an inner handler would never fire.
+  function onDoubleClick(e: React.MouseEvent) {
+    if (!canAct || !card.mine || editing) return;
+    if ((e.target as HTMLElement).closest("button,textarea,input")) return;
+    setText(card.text);
+    setEditing(true);
+  }
+
   return (
     <div
       data-card-id={card.id}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
+      onDoubleClick={onDoubleClick}
       onKeyDown={onKey}
       tabIndex={canAct ? 0 : -1}
       role="group"
-      aria-label={`Sticky: ${card.text || "(empty)"}. Arrow keys to move.`}
+      aria-label={`Sticky: ${card.text || "(empty)"}.${card.mine ? " Double-click to edit." : ""} Arrow keys to move.`}
+      title={card.mine && canAct ? "Double-click to edit" : undefined}
       style={{ left: x, top: y, width: CARD_W, touchAction: "none", rotate: spotlit || drag || live ? "0deg" : `${tiltOf(card.id)}deg` }}
       className={`group absolute select-none rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_16px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
         canAct ? "cursor-grab active:cursor-grabbing" : ""
@@ -494,10 +507,7 @@ function CanvasCard({
           className="w-full resize-none rounded-md border border-black/10 bg-white/70 px-2 py-1 text-[15px] font-medium text-slate-800 outline-none"
         />
       ) : (
-        <div
-          className="whitespace-pre-wrap break-words font-medium"
-          onDoubleClick={() => canAct && card.mine && (setText(card.text), setEditing(true))}
-        >
+        <div className="whitespace-pre-wrap break-words font-medium">
           {/* An abandoned blank (author bailed mid-add) shouldn't look like a broken box. */}
           {card.text || <span className="italic text-slate-400">…</span>}
         </div>

@@ -778,6 +778,47 @@ export class RoomDO extends DurableObject<Env> {
         this.endDrag(me.id);
         break;
       }
+      case "retroSort": {
+        // Gather: rebuild clusters from a criterion and lay each bucket out as a tidy
+        // stack, blocks flowing left->right across the zones. Replaces manual groups —
+        // it's the facilitator's "organize the wall" move (mirrors Lucidspark's Sort).
+        if (!this.isFacilitator(me)) return;
+        if (msg.by !== "tag" && msg.by !== "votes" && msg.by !== "author") return;
+        const tpl = RETRO_TEMPLATES[R.template] ?? RETRO_TEMPLATES.ssc;
+        const nameOf = new Map(this.membersFrom(this.ctx.getWebSockets()).map((m) => [m.id, m.name]));
+        const keyOf = (c: RetroCard): string | null => {
+          if (msg.by === "tag") return c.tags?.[0] ?? null;
+          if (msg.by === "author") return nameOf.get(c.authorId) ?? null;
+          return c.voters.length >= 3 ? "3+ votes" : c.voters.length >= 1 ? "1–2 votes" : null;
+        };
+        const buckets = new Map<string, RetroCard[]>();
+        for (const c of R.cards) {
+          const k = keyOf(c);
+          if (!k) continue;
+          const b = buckets.get(k) ?? [];
+          b.push(c);
+          buckets.set(k, b);
+        }
+        for (const c of R.cards) c.groupId = null;
+        R.groupTitles = {};
+        let bi = 0;
+        for (const [key, group] of buckets) {
+          if (group.length < 2) continue; // a bucket of one isn't a theme
+          const gid = crypto.randomUUID();
+          R.groupTitles[gid] = key;
+          const zi = bi % tpl.columns.length;
+          const bx = zi * ZONE_W + 22;
+          const by = 140 + Math.floor(bi / tpl.columns.length) * 300;
+          group.forEach((c, i) => {
+            c.groupId = gid;
+            c.column = tpl.columns[zi].id; // column follows x, same rule as free moves
+            c.x = Math.round(bx + 16 * i);
+            c.y = Math.round(by + 16 * i);
+          });
+          bi++;
+        }
+        break;
+      }
       case "retroRenameGroup": {
         if (!me) return;
         const title = String(msg.title ?? "").trim().slice(0, 40);

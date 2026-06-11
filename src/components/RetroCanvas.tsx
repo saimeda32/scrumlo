@@ -73,6 +73,7 @@ export function RetroCanvas({
   // just those tiny pieces, never the board/backdrop.
   const [zoom, setZoom] = useState(0.8);
   const [full, setFull] = useState(false);
+  const [gatherOpen, setGatherOpen] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
 
   // Fullscreen makes the wall big enough for 4–5 columns. Escape exits.
@@ -151,6 +152,30 @@ export function RetroCanvas({
       )}
       {/* zoom + fullscreen controls */}
       <div className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/90">
+        {isFacil && (
+          <div className="relative mr-1 border-r border-slate-200 pr-1 dark:border-white/10">
+            <button
+              onClick={() => setGatherOpen((v) => !v)}
+              className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+              title="Gather stickies into clusters by tag, votes or author"
+            >
+              Gather
+            </button>
+            {gatherOpen && (
+              <div className="absolute right-0 top-9 z-40 flex w-32 flex-col rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-white/10 dark:bg-[#14141b]">
+                {([["tag", "By tag"], ["votes", "By votes"], ["author", "By author"]] as const).map(([by, label]) => (
+                  <button
+                    key={by}
+                    onClick={() => { client.retroSort(by); setGatherOpen(false); }}
+                    className="rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <button onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom out">−</button>
         <span className="w-10 text-center text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((z) => Math.min(full ? 1.5 : 1.4, +(z + 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom in">+</button>

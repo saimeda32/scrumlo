@@ -172,7 +172,7 @@ export default function Landing() {
             {
               Icon: IconRetro,
               t: "Retro",
-              d: "A free Miro-style canvas with facilitated phases: blind brainstorm → group → vote → discuss. Drag-to-cluster, dot-votes, action items with owners.",
+              d: "A free Miro-style canvas with facilitated phases: blind brainstorm → group → vote → discuss. Tag stickies, gather them into named themes by tag, votes or author, dot-vote, capture action items with owners.",
             },
             {
               Icon: IconBoard,

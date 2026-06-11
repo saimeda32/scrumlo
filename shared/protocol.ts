@@ -352,6 +352,7 @@ export type ClientMsg =
   | { t: "retroReact"; v: 1; cardId: string; emoji: string } // toggle an emoji reaction
   | { t: "retroTagCard"; v: 1; cardId: string; tag: string; on: boolean } // toggle a structured tag
   | { t: "retroRenameGroup"; v: 1; groupId: string; title: string } // rename a cluster
+  | { t: "retroSort"; v: 1; by: "tag" | "votes" | "author" } // facilitator: gather cards into clusters by criterion
   | { t: "retroMoveCard"; v: 1; cardId: string; toColumn: string; toIndex: number } // legacy column move
   | { t: "retroMoveXY"; v: 1; cardId: string; x: number; y: number } // free-canvas placement
   | { t: "retroEditCard"; v: 1; cardId: string; text: string } // edit a sticky's text in place

@@ -189,3 +189,27 @@ test("clustering two stickies names the theme, and the name can be edited", asyn
   await input.press("Enter");
   await expect(page.getByRole("button", { name: /Rename cluster/ })).toContainText("Test debt");
 });
+
+test("gather by tag pulls tagged stickies into one titled cluster", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await addSticky(page, "fix login bug");
+  await addSticky(page, "speed up builds");
+  await addSticky(page, "lunch was great");
+
+  // Tag two of the three as Priority (scoped to the card so chips elsewhere don't collide).
+  for (const text of ["fix login bug", "speed up builds"]) {
+    const card = page.locator("[data-card-id]", { hasText: text });
+    await card.hover();
+    await card.getByRole("button", { name: "Add tag" }).click();
+    await card.getByRole("button", { name: "Priority" }).click();
+    await expect(card.getByText("Priority")).toBeVisible();
+  }
+
+  // Facilitator gathers by tag → the two Priority cards become one cluster named after the tag.
+  await page.getByRole("button", { name: "Gather" }).click();
+  await page.getByRole("button", { name: "By tag" }).click();
+
+  const pills = page.getByRole("button", { name: /Rename cluster/ });
+  await expect(pills).toHaveCount(1);
+  await expect(pills.first()).toContainText("Priority");
+});

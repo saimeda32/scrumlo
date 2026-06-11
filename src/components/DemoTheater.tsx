@@ -141,9 +141,14 @@ function RetroAct() {
           <span className={s.c.split(" ").slice(1).join(" ")}>{s.t}</span>
           <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/70 px-1.5 text-[9px] font-bold text-slate-700">
             ▲ {3 + i}
+            {i === 0 && <span className="ml-0.5 rounded-full bg-rose-100 px-1 text-[8px] font-bold text-rose-700">Priority</span>}
           </div>
         </div>
       ))}
+      {/* a freshly gathered cluster gets its name */}
+      <div className="animate-pop absolute left-[24px] top-[170px] rounded-full bg-violet-600 px-2 py-0.5 text-[9px] font-bold text-white shadow" style={{ animationDelay: "1100ms" }}>
+        Theme · CI pain
+      </div>
       {/* a teammate's live cursor gliding across the board */}
       <div className="animate-glide absolute left-0 top-0">
         <svg width="18" height="18" viewBox="0 0 20 20" className="text-violet-500" style={{ color: "#8b5cf6" }}>

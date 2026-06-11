@@ -1198,6 +1198,9 @@ export class RoomDO extends DurableObject<Env> {
         delete this.departed[id]; // they came back
       } else if (now - at >= EMPTY_GRACE_MS) {
         if (this.pruneMember(id)) changed = true;
+        // The baton holder's grace just expired with nothing else to prune: still
+        // broadcast, so the handoff in broadcast() runs now rather than on the next event.
+        if (this.facilitatorId === id) changed = true;
         delete this.departed[id];
       }
     }
@@ -1575,11 +1578,17 @@ export class RoomDO extends DurableObject<Env> {
 
     let mutated = false;
 
-    // Move the facilitator baton only on a REAL leave (holder gone from the
-    // live socket set) · a fresh joiner never displaces the first joiner.
-    if (this.facilitatorId === null || !presentIds.has(this.facilitatorId)) {
+    // Move the facilitator baton only on a REAL leave: the holder is gone from the
+    // live socket set AND past the reconnect grace window. A page refresh or a flaky
+    // network closes the socket for a second or two — demoting the facilitator for
+    // that breaks the room (same clientId restores the member moments later). While
+    // the baton waits out the grace, a teammate can still claimFacilitator explicitly.
+    const holder = this.facilitatorId;
+    const departedAt = holder !== null ? this.departed[holder] : undefined;
+    const holderInGrace = departedAt !== undefined && Date.now() - departedAt < EMPTY_GRACE_MS;
+    if (holder === null || (!presentIds.has(holder) && !holderInGrace)) {
       this.facilitatorId = members[0]?.id ?? null;
-      mutated = true;
+      if (this.facilitatorId !== holder) mutated = true;
     }
 
     // Votes and retro cards are NOT pruned on disconnect: with stable clientId

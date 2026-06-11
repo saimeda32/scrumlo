@@ -708,12 +708,19 @@ await flow("facilitation: first joiner is facilitator, claim is gated while pres
   assert(b.snap.facilitator !== b.snap.you, "Bob cannot steal the baton while Alice is here");
 });
 
-await flow("facilitation: baton moves when facilitator leaves", async (t) => {
+await flow("facilitation: baton survives the reconnect grace, and a teammate can claim it", async (t) => {
   const cs = t(await room(["Alice", "Bob"]));
   const [a, b] = cs;
+  const aliceId = a.snap.you;
   a.close();
   await sleep(400);
-  eq(b.snap.facilitator, b.snap.you, "Bob inherits the baton after Alice leaves");
+  // A dropped socket (page refresh, flaky network) must NOT demote the facilitator:
+  // the baton waits out the same grace window that protects seats and votes.
+  eq(b.snap.facilitator, aliceId, "the baton stays with Alice during the reconnect grace");
+  // But the room isn't stuck: with the holder absent, an explicit claim succeeds.
+  b.send({ t: "claimFacilitator", v: 1 });
+  await sleep(300);
+  eq(b.snap.facilitator, b.snap.you, "Bob can claim the baton while Alice is away");
 });
 
 await flow("facilitation: end room broadcasts ended to everyone", async (t) => {

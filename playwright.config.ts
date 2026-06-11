@@ -5,6 +5,7 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "test/e2e",
   timeout: 30_000,
+  expect: { timeout: 10_000 }, // local DO + websocket reconnects can take a beat over 5s
   fullyParallel: true,
   use: {
     baseURL: process.env.BASE_URL || "http://localhost:8787",

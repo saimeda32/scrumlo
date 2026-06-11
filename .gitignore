@@ -19,3 +19,6 @@ playwright-report/
 
 # os
 .DS_Store
+
+# local design specs/plans (superpowers workflow)
+docs/superpowers/

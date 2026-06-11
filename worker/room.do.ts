@@ -7,6 +7,7 @@ import type {
   EndedMsg,
   CursorsMsg,
   EmoteMsg,
+  BatonMsg,
   SpotlightMsg,
   Member,
   EstimateView,
@@ -612,6 +613,25 @@ export class RoomDO extends DurableObject<Env> {
         const present = this.membersFrom(this.ctx.getWebSockets());
         if (this.facilitatorId !== null && present.some((m) => m.id === this.facilitatorId)) return;
         this.facilitatorId = me.id;
+        break;
+      }
+      case "handBaton": {
+        // The opposite of claim: a deliberate, in-session transfer by the current
+        // facilitator to a present member — no more disconnect-and-rejoin dance.
+        if (!me || !this.isFacilitator(me)) return;
+        const present = this.membersFrom(this.ctx.getWebSockets());
+        const to = present.find((m) => m.id === msg.toId);
+        if (!to) return;
+        this.facilitatorId = msg.toId;
+        // Fan out the coronation (crown + confetti) to everyone, like emotes.
+        const baton = JSON.stringify({ t: "baton", v: 1, fromName: me.name, toName: to.name } satisfies BatonMsg);
+        for (const s of this.ctx.getWebSockets()) {
+          try {
+            s.send(baton);
+          } catch {
+            /* ignore */
+          }
+        }
         break;
       }
       case "endRoom": {

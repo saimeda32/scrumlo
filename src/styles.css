@@ -178,3 +178,19 @@ html.dark .dot-grid {
   color: white;
   box-shadow: 0 4px 10px -4px rgb(15 23 42 / 0.4);
 }
+
+/* ---- baton hand-off: the crown glides from the old facilitator to the new ---- */
+@keyframes crown-glide {
+  0%   { translate: 0 0; rotate: -8deg; }
+  45%  { translate: 4.5rem -1.4rem; rotate: 10deg; scale: 1.2; }
+  100% { translate: 9rem 0; rotate: 0deg; scale: 1; }
+}
+.crown-glide {
+  animation: crown-glide 1.6s cubic-bezier(0.45, 0, 0.25, 1) 0.4s forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .crown-glide {
+    animation: none;
+    translate: 9rem 0; /* crown sits on the new facilitator immediately */
+  }
+}

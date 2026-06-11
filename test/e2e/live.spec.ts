@@ -57,3 +57,22 @@ test("a drag lands on the other user's screen; spotlight reaches participants", 
   await ana.context().close();
   await ben.context().close();
 });
+
+test("the facilitator can pass the baton to a teammate", async ({ browser }) => {
+  const [ana, ben] = await twoUsers(browser, newRoom());
+
+  await ana.getByRole("button", { name: "Pass baton" }).click();
+  await ana.getByRole("button", { name: /Ben/ }).click();
+
+  // Everyone gets the coronation: crown, circles, confetti.
+  await expect(ben.getByTestId("baton-handoff")).toBeVisible();
+  await expect(ben.getByTestId("baton-handoff")).toContainText("Ben has the baton");
+  await expect(ana.getByTestId("baton-handoff")).toBeVisible();
+
+  // Both sides agree on the new facilitator (server round-trip).
+  await expect(ana.getByText("facilitated by")).toContainText("Ben");
+  await expect(ben.getByText("facilitated by")).toContainText("Ben");
+  // The new facilitator gets the controls (phase stepper is facilitator-gated).
+  await ben.context().close();
+  await ana.context().close();
+});

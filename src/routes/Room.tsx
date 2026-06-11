@@ -23,6 +23,7 @@ import { StatusTicker } from "../components/StatusTicker";
 import { LogoMark } from "../components/Logo";
 import { TimerBanner } from "../components/TimerBanner";
 import { FormatPicker } from "../components/FormatPicker";
+import { BatonHandoff } from "../components/BatonHandoff";
 import { RetroGlyph } from "../components/RetroGlyph";
 import { RETRO_TEMPLATES, DECK_LABELS } from "../../shared/protocol";
 import { retroTheme } from "../lib/retroThemes";
@@ -54,6 +55,7 @@ export default function Room() {
   const [name, setName] = useState("");
   const [showExport, setShowExport] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [baton, setBaton] = useState<{ from: string; to: string } | null>(null);
   const [skewed, setSkewed] = useState(false); // server speaks a newer protocol (a deploy landed)
   const [watchOnly, setWatchOnly] = useState(false); // chose to spectate instead of naming themselves
   const clientRef = useRef<RoomClient | null>(null);
@@ -73,6 +75,7 @@ export default function Room() {
       },
       (name, by, nonce) => useSpotlight.getState().show({ name, by, nonce }),
       () => setSkewed(true),
+      (fromName, toName) => setBaton({ from: fromName, to: toName }),
     );
     clientRef.current = client;
     return () => client.close();
@@ -207,6 +210,7 @@ export default function Room() {
           you={you}
           timerEndsAt={timerEndsAt}
           onClaim={() => client.claimFacilitator()}
+          onHandBaton={(toId) => client.handBaton(toId)}
           onExport={() => setShowExport(true)}
           onTimerStart={(s) => client.timerStart(s)}
           onTimerStop={() => client.timerStop()}
@@ -326,6 +330,8 @@ export default function Room() {
             />
           </Suspense>
         )}
+
+        {baton && <BatonHandoff from={baton.from} to={baton.to} onDone={() => setBaton(null)} />}
 
         {pickerOpen && (
           <FormatPicker

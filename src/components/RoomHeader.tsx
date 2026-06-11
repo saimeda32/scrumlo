@@ -14,6 +14,7 @@ export function RoomHeader({
   you,
   timerEndsAt,
   onClaim,
+  onHandBaton,
   onExport,
   onTimerStart,
   onTimerStop,
@@ -27,6 +28,7 @@ export function RoomHeader({
   you: string | null;
   timerEndsAt: number | null;
   onClaim: () => void;
+  onHandBaton: (toId: string) => void;
   onExport: () => void;
   onTimerStart: (seconds: number) => void;
   onTimerStop: () => void;
@@ -36,6 +38,8 @@ export function RoomHeader({
   const facil = members.find((m) => m.id === facilitator);
   const isFacil = !!you && you === facilitator;
   const [copied, setCopied] = useState(false);
+  const [batonOpen, setBatonOpen] = useState(false);
+  const others = members.filter((m) => m.id !== you);
 
   function copyLink() {
     navigator.clipboard
@@ -79,6 +83,36 @@ export function RoomHeader({
             {isFacil && <span className="font-normal text-slate-400 dark:text-slate-500"> (you)</span>}
           </span>
         </span>
+      )}
+      {isFacil && others.length > 0 && (
+        <div className="relative">
+          <button
+            onClick={() => setBatonOpen((v) => !v)}
+            className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"
+            title="Hand the facilitator role to a teammate"
+          >
+            👑 Pass baton
+          </button>
+          {batonOpen && (
+            <div className="absolute left-0 top-9 z-40 flex w-44 flex-col rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-white/10 dark:bg-[#14141b]">
+              {others.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    onHandBaton(m.id);
+                    setBatonOpen(false);
+                  }}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+                >
+                  <span className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-white" style={{ background: avatarColor(m.name) }}>
+                    {initials(m.name)}
+                  </span>
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       <div className="ml-auto flex items-center gap-3">

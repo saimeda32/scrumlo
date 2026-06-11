@@ -373,6 +373,7 @@ export type ClientMsg =
   | { t: "cursor"; v: 1; x: number; y: number; drag?: { cardId: string; x: number; y: number } | null }
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
+  | { t: "handBaton"; v: 1; toId: string } // facilitator passes the role to a present member
   | { t: "endRoom"; v: 1 } // facilitator kills the room now
   | { t: "reportRoom"; v: 1 } // anyone; 2 distinct reports in 60s ends an abusive room
   // activity + retro
@@ -464,10 +465,12 @@ export type CursorsMsg = {
 
 /** server -> client: a live floating reaction someone sent (not a full snapshot). */
 export type EmoteMsg = { t: "emote"; v: 1; emoji: string; from: string };
+/** Broadcast when the facilitator passes the baton — clients play the coronation. */
+export type BatonMsg = { t: "baton"; v: 1; fromName: string; toName: string };
 
 /** server -> client: someone span the "pick a person" wheel. The server chose the
  *  winner fairly (server-authoritative), so every screen lands on the same name.
  *  `nonce` bumps per spin so a repeat winner still re-triggers the animation. */
 export type SpotlightMsg = { t: "spotlight"; v: 1; name: string; by: string; nonce: number };
 
-export type ServerMsg = Snapshot | EndedMsg | CursorsMsg | EmoteMsg | SpotlightMsg;
+export type ServerMsg = Snapshot | EndedMsg | CursorsMsg | EmoteMsg | SpotlightMsg | BatonMsg;

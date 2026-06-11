@@ -46,6 +46,7 @@ export type RoomClient = {
   estimateQueueReorder: (from: number, to: number) => void;
   estimateNextStory: () => void;
   claimFacilitator: () => void;
+  handBaton: (toId: string) => void;
   endRoom: () => void;
   reportRoom: () => void;
   timerStart: (seconds: number) => void;
@@ -124,6 +125,7 @@ export function createRoomClient(
   onEmote?: (emoji: string, from: string) => void,
   onSpotlight?: (name: string, by: string, nonce: number) => void,
   onSkew?: () => void, // server speaks a different protocol version (deploy in progress)
+  onBaton?: (fromName: string, toName: string) => void, // facilitator hand-off · play the coronation
 ): RoomClient {
   const clientId = clientIdFor(room);
   const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -187,6 +189,7 @@ export function createRoomClient(
         if (isSnapshot(msg)) onSnapshot(msg); // a malformed snapshot can't crash the view
       } else if (msg.t === "cursors") onCursors?.(msg.cursors);
       else if (msg.t === "emote") onEmote?.(msg.emoji, msg.from);
+      else if (msg.t === "baton") onBaton?.(msg.fromName, msg.toName);
       else if (msg.t === "spotlight") onSpotlight?.(msg.name, msg.by, msg.nonce);
       else if (msg.t === "ended") {
         onEnded();
@@ -225,6 +228,7 @@ export function createRoomClient(
     estimateQueueReorder: (from, to) => send({ t: "estimateQueueReorder", v: 1, from, to }),
     estimateNextStory: () => send({ t: "estimateNextStory", v: 1 }),
     claimFacilitator: () => send({ t: "claimFacilitator", v: 1 }),
+    handBaton: (toId) => send({ t: "handBaton", v: 1, toId }),
     endRoom: () => send({ t: "endRoom", v: 1 }),
     reportRoom: () => send({ t: "reportRoom", v: 1 }),
     timerStart: (seconds) => send({ t: "timerStart", v: 1, seconds }),

@@ -126,3 +126,39 @@ test("two stickies fit side by side inside one column", async ({ page }) => {
     expect(b.x + b.width, "right sticky should fit in the column").toBeLessThanOrEqual(z.x + z.width + 1);
   }).toPass({ timeout: 5_000 });
 });
+
+test("a card can be tagged and shows the tag chip", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await addSticky(page, "tag me");
+
+  const card = page.locator("[data-card-id]", { hasText: "tag me" });
+  await card.hover();
+  await card.getByRole("button", { name: "Add tag" }).click();
+  await page.getByRole("button", { name: "Priority" }).click();
+
+  // The chip renders from server state, so visibility proves the round-trip.
+  await expect(card.getByText("Priority")).toBeVisible();
+});
+
+test("dragging a sticky over another highlights it as a group target", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await addSticky(page, "anchor");
+  await addSticky(page, "drifter");
+
+  const anchor = page.locator("[data-card-id]", { hasText: "anchor" });
+  const drifter = page.locator("[data-card-id]", { hasText: "drifter" });
+  const a = (await anchor.boundingBox())!;
+  const d = (await drifter.boundingBox())!;
+
+  await page.mouse.move(d.x + d.width / 2, d.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2, { steps: 6 });
+
+  // Hovering a fellow sticky mid-drag should announce "release to group" on the target.
+  await expect(anchor).toHaveAttribute("data-drop-target", "group");
+
+  // Dragging away again clears the hint.
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height + 160, { steps: 4 });
+  await expect(anchor).not.toHaveAttribute("data-drop-target", "group");
+  await page.mouse.up();
+});

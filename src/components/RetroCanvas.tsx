@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RetroView, RetroCardView } from "../../shared/protocol";
-import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS } from "../../shared/protocol";
+import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS, RETRO_TAGS } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { avatarColor, initials } from "../lib/colors";
 import { columnColor, type ColC } from "../lib/retroColors";
@@ -12,6 +12,36 @@ import { FullscreenBar } from "./FullscreenBar";
 import { LogoMark } from "./Logo";
 
 const CARD_W = 220;
+
+/** Tag chip tones — one stable color per structured tag. */
+const TAG_TONES: Record<string, string> = {
+  Priority: "bg-rose-100 text-rose-700",
+  "Quick win": "bg-emerald-100 text-emerald-700",
+  Blocked: "bg-amber-100 text-amber-800",
+  Idea: "bg-sky-100 text-sky-700",
+};
+const tagTone = (t: string) => TAG_TONES[t] ?? "bg-slate-100 text-slate-600";
+
+/** Card element under the pointer, excluding the card being dragged. */
+function cardUnderPointer(x: number, y: number, selfId: string): HTMLElement | null {
+  return (
+    document
+      .elementsFromPoint(x, y)
+      .map((el) => (el as HTMLElement).closest?.("[data-card-id]") as HTMLElement | null)
+      .find((el): el is HTMLElement => !!el && !!el.dataset.cardId && el.dataset.cardId !== selfId) ?? null
+  );
+}
+
+// The card currently highlighted as a group target under an in-flight drag. Imperative
+// DOM state on purpose: hover-during-drag changes at pointermove rate, and a store write
+// would re-render the canvas every frame for a purely local affordance.
+let dropTargetEl: HTMLElement | null = null;
+function setDropTarget(el: HTMLElement | null) {
+  if (dropTargetEl === el) return;
+  if (dropTargetEl) delete dropTargetEl.dataset.dropTarget;
+  dropTargetEl = el;
+  if (el) el.dataset.dropTarget = "group";
+}
 
 /**
  * A free, zoomable canvas (Miro/FigJam-style): zones are labeled vertical bands,
@@ -333,6 +363,7 @@ function CanvasCard({
   const [editing, setEditing] = useState(card.mine && card.text === "");
   const [text, setText] = useState(card.text);
   const [pick, setPick] = useState(false);
+  const [tagPick, setTagPick] = useState(false);
   const start = useRef({ px: 0, py: 0, cx: 0, cy: 0 });
   const moved = useRef(false);
   const pressed = useRef(false); // a press is in flight · synchronous, unlike the drag state
@@ -398,6 +429,8 @@ function CanvasCard({
     const nx = s.cx + (e.clientX - s.px) / zoom;
     const ny = s.cy + (e.clientY - s.py) / zoom;
     setDrag({ x: nx, y: ny });
+    // Telegraph the drop: hovering a fellow sticky mid-drag rings it as a group target.
+    setDropTarget(cardUnderPointer(e.clientX, e.clientY, card.id));
     // Broadcast the in-flight position so others see it glide (throttled ~20/s).
     if (e.timeStamp - lastLive.current >= 50) {
       lastLive.current = e.timeStamp;
@@ -414,15 +447,12 @@ function CanvasCard({
         /* not captured (never moved past threshold) · nothing to release */
       }
       // Dropped on top of another sticky? Cluster them. Otherwise free-place.
-      const onto = document
-        .elementsFromPoint(e.clientX, e.clientY)
-        .map((el) => (el as HTMLElement).closest?.("[data-card-id]") as HTMLElement | null)
-        .find((el) => el && el.dataset.cardId && el.dataset.cardId !== card.id);
-      const ontoId = onto?.dataset.cardId;
+      const ontoId = cardUnderPointer(e.clientX, e.clientY, card.id)?.dataset.cardId;
       if (ontoId) client.retroGroupCard(card.id, ontoId);
       else client.retroMoveXY(card.id, Math.round(drag.x), Math.round(drag.y));
       client.cursor(drag.x, drag.y); // clear the live-drag flag for everyone
     }
+    setDropTarget(null);
     setDrag(null);
   }
   function saveEdit() {
@@ -569,6 +599,29 @@ function CanvasCard({
               <div className="absolute left-0 top-7 z-40 flex gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-lg">
                 {RETRO_REACTIONS.map((e) => (
                   <button key={e} onClick={() => { client.retroReact(card.id, e); setPick(false); }} className="rounded-full px-1 text-base hover:scale-125">{e}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {card.tags.map((tg) => (
+          <button
+            key={tg}
+            onClick={() => canAct && client.retroTagCard(card.id, tg, false)}
+            title={canAct ? `Remove tag · ${tg}` : undefined}
+            aria-label={`Tag: ${tg}${canAct ? ". Click to remove." : ""}`}
+            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${tagTone(tg)}`}
+          >
+            {tg}
+          </button>
+        ))}
+        {canAct && (
+          <div className="relative">
+            <button onClick={() => setTagPick((v) => !v)} className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-white/55 px-2 py-0.5 text-xs leading-none text-slate-500 hover:bg-white/90" aria-label="Add tag"><span className="text-sm">🏷</span><span className="font-bold">+</span></button>
+            {tagPick && (
+              <div className="absolute left-0 top-7 z-40 flex gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-lg">
+                {RETRO_TAGS.filter((t) => !card.tags.includes(t)).map((t) => (
+                  <button key={t} onClick={() => { client.retroTagCard(card.id, t, true); setTagPick(false); }} className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold hover:scale-105 ${tagTone(t)}`}>{t}</button>
                 ))}
               </div>
             )}

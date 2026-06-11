@@ -26,6 +26,8 @@ import {
   RETRO_TEMPLATES,
   RETRO_VOTE_BUDGET,
   RETRO_REACTIONS,
+  RETRO_TAGS,
+  RETRO_MAX_TAGS,
   RETRO_ZONE_W as ZONE_W,
   RETRO_CANVAS_H as CANVAS_H,
   EMOTES,
@@ -73,6 +75,7 @@ type RetroCard = {
   authorId: string; // server-only; sent as a name only when the room is non-anonymous
   voters: string[]; // memberIds who dot-voted this card
   reactions: Record<string, string[]>; // emoji -> memberIds
+  tags?: string[]; // structured labels from RETRO_TAGS (max RETRO_MAX_TAGS)
   order: number; // legacy column ordering (kept for tolerance)
   groupId: string | null; // cards sharing a groupId are clustered
   action?: boolean; // promoted to an action item
@@ -823,6 +826,18 @@ export class RoomDO extends DurableObject<Env> {
         if (list.length === 0) delete card.reactions[msg.emoji];
         break;
       }
+      case "retroTagCard": {
+        if (!me) return;
+        if (!RETRO_TAGS.includes(msg.tag as (typeof RETRO_TAGS)[number])) return;
+        const card = R.cards.find((c) => c.id === msg.cardId);
+        if (!card) return;
+        if (R.blind && card.authorId !== me.id && me.id !== this.facilitatorId) return; // can't tag a card you can't see
+        const tags = (card.tags ??= []);
+        const i = tags.indexOf(msg.tag);
+        if (msg.on && i < 0 && tags.length < RETRO_MAX_TAGS) tags.push(msg.tag);
+        else if (!msg.on && i >= 0) tags.splice(i, 1);
+        break;
+      }
       case "retroSetAnonymous": {
         if (!this.isFacilitator(me)) return;
         R.anonymous = !!msg.on;
@@ -1525,6 +1540,7 @@ export class RoomDO extends DurableObject<Env> {
               count: c.reactions[e].length,
               mine: meId ? c.reactions[e].includes(meId) : false,
             })),
+        tags: masked ? [] : (c.tags ?? []),
         discussed: state.discussed.includes(c.id),
         order: c.order ?? 0,
         groupId: c.groupId ?? null,

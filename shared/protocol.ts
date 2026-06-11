@@ -242,6 +242,10 @@ export const RETRO_VOTE_BUDGET = 5;
 /** Emoji a card can be reacted with (server-validated). */
 export const RETRO_REACTIONS = ["👍", "❤️", "🎯", "🔥", "😂", "👀"] as const;
 
+/** Structured tags a card can carry (server-validated, max 3 per card). */
+export const RETRO_TAGS = ["Priority", "Quick win", "Blocked", "Idea"] as const;
+export const RETRO_MAX_TAGS = 3;
+
 /** A retro card as a client sees it. Author is sent only when the room is non-anonymous. */
 export type RetroCardView = {
   id: string;
@@ -252,6 +256,7 @@ export type RetroCardView = {
   votes: number; // total dot-votes
   youVoted: boolean;
   reactions: { emoji: string; count: number; mine: boolean }[]; // only non-zero, in RETRO_REACTIONS order
+  tags: string[]; // structured labels from RETRO_TAGS (empty while masked)
   discussed: boolean; // already picked by the random picker → marked done, won't be re-picked
   order: number; // legacy column ordering
   groupId: string | null; // cards sharing a groupId are stacked into a cluster
@@ -344,6 +349,7 @@ export type ClientMsg =
   | { t: "retroVote"; v: 1; cardId: string }
   | { t: "retroDeleteCard"; v: 1; cardId: string }
   | { t: "retroReact"; v: 1; cardId: string; emoji: string } // toggle an emoji reaction
+  | { t: "retroTagCard"; v: 1; cardId: string; tag: string; on: boolean } // toggle a structured tag
   | { t: "retroMoveCard"; v: 1; cardId: string; toColumn: string; toIndex: number } // legacy column move
   | { t: "retroMoveXY"; v: 1; cardId: string; x: number; y: number } // free-canvas placement
   | { t: "retroEditCard"; v: 1; cardId: string; text: string } // edit a sticky's text in place

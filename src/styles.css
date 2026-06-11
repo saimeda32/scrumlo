@@ -157,3 +157,24 @@ html.dark .dot-grid {
   background-color: #0b0b10;
   background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1.1px, transparent 1.1px);
 }
+
+/* ---- drag-to-cluster affordance: the hovered sticky announces the group drop ---- */
+[data-drop-target="group"] {
+  outline: 3px dashed rgb(139 92 246 / 0.9) !important;
+  outline-offset: 3px;
+}
+[data-drop-target="group"]::after {
+  content: "Release to group";
+  position: absolute;
+  top: -1.5rem;
+  left: 50%;
+  translate: -50%;
+  white-space: nowrap;
+  border-radius: 9999px;
+  background: rgb(139 92 246);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 4px 10px -4px rgb(15 23 42 / 0.4);
+}

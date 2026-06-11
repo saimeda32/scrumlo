@@ -167,7 +167,7 @@ export default function Landing() {
             {
               Icon: IconEstimate,
               t: "Estimate",
-              d: "Blind-reveal poker that refuses to go quiet. Custom decks, a story backlog (paste CSV/Jira), and a quick nudge toward the outliers when the room splits.",
+              d: "Blind-reveal estimation that refuses to go quiet. Custom decks, a story backlog (paste CSV/Jira), and a quick nudge toward the outliers when the room splits.",
             },
             {
               Icon: IconRetro,
@@ -287,7 +287,7 @@ export default function Landing() {
             },
             {
               q: "What can I run in a room?",
-              a: "Planning poker with blind reveal and custom decks, retrospectives in 14 formats, a Now/Next/Later roadmap board, polls and live word clouds with hide-until-reveal, anonymous team health checks, a random picker wheel, and a shared timer — all behind one link.",
+              a: "Sprint estimation (planning poker) with blind reveal and custom decks, retrospectives in 14 formats, a Now/Next/Later roadmap board, polls and live word clouds with hide-until-reveal, anonymous team health checks, a random picker wheel, and a shared timer — all behind one link.",
             },
             {
               q: "How many people can join?",
@@ -325,12 +325,9 @@ export default function Landing() {
 
       <footer className="mx-auto max-w-3xl px-6 py-10 text-center text-xs leading-relaxed text-slate-500 dark:text-slate-500">
         <nav className="mb-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 font-medium">
-          <a href="/planning-poker" className="hover:text-iris-600">Planning poker</a>
-          <a href="/retro" className="hover:text-iris-600">Retro tool</a>
-          <a href="/word-cloud-poll" className="hover:text-iris-600">Word cloud polls</a>
           <a href="https://github.com/saimeda32/scrumlo" target="_blank" rel="noopener noreferrer" className="hover:text-iris-600">GitHub</a>
         </nav>
-        Free, open-source planning poker and sprint retrospectives · no login, no database,
+        Free, open-source sprint estimation and retrospectives · no login, no database,
         anonymous, ephemeral. Estimate. Retro. Forgotten.
       </footer>
     </main>

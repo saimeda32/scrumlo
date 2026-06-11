@@ -30,7 +30,8 @@ Other tools keep your boards; Scrumlo keeps **nothing** · on purpose. There's n
    - **Retro:** pick a format, then step the room through brainstorm → group → vote → discuss (notes stay hidden until the reveal). Drop stickies on the zoomable canvas, drag to cluster, dot-vote, react, flag action items with owners, and see everyone's **live cursors**.
    - **Roadmap:** a Now/Next/Later/Someday board with its own cards · plan, group, dot-vote, export.
    - **Pick:** spin the wheel for a random person, shuffle an order, or pick from a comma-separated list · with confetti and no repeats.
-4. **Export before you go.** One click gives you **Markdown** or a **full-board PNG/PDF** · the only thing that survives the room.
+4. **Export before you go.** One click gives you **Markdown**, a **full-board PNG/PDF**, or a **Jira CSV** · the only things that survive the room.
+   - **Jira handoff:** the export sheet lists every action item (with owner) and locked estimate · check what should become a ticket, hit *Jira CSV*, then import it in Jira via **System → External system import → CSV** and map the columns (Summary, Issue Type, Description, Assignee, Story Points). Built entirely in your browser · nothing is sent anywhere.
 5. **Leave.** When the last person leaves (or the room idles out), it **deletes itself**. Nothing to clean up.
 
 ## Stack

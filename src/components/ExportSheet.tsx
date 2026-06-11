@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
 import { useFocusTrap } from "../lib/useFocusTrap";
+import { jiraCsv, type JiraItem } from "../lib/exportJira";
 
 export function ExportSheet({
   room,
   markdown,
+  jira,
   onClose,
 }: {
   room: string;
   markdown: string;
+  jira: JiraItem[];
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  // Jira handoff: everything starts selected; uncheck what shouldn't become a ticket.
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(jira.map((j) => j.id)));
   const [busy, setBusy] = useState<null | "png" | "pdf">(null);
   const [err, setErr] = useState<string | null>(null);
   // The board snapshot only makes sense on the canvas activities (retro/roadmap);
@@ -113,6 +118,26 @@ export function ExportSheet({
     URL.revokeObjectURL(url);
   }
 
+  function downloadJira() {
+    const rows = jira.filter((j) => picked.has(j.id));
+    const blob = new Blob([jiraCsv(rows)], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `scrumlo-${room}-jira.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function toggle(id: string) {
+    setPicked((p) => {
+      const n = new Set(p);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+
   return (
     <div
       ref={trapRef}
@@ -146,6 +171,45 @@ export function ExportSheet({
           className="mb-4 min-h-[220px] flex-1 resize-none rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700 dark:border-white/10 dark:bg-black/30 dark:text-slate-300"
           onFocus={(e) => e.currentTarget.select()}
         />
+        {jira.length > 0 && (
+          <div className="mb-4 rounded-xl border border-slate-200 p-3 dark:border-white/10">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                Jira handoff · {picked.size} of {jira.length} selected
+              </span>
+              <button
+                onClick={downloadJira}
+                disabled={picked.size === 0}
+                className="rounded-lg bg-iris-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-iris-500 disabled:opacity-40"
+              >
+                ⤓ Jira CSV
+              </button>
+            </div>
+            <ul className="max-h-36 space-y-1 overflow-y-auto">
+              {jira.map((j) => (
+                <li key={j.id}>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-xs text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/5">
+                    <input
+                      type="checkbox"
+                      aria-label={j.summary}
+                      checked={picked.has(j.id)}
+                      onChange={() => toggle(j.id)}
+                      className="h-3.5 w-3.5 accent-iris-600"
+                    />
+                    <span className="truncate font-medium">{j.summary}</span>
+                    <span className="ml-auto shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-white/10 dark:text-slate-400">
+                      {j.issueType}
+                      {j.points ? ` · ${j.points}` : ""}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+              Import in Jira: System → External system import → CSV · map Summary, Issue Type, Assignee, Story Points.
+            </p>
+          </div>
+        )}
         <div className="flex gap-2">
           <button
             onClick={copy}

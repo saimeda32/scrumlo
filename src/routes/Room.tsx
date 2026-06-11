@@ -24,6 +24,7 @@ import { LogoMark } from "../components/Logo";
 import { TimerBanner } from "../components/TimerBanner";
 import { FormatPicker } from "../components/FormatPicker";
 import { BatonHandoff } from "../components/BatonHandoff";
+import { buildJiraItems } from "../lib/exportJira";
 import { RetroGlyph } from "../components/RetroGlyph";
 import { RETRO_TEMPLATES, DECK_LABELS } from "../../shared/protocol";
 import { retroTheme } from "../lib/retroThemes";
@@ -326,6 +327,7 @@ export default function Room() {
             <ExportSheet
               room={room}
               markdown={buildSessionMarkdown({ room, members, estimate, retro, board, pulse, poll, pick })}
+              jira={buildJiraItems({ retro, board, estimate })}
               onClose={() => setShowExport(false)}
             />
           </Suspense>

@@ -44,3 +44,31 @@ test("dark mode: toggles the html class, persists across reload, board stays rea
   await page.screenshot({ path: "test-results/dark-fullscreen.png" });
   await page.context().close();
 });
+
+test("jira export: choose which action items make the CSV", async ({ page }) => {
+  await join(page, newRoom(), "Eve");
+  await openRetro(page);
+  await addSticky(page, "fix login bug");
+  await addSticky(page, "speed up builds");
+
+  // Promote both to action items.
+  for (const text of ["fix login bug", "speed up builds"]) {
+    const card = page.locator("[data-card-id]", { hasText: text });
+    await card.hover();
+    await card.getByRole("button", { name: "Mark as action item" }).click();
+  }
+
+  await page.getByRole("button", { name: "⤓ Export" }).click();
+
+  // Both action items appear with checkboxes; drop one from the handoff.
+  await page.getByRole("checkbox", { name: "fix login bug" }).uncheck();
+
+  const dl = page.waitForEvent("download");
+  await page.getByRole("button", { name: /Jira CSV/ }).click();
+  const download = await dl;
+  expect(download.suggestedFilename()).toMatch(/\.csv$/);
+  const body = await (await import("node:fs/promises")).readFile((await download.path())!, "utf8");
+  expect(body).toContain("speed up builds");
+  expect(body).not.toContain("fix login bug");
+  expect(body).toContain("Summary");
+});

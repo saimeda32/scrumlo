@@ -335,6 +335,7 @@ function CanvasCard({
   const [pick, setPick] = useState(false);
   const start = useRef({ px: 0, py: 0, cx: 0, cy: 0 });
   const moved = useRef(false);
+  const pressed = useRef(false); // a press is in flight · synchronous, unlike the drag state
   const lastLive = useRef(0);
 
   // Subscribe to ONLY this card's live drag (a teammate dragging it pre-drop), looked
@@ -367,19 +368,33 @@ function CanvasCard({
   function onDown(e: React.PointerEvent) {
     if (!canAct || editing) return;
     if ((e.target as HTMLElement).closest("button,textarea,input")) return;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    // NOTE: do NOT take pointer capture here. Capturing on pointer-down retargets the
+    // browser's click/dblclick to the capturing element, which (a) broke desktop
+    // double-click-to-edit and (b) makes a touch tap resolve to the wrong inner element.
+    // We capture lazily in onMove, only once a real drag begins · so a plain tap/double-
+    // tap keeps its natural target and edit-on-(double)click works on mouse AND touch.
     start.current = { px: e.clientX, py: e.clientY, cx: card.x, cy: card.y };
     moved.current = false;
-    setDrag({ x: card.x, y: card.y });
+    pressed.current = true;
     e.stopPropagation();
   }
   function onMove(e: React.PointerEvent) {
-    if (!drag) return;
+    if (!pressed.current) return;
     // Don't let this bubble to the board's cursor handler · otherwise it sends a
     // no-drag cursor that races ours and makes the card flicker for everyone else.
     e.stopPropagation();
     const s = start.current;
-    moved.current = true;
+    if (!moved.current) {
+      // Ignore sub-pixel jitter so a stationary tap never counts as a drag (which would
+      // suppress the click/dblclick). Once past the threshold, capture and start dragging.
+      if (Math.abs(e.clientX - s.px) + Math.abs(e.clientY - s.py) < 4) return;
+      moved.current = true;
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {
+        /* capture can fail if the pointer already ended · harmless */
+      }
+    }
     const nx = s.cx + (e.clientX - s.px) / zoom;
     const ny = s.cy + (e.clientY - s.py) / zoom;
     setDrag({ x: nx, y: ny });
@@ -390,9 +405,14 @@ function CanvasCard({
     }
   }
   function onUp(e: React.PointerEvent) {
-    if (!drag) return;
-    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    if (moved.current) {
+    if (!pressed.current) return;
+    pressed.current = false;
+    if (moved.current && drag) {
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        /* not captured (never moved past threshold) · nothing to release */
+      }
       // Dropped on top of another sticky? Cluster them. Otherwise free-place.
       const onto = document
         .elementsFromPoint(e.clientX, e.clientY)
@@ -427,9 +447,9 @@ function CanvasCard({
     client.retroMoveXY(card.id, Math.round(card.x + dx), Math.round(card.y + dy));
   }
 
-  // Double-click opens the text for editing. This must live on the card root, not the
-  // text node: onDown takes pointer capture, which retargets the derived click/dblclick
-  // events to the capturing element, so an inner handler would never fire.
+  // Double-click / double-tap the note text to edit it. Works on mouse and touch alike
+  // because we no longer capture the pointer on press (see onDown) · so the browser's
+  // native dblclick lands on the text node instead of being retargeted to the card root.
   function onDoubleClick(e: React.MouseEvent) {
     if (!canAct || !card.mine || editing) return;
     if ((e.target as HTMLElement).closest("button,textarea,input")) return;

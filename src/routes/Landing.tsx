@@ -328,8 +328,7 @@ export default function Landing() {
           <a href="/planning-poker" className="hover:text-iris-600">Planning poker</a>
           <a href="/retro" className="hover:text-iris-600">Retro tool</a>
           <a href="/word-cloud-poll" className="hover:text-iris-600">Word cloud polls</a>
-          {/* GitHub link parked for now — re-add when the repo is ready for visitors:
-              <a href="https://github.com/saimeda32/scrumlo" className="hover:text-iris-600">GitHub</a> */}
+          <a href="https://github.com/saimeda32/scrumlo" target="_blank" rel="noopener noreferrer" className="hover:text-iris-600">GitHub</a>
         </nav>
         Free, open-source planning poker and sprint retrospectives · no login, no database,
         anonymous, ephemeral. Estimate. Retro. Forgotten.

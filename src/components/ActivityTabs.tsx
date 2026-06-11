@@ -24,7 +24,7 @@ export function ActivityTabs({
         aria-disabled={locked || undefined}
         title={locked ? "Only the facilitator can switch activities" : undefined}
         onClick={() => canSwitch && onSwitch(a)}
-        className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+        className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition ${
           active
             ? "bg-white text-iris-700 shadow-soft dark:bg-white/10 dark:text-white"
             : canSwitch
@@ -39,7 +39,7 @@ export function ActivityTabs({
   };
 
   return (
-    <div role="tablist" aria-label="Activities" className="mb-5 inline-flex gap-1 rounded-xl border border-slate-200/70 bg-slate-100/70 p-1 backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
+    <div role="tablist" aria-label="Activities" className="mb-5 flex max-w-full gap-1 overflow-x-auto rounded-xl border border-slate-200/70 bg-slate-100/70 p-1 backdrop-blur-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden dark:border-white/10 dark:bg-white/5">
       {tab("estimate", "Estimate", <IconEstimate className="h-4 w-4" />)}
       {tab("retro", "Retro", <IconRetro className="h-4 w-4" />)}
       {tab("board", "Roadmap", <IconBoard className="h-4 w-4" />)}

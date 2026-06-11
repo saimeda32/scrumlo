@@ -245,3 +245,21 @@ test("mind map format seeds a central topic on one open canvas", async ({ page }
   // …on a single open canvas (no column dividers beyond the one band).
   await expect(page.locator("#scrumlo-canvas > div.border-r")).toHaveCount(1);
 });
+
+test("reaction chips reveal who reacted when names are shown", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await addSticky(page, "nice work");
+
+  // Names are anonymous by default — show them so reactors are attributable.
+  await page.getByRole("button", { name: /Anonymous/ }).click();
+
+  const card = page.locator("[data-card-id]").first();
+  await card.hover();
+  await card.getByRole("button", { name: "Add reaction" }).click();
+  await card.getByRole("button", { name: "👍", exact: true }).click();
+
+  const chip = card.getByRole("button", { name: /👍 reaction/ });
+  await expect(chip).toBeVisible();
+  // The chip's tooltip names the reactors (server-derived, anonymous-aware).
+  await expect(chip).toHaveAttribute("title", /Pat/);
+});

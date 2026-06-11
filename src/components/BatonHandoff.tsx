@@ -59,8 +59,10 @@ async function fireConfetti() {
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return; // respect reduced-motion
   try {
     const confetti = (await import("canvas-confetti")).default;
-    confetti({ particleCount: 160, spread: 80, startVelocity: 45, origin: { y: 0.45 } });
-    setTimeout(() => confetti({ particleCount: 70, spread: 110, scalar: 0.8, origin: { y: 0.5 } }), 220);
+    // All gold — it's a coronation, not a birthday party.
+    const golds = ["#FFD700", "#FFC107", "#F59E0B", "#FDE68A", "#D4AF37"];
+    confetti({ particleCount: 160, spread: 80, startVelocity: 45, origin: { y: 0.45 }, colors: golds });
+    setTimeout(() => confetti({ particleCount: 70, spread: 110, scalar: 0.8, origin: { y: 0.5 }, colors: golds }), 220);
   } catch {
     /* confetti is pure delight; never block on it */
   }

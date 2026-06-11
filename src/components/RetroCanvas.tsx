@@ -721,6 +721,7 @@ function CanvasCard({
             onClick={() => canAct && client.retroReact(card.id, r.emoji)}
             aria-label={`${r.emoji} reaction, ${r.count}${r.mine ? " (you reacted)" : ""}`}
             aria-pressed={r.mine}
+            title={r.who.length ? r.who.join(", ") : undefined}
             className="inline-flex items-center gap-0.5 rounded-full bg-white/60 px-1.5 py-0.5 text-xs hover:bg-white/90"
           >
             {r.emoji}
@@ -731,7 +732,7 @@ function CanvasCard({
           <div className="relative">
             <button onClick={() => setPick((v) => !v)} className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-white/55 px-2 py-0.5 text-xs leading-none text-slate-500 hover:bg-white/90" aria-label="Add reaction"><span className="text-sm">🙂</span><span className="font-bold">+</span></button>
             {pick && (
-              <div className="absolute left-0 top-7 z-40 flex gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-lg">
+              <div className="absolute left-0 top-7 z-40 flex w-44 flex-wrap gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-lg">
                 {RETRO_REACTIONS.map((e) => (
                   <button key={e} onClick={() => { client.retroReact(card.id, e); setPick(false); }} className="rounded-full px-1 text-base hover:scale-125">{e}</button>
                 ))}

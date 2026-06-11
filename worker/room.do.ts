@@ -1660,6 +1660,8 @@ export class RoomDO extends DurableObject<Env> {
               emoji: e,
               count: c.reactions[e].length,
               mine: meId ? c.reactions[e].includes(meId) : false,
+              // Hover-to-see-who · only when the room shows names at all.
+              who: state.anonymous ? [] : c.reactions[e].map((id) => nameById.get(id)).filter((n): n is string => !!n),
             })),
         tags: masked ? [] : (c.tags ?? []),
         discussed: state.discussed.includes(c.id),

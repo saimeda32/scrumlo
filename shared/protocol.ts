@@ -271,7 +271,7 @@ export function retroSpanOf(tpl: { columns: RetroColumn[]; span?: number }): num
 export const RETRO_VOTE_BUDGET = 5;
 
 /** Emoji a card can be reacted with (server-validated). */
-export const RETRO_REACTIONS = ["👍", "❤️", "🎯", "🔥", "😂", "👀"] as const;
+export const RETRO_REACTIONS = ["👍", "❤️", "🎯", "🔥", "😂", "👀", "🎉", "💡", "🚀", "🤔", "😮", "💯"] as const;
 
 /** Structured tags a card can carry (server-validated, max 3 per card). */
 export const RETRO_TAGS = ["Priority", "Quick win", "Blocked", "Idea"] as const;
@@ -286,7 +286,7 @@ export type RetroCardView = {
   author: string | null; // author name when the room shows names; null when anonymous
   votes: number; // total dot-votes
   youVoted: boolean;
-  reactions: { emoji: string; count: number; mine: boolean }[]; // only non-zero, in RETRO_REACTIONS order
+  reactions: { emoji: string; count: number; mine: boolean; who: string[] }[]; // who = reactor names ([] while anonymous/masked)
   tags: string[]; // structured labels from RETRO_TAGS (empty while masked)
   discussed: boolean; // already picked by the random picker → marked done, won't be re-picked
   order: number; // legacy column ordering

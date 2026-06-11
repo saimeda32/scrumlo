@@ -110,7 +110,18 @@ export type EstimateView = {
 
 export type RetroColumn = { id: string; title: string; emoji: string };
 
-export const RETRO_TEMPLATES: Record<string, { label: string; columns: RetroColumn[] }> = {
+export const RETRO_TEMPLATES: Record<
+  string,
+  {
+    label: string;
+    columns: RetroColumn[];
+    /** "free" = one open canvas (no column semantics) spanning `span` zone-widths. */
+    kind?: "columns" | "free";
+    span?: number;
+    /** Starter cards dropped when the facilitator picks this format. */
+    seeds?: { text: string; x: number; y: number }[];
+  }
+> = {
   ssc: {
     label: "Start / Stop / Continue",
     columns: [
@@ -235,7 +246,27 @@ export const RETRO_TEMPLATES: Record<string, { label: string; columns: RetroColu
       { id: "someday", title: "Someday", emoji: "💭" },
     ],
   },
+  // Free-canvas formats · one open band, stickies + connectors do the talking.
+  mindmap: {
+    label: "Mind map",
+    kind: "free",
+    span: 3,
+    columns: [{ id: "canvas", title: "Mind map", emoji: "🧠" }],
+    seeds: [{ text: "Central topic", x: 640, y: 360 }],
+  },
+  flow: {
+    label: "Flowchart (lite)",
+    kind: "free",
+    span: 3,
+    columns: [{ id: "canvas", title: "Flow", emoji: "🔀" }],
+    seeds: [{ text: "Start", x: 110, y: 110 }],
+  },
 };
+
+/** Board width of a template, in zone-widths (free formats span wider than their one column). */
+export function retroSpanOf(tpl: { columns: RetroColumn[]; span?: number }): number {
+  return tpl.span ?? tpl.columns.length;
+}
 
 export const RETRO_VOTE_BUDGET = 5;
 
@@ -284,10 +315,14 @@ export const RETRO_PHASES: { id: RetroPhase; label: string; hint: string }[] = [
 export const RETRO_ZONE_W = 500;
 export const RETRO_CANVAS_H = 1600;
 
+/** A connector between two stickies (e.g. roadmap dependencies, mind-map branches). */
+export type RetroEdge = { id: string; from: string; to: string };
+
 export type RetroView = {
   template: string;
   columns: RetroColumn[];
   cards: RetroCardView[];
+  edges: RetroEdge[]; // connectors; edges touching masked cards are withheld
   votesLeft: number; // dot-votes you have left
   anonymous: boolean; // room setting: hide card authors (default true)
   blind: boolean; // room setting: hide OTHERS' card bodies (default false; facilitator still sees all)
@@ -353,6 +388,8 @@ export type ClientMsg =
   | { t: "retroTagCard"; v: 1; cardId: string; tag: string; on: boolean } // toggle a structured tag
   | { t: "retroRenameGroup"; v: 1; groupId: string; title: string } // rename a cluster
   | { t: "retroSort"; v: 1; by: "tag" | "votes" | "author" } // facilitator: gather cards into clusters by criterion
+  | { t: "retroLinkCards"; v: 1; fromId: string; toId: string } // draw a connector between two stickies
+  | { t: "retroUnlink"; v: 1; edgeId: string } // remove a connector
   | { t: "retroMoveCard"; v: 1; cardId: string; toColumn: string; toIndex: number } // legacy column move
   | { t: "retroMoveXY"; v: 1; cardId: string; x: number; y: number } // free-canvas placement
   | { t: "retroEditCard"; v: 1; cardId: string; text: string } // edit a sticky's text in place

@@ -213,3 +213,35 @@ test("gather by tag pulls tagged stickies into one titled cluster", async ({ pag
   await expect(pills).toHaveCount(1);
   await expect(pills.first()).toContainText("Priority");
 });
+
+test("two stickies can be linked with a connector, and unlinked", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await addSticky(page, "cause");
+  await addSticky(page, "effect");
+
+  const cause = page.locator("[data-card-id]", { hasText: "cause" });
+  const effect = page.locator("[data-card-id]", { hasText: "effect" });
+
+  await cause.hover();
+  await cause.getByRole("button", { name: "Link to another sticky" }).click();
+  await effect.click();
+
+  // The connector renders from server state (works for everyone in the room).
+  await expect(page.locator("[data-edge-id]")).toHaveCount(1);
+
+  // Its midpoint button removes it again.
+  await page.getByRole("button", { name: "Remove connector" }).click();
+  await expect(page.locator("[data-edge-id]")).toHaveCount(0);
+});
+
+test("mind map format seeds a central topic on one open canvas", async ({ page }) => {
+  await joinRetro(page, newRoom());
+
+  await page.getByTitle("Browse formats with previews").click();
+  await page.getByRole("button", { name: /Mind map/ }).click();
+
+  // Seeded center node, ready to branch with connectors…
+  await expect(page.locator("[data-card-id]", { hasText: "Central topic" })).toBeVisible();
+  // …on a single open canvas (no column dividers beyond the one band).
+  await expect(page.locator("#scrumlo-canvas > div.border-r")).toHaveCount(1);
+});

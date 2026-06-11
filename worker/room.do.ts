@@ -28,6 +28,7 @@ import {
   RETRO_REACTIONS,
   RETRO_TAGS,
   RETRO_MAX_TAGS,
+  retroSpanOf,
   RETRO_ZONE_W as ZONE_W,
   RETRO_CANVAS_H as CANVAS_H,
   EMOTES,
@@ -91,6 +92,7 @@ type RetroState = {
   blind: boolean; // hide OTHERS' card bodies (default false; the facilitator still sees all)
   spotlightId: string | null; // facilitator focusing the room on a card
   groupTitles?: Record<string, string>; // cluster id -> display name
+  edges?: { id: string; from: string; to: string }[]; // connectors between cards
   discussed: string[]; // card ids the random picker has already surfaced
   phase: RetroPhase; // facilitated phase (structure + author reveal at discuss)
 };
@@ -669,6 +671,26 @@ export class RoomDO extends DurableObject<Env> {
         if (!RETRO_TEMPLATES[msg.template]) return;
         R.template = msg.template;
         R.cards = []; // changing template resets the board
+        R.edges = [];
+        R.groupTitles = {};
+        // Free-canvas formats start with their seed cards (e.g. the mind map's center node).
+        const tplNew = RETRO_TEMPLATES[msg.template];
+        if (me) {
+          for (const s of tplNew.seeds ?? []) {
+            R.cards.push({
+              id: crypto.randomUUID(),
+              column: tplNew.columns[0].id,
+              text: s.text,
+              authorId: me.id,
+              voters: [],
+              reactions: {},
+              order: 0,
+              groupId: null,
+              x: s.x,
+              y: s.y,
+            });
+          }
+        }
         R.spotlightId = null;
         R.discussed = [];
         R.phase = "brainstorm"; // a fresh board starts a fresh facilitation
@@ -713,7 +735,7 @@ export class RoomDO extends DurableObject<Env> {
         // During blind brainstorm you can only move your OWN notes (others' are masked).
         if (R.blind && card.authorId !== me.id && me.id !== this.facilitatorId) return; // can't move a card you can't see
         const tplM = RETRO_TEMPLATES[R.template] ?? RETRO_TEMPLATES.ssc;
-        card.x = Math.max(0, Math.min(Math.round(Number(msg.x) || 0), tplM.columns.length * ZONE_W));
+        card.x = Math.max(0, Math.min(Math.round(Number(msg.x) || 0), retroSpanOf(tplM) * ZONE_W));
         card.y = Math.max(0, Math.min(Math.round(Number(msg.y) || 0), CANVAS_H));
         const zi2 = Math.max(0, Math.min(Math.floor(card.x / ZONE_W), tplM.columns.length - 1));
         card.column = tplM.columns[zi2].id;
@@ -819,6 +841,26 @@ export class RoomDO extends DurableObject<Env> {
         }
         break;
       }
+      case "retroLinkCards": {
+        if (!me) return;
+        if (R.blind && me.id !== this.facilitatorId) return; // no linking notes you can't see
+        if (msg.fromId === msg.toId) return;
+        const from = R.cards.find((c) => c.id === msg.fromId);
+        const to = R.cards.find((c) => c.id === msg.toId);
+        if (!from || !to) return;
+        const E = (R.edges ??= []);
+        if (E.length >= 200) return; // sanity cap
+        if (E.some((e) => (e.from === msg.fromId && e.to === msg.toId) || (e.from === msg.toId && e.to === msg.fromId))) return;
+        E.push({ id: crypto.randomUUID(), from: msg.fromId, to: msg.toId });
+        break;
+      }
+      case "retroUnlink": {
+        if (!me) return;
+        if (!R.edges) return;
+        const i = R.edges.findIndex((e) => e.id === msg.edgeId);
+        if (i >= 0) R.edges.splice(i, 1);
+        break;
+      }
       case "retroRenameGroup": {
         if (!me) return;
         const title = String(msg.title ?? "").trim().slice(0, 40);
@@ -870,6 +912,7 @@ export class RoomDO extends DurableObject<Env> {
         R.cards = R.cards.filter((c) => c.id !== msg.cardId);
         if (R.spotlightId === msg.cardId) R.spotlightId = null;
         R.discussed = R.discussed.filter((id) => id !== msg.cardId);
+        if (R.edges) R.edges = R.edges.filter((e) => e.from !== msg.cardId && e.to !== msg.cardId);
         break;
       }
       case "retroReact": {
@@ -1614,10 +1657,12 @@ export class RoomDO extends DurableObject<Env> {
         y: masked ? 0 : (c.y ?? 0),
       };
     });
+    const maskedIds = new Set(cards.filter((c) => c.masked).map((c) => c.id));
     return {
       template: state.template,
       columns: tpl.columns,
       cards,
+      edges: (state.edges ?? []).filter((e) => !maskedIds.has(e.from) && !maskedIds.has(e.to)),
       votesLeft: meId ? RETRO_VOTE_BUDGET - used : RETRO_VOTE_BUDGET,
       anonymous: state.anonymous,
       blind: state.blind,

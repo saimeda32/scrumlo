@@ -182,7 +182,16 @@ function RoadmapAct() {
   return (
     <div className="flex h-full flex-col">
       <div className="mb-2 text-xs font-semibold text-slate-700 dark:text-slate-200">Q3 roadmap · drag, group, vote</div>
-      <div className="grid flex-1 grid-cols-3 gap-2">
+      <div className="relative grid flex-1 grid-cols-3 gap-2">
+        {/* a dependency arrow between two roadmap items */}
+        <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full" aria-hidden>
+          <defs>
+            <marker id="demo-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#8b5cf6" />
+            </marker>
+          </defs>
+          <path d="M 30% 38% C 42% 52%, 52% 30%, 64% 40%" stroke="#8b5cf6" strokeWidth="2" fill="none" markerEnd="url(#demo-arrow)" className="animate-pop" style={{ animationDelay: "1200ms" }} />
+        </svg>
         {ROADMAP.map((c, ci) => (
           <div key={c.col} className="dot-grid rounded-lg border border-slate-200 p-1.5 dark:border-white/10">
             <div className={`mb-1.5 px-1 text-[11px] font-bold ${c.accent}`}>{c.col}</div>

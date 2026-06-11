@@ -64,6 +64,8 @@ export type RoomClient = {
   retroGroupCard: (cardId: string, ontoCardId: string) => void;
   retroRenameGroup: (groupId: string, title: string) => void;
   retroSort: (by: "tag" | "votes" | "author") => void;
+  retroLinkCards: (fromId: string, toId: string) => void;
+  retroUnlink: (edgeId: string) => void;
   retroSetAction: (cardId: string, on: boolean, owner?: string | null) => void;
   retroSetPhase: (phase: "brainstorm" | "group" | "vote" | "discuss") => void;
   pulseVote: (dim: string, value: number) => void;
@@ -241,6 +243,8 @@ export function createRoomClient(
     retroGroupCard: (cardId, ontoCardId) => send({ t: "retroGroupCard", v: 1, cardId, ontoCardId }),
     retroRenameGroup: (groupId, title) => send({ t: "retroRenameGroup", v: 1, groupId, title }),
     retroSort: (by) => send({ t: "retroSort", v: 1, by }),
+    retroLinkCards: (fromId, toId) => send({ t: "retroLinkCards", v: 1, fromId, toId }),
+    retroUnlink: (edgeId) => send({ t: "retroUnlink", v: 1, edgeId }),
     retroSetAction: (cardId, on, owner) => send({ t: "retroSetAction", v: 1, cardId, on, owner }),
     retroSetPhase: (phase) => send({ t: "retroSetPhase", v: 1, phase }),
     pulseVote: (dim, value) => send({ t: "pulseVote", v: 1, dim, value }),

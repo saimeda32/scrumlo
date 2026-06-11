@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RetroView, RetroCardView } from "../../shared/protocol";
-import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS, RETRO_TAGS } from "../../shared/protocol";
+import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS, RETRO_TAGS, RETRO_TEMPLATES, retroSpanOf } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { avatarColor, initials } from "../lib/colors";
 import { columnColor, type ColC } from "../lib/retroColors";
@@ -74,6 +74,7 @@ export function RetroCanvas({
   const [zoom, setZoom] = useState(0.8);
   const [full, setFull] = useState(false);
   const [gatherOpen, setGatherOpen] = useState(false);
+  const [linkFrom, setLinkFrom] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
   // Fullscreen makes the wall big enough for 4–5 columns. Escape exits.
@@ -97,10 +98,18 @@ export function RetroCanvas({
   }
   const cols = retro.columns;
   const colIndex = new Map(cols.map((z, i) => [z.id, i])); // O(1) column lookup per card
+  const cardById = new Map(retro.cards.map((c) => [c.id, c]));
   // First member of each cluster renders the title pill (one pill per cluster).
   const groupHead = new Map<string, string>();
   for (const c of retro.cards) if (c.groupId && !groupHead.has(c.groupId)) groupHead.set(c.groupId, c.id);
-  const W = cols.length * ZONE_W;
+
+  function completeLink(toId: string) {
+    if (linkFrom && linkFrom !== toId) client.retroLinkCards(linkFrom, toId);
+    setLinkFrom(null);
+  }
+  const tplDef = RETRO_TEMPLATES[retro.template];
+  const freeCanvas = tplDef?.kind === "free";
+  const W = (tplDef ? retroSpanOf(tplDef) : cols.length) * ZONE_W;
   // Board height fits the content (no giant empty scroll), capped at the canvas max.
   const boardH = Math.min(CANVAS_H, Math.max(720, ...retro.cards.map((c) => c.y + 200)));
 
@@ -190,6 +199,14 @@ export function RetroCanvas({
         </button>
       </div>
 
+      {/* linking mode hint */}
+      {linkFrom && (
+        <div className="absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+          Click another sticky to connect
+          <button onClick={() => setLinkFrom(null)} className="rounded-full bg-white/20 px-2 py-0.5 font-bold hover:bg-white/30">Cancel</button>
+        </div>
+      )}
+
       {/* in fullscreen the phase rail + timer are hidden · float them back in */}
       {full && (
         <FullscreenBar
@@ -224,7 +241,7 @@ export function RetroCanvas({
                 <div
                   key={col.id}
                   className="absolute top-0 border-r border-slate-300 dark:border-white/15"
-                  style={{ left: i * ZONE_W, width: ZONE_W, height: CANVAS_H }}
+                  style={{ left: i * ZONE_W, width: freeCanvas ? W : ZONE_W, height: CANVAS_H }}
                 >
                   <div className="sticky top-0 flex items-center gap-2 px-4 pt-3">
                     <span className={`h-3 w-3 rounded-full ${c.dot} ring-2 ring-white/70 dark:ring-white/10`} aria-hidden />
@@ -245,6 +262,51 @@ export function RetroCanvas({
               );
             })}
 
+            {/* connectors (under the stickies) */}
+            <svg className="pointer-events-none absolute inset-0 z-[5]" width={W} height={boardH} aria-hidden>
+              <defs>
+                <marker id="edge-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0 0 L10 5 L0 10 z" fill="rgb(139 92 246)" />
+                </marker>
+              </defs>
+              {retro.edges.map((e) => {
+                const f = cardById.get(e.from);
+                const t = cardById.get(e.to);
+                if (!f || !t) return null;
+                return (
+                  <line
+                    key={e.id}
+                    data-edge-id={e.id}
+                    x1={f.x + CARD_W / 2}
+                    y1={f.y + 36}
+                    x2={t.x + CARD_W / 2}
+                    y2={t.y + 36}
+                    stroke="rgba(139, 92, 246, 0.75)"
+                    strokeWidth={2.5}
+                    markerEnd="url(#edge-arrow)"
+                  />
+                );
+              })}
+            </svg>
+            {canAct &&
+              retro.edges.map((e) => {
+                const f = cardById.get(e.from);
+                const t = cardById.get(e.to);
+                if (!f || !t) return null;
+                return (
+                  <button
+                    key={e.id}
+                    onClick={() => client.retroUnlink(e.id)}
+                    aria-label="Remove connector"
+                    title="Remove connector"
+                    className="absolute z-[25] grid h-5 w-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-violet-600 text-[11px] font-bold leading-none text-white opacity-70 shadow hover:opacity-100"
+                    style={{ left: (f.x + t.x + CARD_W) / 2, top: (f.y + t.y + 72) / 2 }}
+                  >
+                    ×
+                  </button>
+                );
+              })}
+
             {/* stickies */}
             {retro.cards.map((card) => (
               <CanvasCard
@@ -257,6 +319,9 @@ export function RetroCanvas({
                 canVote={canAct && retro.phase === "vote"}
                 isFacil={isFacil}
                 spotlit={retro.spotlightId === card.id}
+                linkFrom={linkFrom}
+                onLinkStart={setLinkFrom}
+                onLinkTo={completeLink}
                 client={client}
               />
             ))}
@@ -377,6 +442,9 @@ function CanvasCard({
   canVote,
   isFacil,
   spotlit,
+  linkFrom,
+  onLinkStart,
+  onLinkTo,
   client,
 }: {
   card: RetroCardView;
@@ -387,6 +455,9 @@ function CanvasCard({
   canVote: boolean;
   isFacil: boolean;
   spotlit: boolean;
+  linkFrom: string | null;
+  onLinkStart: (id: string | null) => void;
+  onLinkTo: (id: string) => void;
   client: RoomClient;
 }) {
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
@@ -526,6 +597,7 @@ function CanvasCard({
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
+      onClick={() => { if (linkFrom && linkFrom !== card.id) onLinkTo(card.id); }}
       onDoubleClick={onDoubleClick}
       onKeyDown={onKey}
       tabIndex={canAct ? 0 : -1}
@@ -691,6 +763,22 @@ function CanvasCard({
           </div>
         )}
         <div className="flex items-center gap-1">
+          {canAct && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onLinkStart(linkFrom === card.id ? null : card.id);
+              }}
+              title={linkFrom === card.id ? "Cancel linking" : "Link · draw a connector to another sticky"}
+              aria-label="Link to another sticky"
+              aria-pressed={linkFrom === card.id}
+              className={`grid h-7 w-7 place-items-center rounded-full text-sm transition ${
+                linkFrom === card.id ? "bg-violet-600 text-white shadow" : "bg-white/70 text-slate-500 hover:bg-white hover:text-violet-600"
+              }`}
+            >
+              ⤤
+            </button>
+          )}
           {canAct && (
             <button
               onClick={() => client.retroSetAction(card.id, !card.action, card.owner ?? null)}

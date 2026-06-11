@@ -260,6 +260,7 @@ export type RetroCardView = {
   discussed: boolean; // already picked by the random picker → marked done, won't be re-picked
   order: number; // legacy column ordering
   groupId: string | null; // cards sharing a groupId are stacked into a cluster
+  groupTitle: string | null; // cluster name (set for every member; rendered on the head card)
   groupVotes: number; // dot-votes summed across the whole cluster (== votes when ungrouped)
   groupSize: number; // number of cards in this cluster (1 when ungrouped)
   action: boolean; // promoted to an action item (a committed takeaway)
@@ -350,6 +351,7 @@ export type ClientMsg =
   | { t: "retroDeleteCard"; v: 1; cardId: string }
   | { t: "retroReact"; v: 1; cardId: string; emoji: string } // toggle an emoji reaction
   | { t: "retroTagCard"; v: 1; cardId: string; tag: string; on: boolean } // toggle a structured tag
+  | { t: "retroRenameGroup"; v: 1; groupId: string; title: string } // rename a cluster
   | { t: "retroMoveCard"; v: 1; cardId: string; toColumn: string; toIndex: number } // legacy column move
   | { t: "retroMoveXY"; v: 1; cardId: string; x: number; y: number } // free-canvas placement
   | { t: "retroEditCard"; v: 1; cardId: string; text: string } // edit a sticky's text in place

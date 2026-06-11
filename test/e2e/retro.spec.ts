@@ -162,3 +162,30 @@ test("dragging a sticky over another highlights it as a group target", async ({ 
   await expect(anchor).not.toHaveAttribute("data-drop-target", "group");
   await page.mouse.up();
 });
+
+test("clustering two stickies names the theme, and the name can be edited", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await addSticky(page, "ci is slow");
+  await addSticky(page, "flaky tests");
+
+  const anchor = page.locator("[data-card-id]", { hasText: "ci is slow" });
+  const drifter = page.locator("[data-card-id]", { hasText: "flaky tests" });
+  const a = (await anchor.boundingBox())!;
+  const d = (await drifter.boundingBox())!;
+  await page.mouse.move(d.x + d.width / 2, d.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2, { steps: 6 });
+  await page.mouse.up();
+
+  // A fresh cluster gets an editable default name…
+  const pill = page.getByRole("button", { name: /Rename cluster/ });
+  await expect(pill).toBeVisible();
+  await expect(pill).toContainText("Theme 1");
+
+  // …which renames in place (server round-trip).
+  await pill.click();
+  const input = page.getByLabel("Cluster name");
+  await input.fill("Test debt");
+  await input.press("Enter");
+  await expect(page.getByRole("button", { name: /Rename cluster/ })).toContainText("Test debt");
+});

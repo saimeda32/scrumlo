@@ -90,6 +90,7 @@ type RetroState = {
   anonymous: boolean; // hide authors (default true)
   blind: boolean; // hide OTHERS' card bodies (default false; the facilitator still sees all)
   spotlightId: string | null; // facilitator focusing the room on a card
+  groupTitles?: Record<string, string>; // cluster id -> display name
   discussed: string[]; // card ids the random picker has already surfaced
   phase: RetroPhase; // facilitated phase (structure + author reveal at discuss)
 };
@@ -716,7 +717,10 @@ export class RoomDO extends DurableObject<Env> {
         card.y = Math.max(0, Math.min(Math.round(Number(msg.y) || 0), CANVAS_H));
         const zi2 = Math.max(0, Math.min(Math.floor(card.x / ZONE_W), tplM.columns.length - 1));
         card.column = tplM.columns[zi2].id;
+        const wasGroupXY = card.groupId;
         card.groupId = null; // free placement ungroups
+        this.dissolveSingletonGroups(R.cards, wasGroupXY);
+        this.sweepGroupTitles(R);
         this.endDrag(me.id); // authoritative drop: clear the live drag in the same tick
         break;
       }
@@ -739,6 +743,7 @@ export class RoomDO extends DurableObject<Env> {
         col.splice(idx, 0, card);
         col.forEach((c, i) => (c.order = i)); // renumber the target column
         this.dissolveSingletonGroups(R.cards, wasGroup);
+        this.sweepGroupTitles(R);
         this.endDrag(me.id);
         break;
       }
@@ -751,6 +756,9 @@ export class RoomDO extends DurableObject<Env> {
         const onto = R.cards.find((c) => c.id === msg.ontoCardId);
         if (!card || !onto) return;
         const gid = onto.groupId ?? crypto.randomUUID();
+        // A fresh cluster gets a name people can immediately rename in place.
+        R.groupTitles ??= {};
+        if (!R.groupTitles[gid]) R.groupTitles[gid] = `Theme ${Object.keys(R.groupTitles).length + 1}`;
         onto.groupId = gid;
         const wasGroup = card.groupId;
         card.groupId = gid;
@@ -766,7 +774,16 @@ export class RoomDO extends DurableObject<Env> {
         card.x = Math.round(onto.x + 16 * stackN);
         card.y = Math.round(onto.y + 16 * stackN);
         this.dissolveSingletonGroups(R.cards, wasGroup);
+        this.sweepGroupTitles(R);
         this.endDrag(me.id);
+        break;
+      }
+      case "retroRenameGroup": {
+        if (!me) return;
+        const title = String(msg.title ?? "").trim().slice(0, 40);
+        if (!title) return;
+        if (!R.cards.some((c) => c.groupId === msg.groupId)) return;
+        (R.groupTitles ??= {})[msg.groupId] = title;
         break;
       }
       case "retroSetAction": {
@@ -1544,6 +1561,7 @@ export class RoomDO extends DurableObject<Env> {
         discussed: state.discussed.includes(c.id),
         order: c.order ?? 0,
         groupId: c.groupId ?? null,
+        groupTitle: c.groupId && !masked ? (state.groupTitles?.[c.groupId] ?? null) : null,
         groupVotes: c.groupId ? (groupTotals.get(c.groupId)?.votes ?? c.voters.length) : c.voters.length,
         groupSize: c.groupId ? (groupTotals.get(c.groupId)?.size ?? 1) : 1,
         action: masked ? false : !!c.action,
@@ -1572,6 +1590,14 @@ export class RoomDO extends DurableObject<Env> {
     if (!gid) return;
     const members = cards.filter((c) => c.groupId === gid);
     if (members.length === 1) members[0].groupId = null;
+  }
+
+  /** Drop titles whose cluster no longer has any members. */
+  private sweepGroupTitles(R: RetroState): void {
+    if (!R.groupTitles) return;
+    for (const gid of Object.keys(R.groupTitles)) {
+      if (!R.cards.some((c) => c.groupId === gid)) delete R.groupTitles[gid];
+    }
   }
 
   private membersFrom(sockets: WebSocket[]): Member[] {

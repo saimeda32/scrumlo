@@ -62,6 +62,7 @@ export type RoomClient = {
   retroMoveXY: (cardId: string, x: number, y: number) => void;
   retroEditCard: (cardId: string, text: string) => void;
   retroGroupCard: (cardId: string, ontoCardId: string) => void;
+  retroRenameGroup: (groupId: string, title: string) => void;
   retroSetAction: (cardId: string, on: boolean, owner?: string | null) => void;
   retroSetPhase: (phase: "brainstorm" | "group" | "vote" | "discuss") => void;
   pulseVote: (dim: string, value: number) => void;
@@ -237,6 +238,7 @@ export function createRoomClient(
     retroMoveXY: (cardId, x, y) => send({ t: "retroMoveXY", v: 1, cardId, x, y }),
     retroEditCard: (cardId, text) => send({ t: "retroEditCard", v: 1, cardId, text }),
     retroGroupCard: (cardId, ontoCardId) => send({ t: "retroGroupCard", v: 1, cardId, ontoCardId }),
+    retroRenameGroup: (groupId, title) => send({ t: "retroRenameGroup", v: 1, groupId, title }),
     retroSetAction: (cardId, on, owner) => send({ t: "retroSetAction", v: 1, cardId, on, owner }),
     retroSetPhase: (phase) => send({ t: "retroSetPhase", v: 1, phase }),
     pulseVote: (dim, value) => send({ t: "pulseVote", v: 1, dim, value }),

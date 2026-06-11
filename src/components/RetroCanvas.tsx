@@ -96,6 +96,9 @@ export function RetroCanvas({
   }
   const cols = retro.columns;
   const colIndex = new Map(cols.map((z, i) => [z.id, i])); // O(1) column lookup per card
+  // First member of each cluster renders the title pill (one pill per cluster).
+  const groupHead = new Map<string, string>();
+  for (const c of retro.cards) if (c.groupId && !groupHead.has(c.groupId)) groupHead.set(c.groupId, c.id);
   const W = cols.length * ZONE_W;
   // Board height fits the content (no giant empty scroll), capped at the canvas max.
   const boardH = Math.min(CANVAS_H, Math.max(720, ...retro.cards.map((c) => c.y + 200)));
@@ -223,6 +226,7 @@ export function RetroCanvas({
                 key={card.id}
                 card={card}
                 c={columnColor(card.column, colIndex.get(card.column) ?? 0)}
+                isGroupHead={!!card.groupId && groupHead.get(card.groupId) === card.id}
                 zoom={zoom}
                 canAct={canAct}
                 canVote={canAct && retro.phase === "vote"}
@@ -342,6 +346,7 @@ function tiltOf(id: string): number {
 function CanvasCard({
   card,
   c,
+  isGroupHead,
   zoom,
   canAct,
   canVote,
@@ -351,6 +356,7 @@ function CanvasCard({
 }: {
   card: RetroCardView;
   c: ColC;
+  isGroupHead: boolean;
   zoom: number;
   canAct: boolean;
   canVote: boolean;
@@ -364,6 +370,8 @@ function CanvasCard({
   const [text, setText] = useState(card.text);
   const [pick, setPick] = useState(false);
   const [tagPick, setTagPick] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleText, setTitleText] = useState("");
   const start = useRef({ px: 0, py: 0, cx: 0, cy: 0 });
   const moved = useRef(false);
   const pressed = useRef(false); // a press is in flight · synchronous, unlike the drag state
@@ -529,6 +537,36 @@ function CanvasCard({
         >
           ⧉ {card.groupSize}
         </button>
+      )}
+      {isGroupHead && card.groupTitle && !editingTitle && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (canAct) { setTitleText(card.groupTitle!); setEditingTitle(true); }
+          }}
+          aria-label={`Rename cluster · ${card.groupTitle}`}
+          title={canAct ? "Rename this cluster" : undefined}
+          className="absolute -top-7 left-0 z-20 max-w-[200px] truncate whitespace-nowrap rounded-full bg-violet-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow hover:bg-violet-500"
+        >
+          {card.groupTitle}
+        </button>
+      )}
+      {isGroupHead && editingTitle && (
+        <input
+          autoFocus
+          aria-label="Cluster name"
+          value={titleText}
+          onChange={(e) => setTitleText(e.target.value)}
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              if (card.groupId && titleText.trim()) client.retroRenameGroup(card.groupId, titleText.trim());
+              setEditingTitle(false);
+            } else if (e.key === "Escape") setEditingTitle(false);
+          }}
+          onBlur={() => setEditingTitle(false)}
+          className="absolute -top-7 left-0 z-20 w-40 rounded-full border border-violet-300 bg-white px-2.5 py-0.5 text-[11px] font-bold text-violet-700 outline-none"
+        />
       )}
       {card.author && (
         <div className="mb-1.5 flex items-center gap-1.5">

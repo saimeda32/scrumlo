@@ -95,3 +95,34 @@ test("fullscreen keeps facilitator + participant controls reachable", async ({ p
   await page.keyboard.press("Escape");
   await expect(bar).toBeHidden();
 });
+
+test("two stickies fit side by side inside one column", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await addSticky(page, "left note");
+  await addSticky(page, "right note");
+
+  // Drag the second sticky to sit immediately right of the first, same row.
+  const right = page.locator("[data-card-id]", { hasText: "right note" });
+  const left = page.locator("[data-card-id]", { hasText: "left note" });
+  const a0 = (await left.boundingBox())!;
+  const b0 = (await right.boundingBox())!;
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(a0.x + a0.width + 8 + b0.width / 2, a0.y + 10, { steps: 8 });
+  await page.mouse.up();
+  const zone = page.locator("#scrumlo-canvas > div.border-r").first();
+
+  // Moves are server-authoritative, so poll until the snapshot lands.
+  await expect(async () => {
+    const a = (await left.boundingBox())!;
+    const b = (await right.boundingBox())!;
+    const z = (await zone.boundingBox())!;
+
+    // Side by side: on the same row, not overlapping each other…
+    expect(Math.abs(b.y - a.y), "stickies should share a row").toBeLessThan(a.height);
+    expect(b.x, "stickies should not overlap").toBeGreaterThanOrEqual(a.x + a.width - 2);
+    // …and BOTH fully inside the first column's band (no bleed over the divider).
+    expect(a.x + a.width, "left sticky should fit in the column").toBeLessThanOrEqual(z.x + z.width + 1);
+    expect(b.x + b.width, "right sticky should fit in the column").toBeLessThanOrEqual(z.x + z.width + 1);
+  }).toPass({ timeout: 5_000 });
+});

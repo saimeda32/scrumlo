@@ -273,8 +273,9 @@ export const RETRO_PHASES: { id: RetroPhase; label: string; hint: string }[] = [
   { id: "discuss", label: "Discuss", hint: "Work the top themes. Spotlight a card and capture action items." },
 ];
 
-/** Canvas layout shared by client + server: zones are vertical bands of this width. */
-export const RETRO_ZONE_W = 360;
+/** Canvas layout shared by client + server: zones are vertical bands of this width.
+ *  Wide enough for two 220px stickies side by side (see CARD_W in RetroCanvas). */
+export const RETRO_ZONE_W = 500;
 export const RETRO_CANVAS_H = 1600;
 
 export type RetroView = {

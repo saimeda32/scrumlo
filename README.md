@@ -44,6 +44,8 @@ Other tools keep your boards; Scrumlo keeps **nothing** · on purpose. There's n
 
 No database. No accounts. No cross-session records. A room is deleted when everyone leaves (or after it idles out). Room state is briefly held in encrypted Durable Object storage so a server restart can't nuke a live retro · so we say *"no database / deleted when the room ends,"* never *"nothing is ever written."*
 
+**No AI, by design.** Nothing your team writes is ever summarized, clustered, scored or otherwise processed by a model — not ours, not a third party's. Room content is relayed between participants and forgotten. This is a deliberate product decision, not a missing feature.
+
 ## Run it locally
 
 ```bash

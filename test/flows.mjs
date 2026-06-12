@@ -44,7 +44,6 @@ class Client {
   send(m) { this.ws.send(JSON.stringify(m)); }
   close() { try { this.ws.close(); } catch {} }
   get est() { return this.snap.estimate; }
-  myCardText(authorClientNameMatchUnused) { return this.snap.retro.cards; }
 }
 
 async function room(names) {
@@ -62,7 +61,6 @@ async function room(names) {
 
 // --- tiny assert framework ---
 const results = [];
-let current = null;
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
 }
@@ -71,7 +69,6 @@ function eq(a, b, msg) {
   if (A !== B) throw new Error(`${msg}\n      expected ${B}\n      got      ${A}`);
 }
 async function flow(name, fn) {
-  current = name;
   const clients = [];
   const track = (cs) => { clients.push(...cs); return cs; };
   try {
@@ -293,7 +290,7 @@ await flow("retro: facilitator blinds content (others masked, host still sees), 
 });
 
 await flow("retro: vote increments count and youVoted", async (t) => {
-  const [a, b] = t(await room(["Alice", "Bob"]));
+  const [a] = t(await room(["Alice", "Bob"]));
   a.send({ t: "switchActivity", v: 1, activity: "retro" });
   await sleep(150);
   a.send({ t: "retroAddCard", v: 1, column: COL, text: "card" });
@@ -676,7 +673,7 @@ await flow("poll @20: blind choice — counts masked while voting, exact bars on
 
 // ============================ PICK ============================
 await flow("pick: person spin lands on a present member", async (t) => {
-  const [a, b] = t(await room(["Alice", "Bob"]));
+  const [a] = t(await room(["Alice", "Bob"]));
   a.send({ t: "switchActivity", v: 1, activity: "pick" });
   await sleep(150);
   a.send({ t: "pickSetMode", v: 1, mode: "person" });

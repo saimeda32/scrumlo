@@ -49,6 +49,21 @@ export const RETRO_THEMES: Record<string, RetroTheme> = {
     motif: "🗺️",
     blurb: "Plan it out: Now, Next, Later, Someday. Drag to group, dot-vote priorities, export.",
   },
+  mindmap: {
+    glow: "#a78bfa",
+    motif: "🧠",
+    blurb: "One idea in the middle. Every new sticky branches off it · drag the handles to rewire.",
+  },
+  flow: {
+    glow: "#38bdf8",
+    motif: "🔀",
+    blurb: "Each new step chains to the last. Drag connector handles to reroute the flow.",
+  },
+  matrix: {
+    glow: "#f59e0b",
+    motif: "🎯",
+    blurb: "Drop ideas where they belong: the impact and effort axes do the prioritizing.",
+  },
 };
 
 export function retroTheme(template: string): RetroTheme {

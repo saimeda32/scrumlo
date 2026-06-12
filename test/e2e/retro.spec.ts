@@ -331,3 +331,29 @@ test("plan activity: roadmap, mind map, flowchart and matrix live under Plan", a
   await page.getByRole("button", { name: /Roadmap/ }).click();
   await expect(page.getByText("Now", { exact: true })).toBeVisible();
 });
+
+test("mind map stickies branch from the center automatically", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await page.getByRole("tab", { name: "Plan" }).click();
+  await page.getByTitle("Browse formats with previews").click();
+  await page.getByRole("button", { name: /Mind map/ }).click();
+  await expect(page.locator("[data-card-id]", { hasText: "Central topic" })).toBeVisible();
+
+  await addSticky(page, "branch one");
+  await expect(page.locator("[data-edge-id]")).toHaveCount(1);
+  await addSticky(page, "branch two");
+  await expect(page.locator("[data-edge-id]")).toHaveCount(2);
+});
+
+test("flowchart stickies chain from the previous step", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await page.getByRole("tab", { name: "Plan" }).click();
+  await page.getByTitle("Browse formats with previews").click();
+  await page.getByRole("button", { name: /Flowchart/ }).click();
+  await expect(page.locator("[data-card-id]", { hasText: "Start" })).toBeVisible();
+
+  await addSticky(page, "step one");
+  await expect(page.locator("[data-edge-id]")).toHaveCount(1);
+  await addSticky(page, "step two");
+  await expect(page.locator("[data-edge-id]")).toHaveCount(2);
+});

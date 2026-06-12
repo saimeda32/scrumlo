@@ -58,9 +58,11 @@ export function FormatPicker({
   const title =
     activity === "retro"
       ? "Choose a retro format"
-      : activity === "estimate"
-        ? "Choose an estimation deck"
-        : "Choose a picker mode";
+      : activity === "board"
+        ? "Choose a planning canvas"
+        : activity === "estimate"
+          ? "Choose an estimation deck"
+          : "Choose a picker mode";
 
   return (
     <div

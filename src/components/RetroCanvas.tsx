@@ -181,7 +181,7 @@ export function RetroCanvas({
     const id = requestAnimationFrame(() => fitZoom());
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [full]);
+  }, [full, retro.template]);
 
   // One tap drops a fresh sticky right away — no typing, no Enter. Double-click
   // it to edit the text in place.
@@ -209,6 +209,15 @@ export function RetroCanvas({
       )}
       {/* zoom + fullscreen controls */}
       <div className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/90">
+        {freeCanvas && canAct && (
+          <button
+            onClick={() => addInZone(cols[0].id)}
+            aria-label="Add a sticky"
+            className="mr-1 rounded-lg bg-iris-600 px-2.5 py-1 text-xs font-semibold text-white shadow hover:bg-iris-500"
+          >
+            + Sticky
+          </button>
+        )}
         {isFacil && (
           <button
             onClick={() => {
@@ -310,20 +319,25 @@ export function RetroCanvas({
                   className="absolute top-0 border-r border-slate-300 dark:border-white/15"
                   style={{ left: i * ZONE_W, width: freeCanvas ? W : ZONE_W, height: CANVAS_H }}
                 >
-                  <div className="sticky top-0 flex items-center gap-2 px-4 pt-3">
-                    <span className={`h-3 w-3 rounded-full ${c.dot} ring-2 ring-white/70 dark:ring-white/10`} aria-hidden />
-                    <span className={`text-base font-extrabold tracking-tight ${c.text} dark:text-slate-100`}>{col.title}</span>
-                    <span className="grid h-5 min-w-[20px] place-items-center rounded-full bg-black/5 px-1.5 text-xs font-bold text-slate-500 dark:bg-white/10 dark:text-slate-300">{count}</span>
-                  </div>
-                  {canAct && (
-                    <div className="px-4 pt-2">
-                      <button
-                        onClick={() => addInZone(col.id)}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-2 border-dashed border-slate-300 py-2 text-sm font-semibold text-slate-400 transition hover:border-iris-400 hover:text-iris-600 dark:border-white/15 dark:text-slate-500 dark:hover:text-iris-300"
-                      >
-                        <span className="text-base leading-none">+</span> Add a sticky
-                      </button>
-                    </div>
+                  {/* free canvases drop the column furniture · the format IS the structure */}
+                  {!freeCanvas && (
+                    <>
+                      <div className="sticky top-0 flex items-center gap-2 px-4 pt-3">
+                        <span className={`h-3 w-3 rounded-full ${c.dot} ring-2 ring-white/70 dark:ring-white/10`} aria-hidden />
+                        <span className={`text-base font-extrabold tracking-tight ${c.text} dark:text-slate-100`}>{col.title}</span>
+                        <span className="grid h-5 min-w-[20px] place-items-center rounded-full bg-black/5 px-1.5 text-xs font-bold text-slate-500 dark:bg-white/10 dark:text-slate-300">{count}</span>
+                      </div>
+                      {canAct && (
+                        <div className="px-4 pt-2">
+                          <button
+                            onClick={() => addInZone(col.id)}
+                            className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-2 border-dashed border-slate-300 py-2 text-sm font-semibold text-slate-400 transition hover:border-iris-400 hover:text-iris-600 dark:border-white/15 dark:text-slate-500 dark:hover:text-iris-300"
+                          >
+                            <span className="text-base leading-none">+</span> Add a sticky
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               );
@@ -332,23 +346,26 @@ export function RetroCanvas({
             {/* quadrant overlay for matrix formats (axes + corner labels, under everything) */}
             {tplDef?.quad && (
               <div className="pointer-events-none absolute inset-0 z-[2]" aria-hidden>
-                <div className="absolute left-1/2 top-0 h-full w-px bg-slate-300/80 dark:bg-white/15" />
-                <div className="absolute left-0 top-1/2 h-px w-full bg-slate-300/80 dark:bg-white/15" />
-                <span className="absolute left-3 top-1/2 -translate-y-7 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                <div className="absolute left-1/2 top-0 h-full w-0.5 bg-slate-400/60 dark:bg-white/25" />
+                <div className="absolute left-0 top-1/2 h-0.5 w-full bg-slate-400/60 dark:bg-white/25" />
+                <span className="absolute left-3 top-1/2 -translate-y-7 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   {tplDef.quad.y} ↑
                 </span>
-                <span className="absolute bottom-2 left-1/2 ml-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                <span className="absolute bottom-3 left-1/2 ml-3 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                   {tplDef.quad.x} →
                 </span>
                 {(
                   [
-                    ["left-4 top-14", 0],
-                    ["right-4 top-14 text-right", 1],
-                    ["left-4 bottom-10", 2],
-                    ["right-4 bottom-10 text-right", 3],
+                    ["left-[25%] top-[25%]", 0],
+                    ["left-[75%] top-[25%]", 1],
+                    ["left-[25%] top-[75%]", 2],
+                    ["left-[75%] top-[75%]", 3],
                   ] as const
                 ).map(([pos, i]) => (
-                  <span key={i} className={`absolute ${pos} text-lg font-extrabold tracking-tight text-slate-300 dark:text-slate-600`}>
+                  <span
+                    key={i}
+                    className={`absolute ${pos} -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-3xl font-extrabold tracking-tight text-slate-300/80 dark:text-slate-600/70`}
+                  >
                     {tplDef.quad!.labels[i]}
                   </span>
                 ))}

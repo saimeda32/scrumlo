@@ -795,8 +795,8 @@ export class RoomDO extends DurableObject<Env> {
         const tplA = RETRO_TEMPLATES[R.template] ?? RETRO_TEMPLATES.ssc;
         const inZone = R.cards.filter((c) => c.column === msg.column).length;
         const zi = Math.max(0, tplA.columns.findIndex((c) => c.id === msg.column));
-        const spot = this.freeSpot(R.cards, zi);
-        R.cards.push({
+        const spot = this.planSpot(R) ?? this.freeSpot(R.cards, zi);
+        const newCard: RetroCard = {
           id: crypto.randomUUID(),
           column: msg.column,
           text,
@@ -807,7 +807,9 @@ export class RoomDO extends DurableObject<Env> {
           groupId: null,
           x: spot.x,
           y: spot.y,
-        });
+        };
+        R.cards.push(newCard);
+        this.autoConnect(R, newCard);
         break;
       }
       case "retroMoveXY": {
@@ -1776,6 +1778,42 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   /** A group of one isn't a group · clear its lone member's groupId (on the given surface). */
+  /** Template-shaped placement for the planning canvases (null = use the grid).
+   *  Mind map: branches ring the center node. Flowchart: each step lands right of
+   *  the previous one, wrapping to a new row at the canvas edge. */
+  private planSpot(R: RetroState): { x: number; y: number } | null {
+    const last = R.cards[R.cards.length - 1];
+    if (!last) return null;
+    if (R.template === "mindmap") {
+      const center = R.cards[0];
+      const idx = R.cards.length - 1; // 0-based branch number
+      const ring = Math.floor(idx / 8);
+      const angle = (idx % 8) * (Math.PI / 4) + ring * (Math.PI / 8); // stagger outer rings
+      const rx = 330 + ring * 240;
+      const ry = 240 + ring * 160;
+      return {
+        x: Math.round(Math.max(10, Math.min(center.x + Math.cos(angle) * rx, 3 * ZONE_W - 230))),
+        y: Math.round(Math.max(40, Math.min(center.y + Math.sin(angle) * ry, CANVAS_H - 160))),
+      };
+    }
+    if (R.template === "flow") {
+      const x = last.x + 280;
+      if (x <= 3 * ZONE_W - 230) return { x, y: last.y };
+      return { x: 110, y: Math.min(last.y + 180, CANVAS_H - 160) };
+    }
+    return null;
+  }
+
+  /** The behavior that makes the planning formats feel different: mind map branches
+   *  connect to the center; flowchart steps chain from the previous one. */
+  private autoConnect(R: RetroState, card: RetroCard): void {
+    if (R.cards.length < 2) return;
+    const E = (R.edges ??= []);
+    if (E.length >= 200) return;
+    if (R.template === "mindmap") E.push({ id: crypto.randomUUID(), from: R.cards[0].id, to: card.id });
+    else if (R.template === "flow") E.push({ id: crypto.randomUUID(), from: R.cards[R.cards.length - 2].id, to: card.id });
+  }
+
   /** First unoccupied slot in the zone's two-across grid, scanning top to bottom —
    *  the server sees every card, so concurrent adders can't stack on each other.
    *  A truly packed zone falls back to the old cascade rather than failing. */

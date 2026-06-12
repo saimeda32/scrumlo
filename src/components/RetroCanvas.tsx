@@ -33,6 +33,18 @@ function cardUnderPointer(x: number, y: number, selfId: string): HTMLElement | n
   );
 }
 
+/** Curved connector between two anchors · control arms scale with the horizontal gap. */
+function edgePath(x1: number, y1: number, x2: number, y2: number): string {
+  const arm = Math.max(40, Math.min(Math.abs(x2 - x1) / 2, 160)) * (x2 >= x1 ? 1 : -1);
+  return `M ${x1} ${y1} C ${x1 + arm} ${y1}, ${x2 - arm} ${y2}, ${x2} ${y2}`;
+}
+
+/** Leave from the side facing the target (right edge when heading right, etc). */
+function edgeAnchors(f: { x: number; y: number }, t: { x: number; y: number }) {
+  const ltr = t.x >= f.x;
+  return { x1: f.x + (ltr ? CARD_W : 0), y1: f.y + 36, x2: t.x + (ltr ? 0 : CARD_W), y2: t.y + 36 };
+}
+
 // The card currently highlighted as a group target under an in-flight drag. Imperative
 // DOM state on purpose: hover-during-drag changes at pointermove rate, and a store write
 // would re-render the canvas every frame for a purely local affordance.
@@ -75,7 +87,7 @@ export function RetroCanvas({
   const [zoom, setZoom] = useState(0.8);
   const [full, setFull] = useState(false);
   const [gatherOpen, setGatherOpen] = useState(false);
-  const [linkFrom, setLinkFrom] = useState<string | null>(null);
+  const [linkDrag, setLinkDrag] = useState<{ from: string; x: number; y: number } | null>(null);
   const [leading, setLeading] = useState(false);
   const lead = useLead((s) => s.lead);
   const ignoring = useLead((s) => s.ignoring);
@@ -109,9 +121,17 @@ export function RetroCanvas({
   const groupHead = new Map<string, string>();
   for (const c of retro.cards) if (c.groupId && !groupHead.has(c.groupId)) groupHead.set(c.groupId, c.id);
 
-  function completeLink(toId: string) {
-    if (linkFrom && linkFrom !== toId) client.retroLinkCards(linkFrom, toId);
-    setLinkFrom(null);
+  // Connector drag (Miro-style): grab a card's edge handle, pull a curve to the target.
+  function boardPoint(clientX: number, clientY: number) {
+    const r = boardRef.current?.getBoundingClientRect();
+    return r ? { x: (clientX - r.left) / zoom, y: (clientY - r.top) / zoom } : { x: 0, y: 0 };
+  }
+  function onLinkPreview(from: string, clientX: number, clientY: number) {
+    setLinkDrag({ from, ...boardPoint(clientX, clientY) });
+  }
+  function onLinkEnd(from: string, toId: string | null) {
+    if (toId && toId !== from) client.retroLinkCards(from, toId);
+    setLinkDrag(null);
   }
 
   // "Take the lead": publish my viewport (scroll + zoom) while leading; followers mirror it.
@@ -253,14 +273,6 @@ export function RetroCanvas({
         </div>
       )}
 
-      {/* linking mode hint */}
-      {linkFrom && (
-        <div className="absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
-          Click another sticky to connect
-          <button onClick={() => setLinkFrom(null)} className="rounded-full bg-white/20 px-2 py-0.5 font-bold hover:bg-white/30">Cancel</button>
-        </div>
-      )}
-
       {/* in fullscreen the phase rail + timer are hidden · float them back in */}
       {full && (
         <FullscreenBar
@@ -354,26 +366,41 @@ export function RetroCanvas({
                 const f = cardById.get(e.from);
                 const t = cardById.get(e.to);
                 if (!f || !t) return null;
+                const a = edgeAnchors(f, t);
                 return (
-                  <line
+                  <path
                     key={e.id}
                     data-edge-id={e.id}
-                    x1={f.x + CARD_W / 2}
-                    y1={f.y + 36}
-                    x2={t.x + CARD_W / 2}
-                    y2={t.y + 36}
+                    d={edgePath(a.x1, a.y1, a.x2, a.y2)}
+                    fill="none"
                     stroke="rgba(139, 92, 246, 0.75)"
                     strokeWidth={2.5}
                     markerEnd="url(#edge-arrow)"
                   />
                 );
               })}
+              {/* live preview while pulling a connector off a handle */}
+              {linkDrag && cardById.has(linkDrag.from) && (() => {
+                const f = cardById.get(linkDrag.from)!;
+                const a = edgeAnchors(f, linkDrag);
+                return (
+                  <path
+                    d={edgePath(a.x1, a.y1, linkDrag.x, linkDrag.y)}
+                    fill="none"
+                    stroke="rgba(139, 92, 246, 0.55)"
+                    strokeWidth={2.5}
+                    strokeDasharray="6 5"
+                    markerEnd="url(#edge-arrow)"
+                  />
+                );
+              })()}
             </svg>
             {canAct &&
               retro.edges.map((e) => {
                 const f = cardById.get(e.from);
                 const t = cardById.get(e.to);
                 if (!f || !t) return null;
+                const a = edgeAnchors(f, t);
                 return (
                   <button
                     key={e.id}
@@ -381,7 +408,7 @@ export function RetroCanvas({
                     aria-label="Remove connector"
                     title="Remove connector"
                     className="absolute z-[25] grid h-5 w-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-violet-600 text-[11px] font-bold leading-none text-white opacity-70 shadow hover:opacity-100"
-                    style={{ left: (f.x + t.x + CARD_W) / 2, top: (f.y + t.y + 72) / 2 }}
+                    style={{ left: (a.x1 + a.x2) / 2, top: (a.y1 + a.y2) / 2 }}
                   >
                     ×
                   </button>
@@ -400,9 +427,8 @@ export function RetroCanvas({
                 canVote={canAct && retro.phase === "vote"}
                 isFacil={isFacil}
                 spotlit={retro.spotlightId === card.id}
-                linkFrom={linkFrom}
-                onLinkStart={setLinkFrom}
-                onLinkTo={completeLink}
+                onLinkPreview={onLinkPreview}
+                onLinkEnd={onLinkEnd}
                 client={client}
               />
             ))}
@@ -523,9 +549,8 @@ function CanvasCard({
   canVote,
   isFacil,
   spotlit,
-  linkFrom,
-  onLinkStart,
-  onLinkTo,
+  onLinkPreview,
+  onLinkEnd,
   client,
 }: {
   card: RetroCardView;
@@ -536,9 +561,8 @@ function CanvasCard({
   canVote: boolean;
   isFacil: boolean;
   spotlit: boolean;
-  linkFrom: string | null;
-  onLinkStart: (id: string | null) => void;
-  onLinkTo: (id: string) => void;
+  onLinkPreview: (from: string, clientX: number, clientY: number) => void;
+  onLinkEnd: (from: string, toId: string | null) => void;
   client: RoomClient;
 }) {
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
@@ -552,6 +576,7 @@ function CanvasCard({
   const [titleText, setTitleText] = useState("");
   const start = useRef({ px: 0, py: 0, cx: 0, cy: 0 });
   const moved = useRef(false);
+  const linking = useRef(false); // an edge-handle drag is in flight
   const pressed = useRef(false); // a press is in flight · synchronous, unlike the drag state
   const lastLive = useRef(0);
 
@@ -680,7 +705,6 @@ function CanvasCard({
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
-      onClick={() => { if (linkFrom && linkFrom !== card.id) onLinkTo(card.id); }}
       onDoubleClick={onDoubleClick}
       onKeyDown={onKey}
       tabIndex={canAct ? 0 : -1}
@@ -704,6 +728,39 @@ function CanvasCard({
     >
       {card.discussed && !spotlit && (
         <span className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow">✓</span>
+      )}
+      {canAct && (
+        <button
+          aria-label="Drag to connect"
+          title="Drag onto another sticky to connect them"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            linking.current = true;
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+            onLinkPreview(card.id, e.clientX, e.clientY);
+          }}
+          onPointerMove={(e) => {
+            if (!linking.current) return;
+            e.stopPropagation();
+            onLinkPreview(card.id, e.clientX, e.clientY);
+          }}
+          onPointerUp={(e) => {
+            if (!linking.current) return;
+            linking.current = false;
+            e.stopPropagation();
+            try {
+              (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+            } catch {
+              /* never captured · fine */
+            }
+            onLinkEnd(card.id, cardUnderPointer(e.clientX, e.clientY, card.id)?.dataset.cardId ?? null);
+          }}
+          className="absolute -right-2.5 top-1/2 z-20 grid h-5 w-5 -translate-y-1/2 cursor-crosshair place-items-center rounded-full border-2 border-white bg-violet-500 opacity-0 shadow transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          style={{ touchAction: "none" }}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
+        </button>
       )}
       {card.groupId && (
         <button
@@ -880,22 +937,6 @@ function CanvasCard({
           </div>
         )}
         <div className="flex items-center gap-1">
-          {canAct && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onLinkStart(linkFrom === card.id ? null : card.id);
-              }}
-              title={linkFrom === card.id ? "Cancel linking" : "Link · draw a connector to another sticky"}
-              aria-label="Link to another sticky"
-              aria-pressed={linkFrom === card.id}
-              className={`grid h-7 w-7 place-items-center rounded-full text-sm transition ${
-                linkFrom === card.id ? "bg-violet-600 text-white shadow" : "bg-white/70 text-slate-500 hover:bg-white hover:text-violet-600"
-              }`}
-            >
-              ⤤
-            </button>
-          )}
           {canAct && (
             <button
               onClick={() => client.retroSetAction(card.id, !card.action, card.owner ?? null)}

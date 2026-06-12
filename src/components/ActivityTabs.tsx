@@ -42,7 +42,7 @@ export function ActivityTabs({
     <div role="tablist" aria-label="Activities" className="mb-5 flex max-w-full gap-1 overflow-x-auto rounded-xl border border-slate-200/70 bg-slate-100/70 p-1 backdrop-blur-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden dark:border-white/10 dark:bg-white/5">
       {tab("estimate", "Estimate", <IconEstimate className="h-4 w-4" />)}
       {tab("retro", "Retro", <IconRetro className="h-4 w-4" />)}
-      {tab("board", "Roadmap", <IconBoard className="h-4 w-4" />)}
+      {tab("board", "Plan", <IconBoard className="h-4 w-4" />)}
       {tab("pulse", "Pulse", <IconPulse className="h-4 w-4" />)}
       {tab("poll", "Poll", <IconPoll className="h-4 w-4" />)}
       {tab("pick", "Pick", <IconPick className="h-4 w-4" />)}

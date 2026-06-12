@@ -90,8 +90,10 @@ export function FormatPicker({
         </p>
 
         <div className="grid gap-3 overflow-y-auto sm:grid-cols-2">
-          {activity === "retro" &&
-            Object.entries(RETRO_TEMPLATES).map(([id, tpl]) => {
+          {(activity === "retro" || activity === "board") &&
+            Object.entries(RETRO_TEMPLATES)
+              .filter(([, tpl]) => (activity === "board" ? tpl.plan : !tpl.plan))
+              .map(([id, tpl]) => {
               const theme = retroTheme(id);
               const active = id === retroTemplate;
               return (

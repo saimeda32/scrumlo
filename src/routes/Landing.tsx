@@ -176,8 +176,8 @@ export default function Landing() {
             },
             {
               Icon: IconBoard,
-              t: "Roadmap",
-              d: "A plain Now / Next / Later board on the same canvas. Group ideas, draw dependency arrows between stickies, dot-vote priorities, export. Ephemeral planning, no database.",
+              t: "Plan",
+              d: "One planning space, four canvases: a Now / Next / Later roadmap, a mind map, a flowchart and an impact/effort matrix. Drag curved connectors between stickies, dot-vote, export. Ephemeral planning, no database.",
             },
             {
               Icon: IconPulse,

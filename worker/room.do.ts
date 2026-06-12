@@ -747,8 +747,10 @@ export class RoomDO extends DurableObject<Env> {
       }
       case "retroSetTemplate": {
         if (!this.isFacilitator(me)) return;
-        if (this.activity === "board") return; // the board's format is fixed (roadmap)
-        if (!RETRO_TEMPLATES[msg.template]) return;
+        const next = RETRO_TEMPLATES[msg.template];
+        if (!next) return;
+        // Plan formats (roadmap/mind map/flowchart/matrix) live on the board; the rest on retro.
+        if (this.activity === "board" ? !next.plan : next.plan) return;
         R.template = msg.template;
         R.cards = []; // changing template resets the board
         R.edges = [];
@@ -793,6 +795,7 @@ export class RoomDO extends DurableObject<Env> {
         const tplA = RETRO_TEMPLATES[R.template] ?? RETRO_TEMPLATES.ssc;
         const inZone = R.cards.filter((c) => c.column === msg.column).length;
         const zi = Math.max(0, tplA.columns.findIndex((c) => c.id === msg.column));
+        const spot = this.freeSpot(R.cards, zi);
         R.cards.push({
           id: crypto.randomUUID(),
           column: msg.column,
@@ -802,8 +805,8 @@ export class RoomDO extends DurableObject<Env> {
           reactions: {},
           order: inZone,
           groupId: null,
-          x: zi * ZONE_W + 22 + (inZone % 3) * 14,
-          y: 96 + (inZone % 12) * 88,
+          x: spot.x,
+          y: spot.y,
         });
         break;
       }
@@ -1773,6 +1776,24 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   /** A group of one isn't a group · clear its lone member's groupId (on the given surface). */
+  /** First unoccupied slot in the zone's two-across grid, scanning top to bottom —
+   *  the server sees every card, so concurrent adders can't stack on each other.
+   *  A truly packed zone falls back to the old cascade rather than failing. */
+  private freeSpot(cards: RetroCard[], zi: number): { x: number; y: number } {
+    const SLOT_X = [22, 256]; // two 220px cards fit a 500px zone
+    const SLOT_H = 160; // a sticky with author row + toolbar runs ~140px tall
+    for (let row = 0; row < 9; row++) {
+      for (const gx of SLOT_X) {
+        const x = zi * ZONE_W + gx;
+        const y = 96 + row * SLOT_H;
+        const taken = cards.some((c) => Math.abs(c.x - x) < 215 && Math.abs(c.y - y) < 150);
+        if (!taken) return { x, y };
+      }
+    }
+    const n = cards.length;
+    return { x: zi * ZONE_W + 22 + (n % 3) * 14, y: 96 + (n % 12) * 88 };
+  }
+
   private dissolveSingletonGroups(cards: RetroCard[], gid: string | null): void {
     if (!gid) return;
     const members = cards.filter((c) => c.groupId === gid);

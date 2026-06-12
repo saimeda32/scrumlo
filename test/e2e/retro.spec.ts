@@ -222,9 +222,15 @@ test("two stickies can be linked with a connector, and unlinked", async ({ page 
   const cause = page.locator("[data-card-id]", { hasText: "cause" });
   const effect = page.locator("[data-card-id]", { hasText: "effect" });
 
+  // Miro-style: grab the connect handle on the card's edge and drag onto the target.
   await cause.hover();
-  await cause.getByRole("button", { name: "Link to another sticky" }).click();
-  await effect.click();
+  const handle = cause.getByLabel("Drag to connect");
+  const hb = (await handle.boundingBox())!;
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  const eb = (await effect.boundingBox())!;
+  await page.mouse.move(eb.x + eb.width / 2, eb.y + eb.height / 2, { steps: 8 });
+  await page.mouse.up();
 
   // The connector renders from server state (works for everyone in the room).
   await expect(page.locator("[data-edge-id]")).toHaveCount(1);
@@ -236,6 +242,7 @@ test("two stickies can be linked with a connector, and unlinked", async ({ page 
 
 test("mind map format seeds a central topic on one open canvas", async ({ page }) => {
   await joinRetro(page, newRoom());
+  await page.getByRole("tab", { name: "Plan" }).click();
 
   await page.getByTitle("Browse formats with previews").click();
   await page.getByRole("button", { name: /Mind map/ }).click();
@@ -279,6 +286,7 @@ test("a sticky can take its own color", async ({ page }) => {
 
 test("the impact/effort matrix lays out quadrants on a free canvas", async ({ page }) => {
   await joinRetro(page, newRoom());
+  await page.getByRole("tab", { name: "Plan" }).click();
 
   await page.getByTitle("Browse formats with previews").click();
   await page.getByRole("button", { name: /Impact \/ Effort/ }).click();
@@ -288,4 +296,38 @@ test("the impact/effort matrix lays out quadrants on a free canvas", async ({ pa
   await expect(page.getByText("Big bets")).toBeVisible();
   await expect(page.getByText("Money pit")).toBeVisible();
   await expect(page.locator("#scrumlo-canvas > div.border-r")).toHaveCount(1);
+});
+
+test("new stickies land in free spots, not on top of each other", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  for (const t of ["first note", "second note", "third note", "fourth note"]) await addSticky(page, t);
+
+  const boxes = [];
+  for (const t of ["first note", "second note", "third note", "fourth note"]) {
+    boxes.push((await page.locator("[data-card-id]", { hasText: t }).boundingBox())!);
+  }
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i]!;
+      const b = boxes[j]!;
+      const overlap = a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      expect(overlap, `sticky ${i + 1} must not cover sticky ${j + 1}`).toBe(false);
+    }
+  }
+});
+
+test("plan activity: roadmap, mind map, flowchart and matrix live under Plan", async ({ page }) => {
+  await page.goto(`/r/${newRoom()}`);
+  await page.getByLabel("Your name").fill("Pat");
+  await page.getByRole("button", { name: "Join the room" }).click();
+  await page.getByRole("tab", { name: "Plan" }).click();
+
+  await page.getByTitle("Browse formats with previews").click();
+  await page.getByRole("button", { name: /Mind map/ }).click();
+  await expect(page.locator("[data-card-id]", { hasText: "Central topic" })).toBeVisible();
+
+  // Switching back to a columns format works too.
+  await page.getByTitle("Browse formats with previews").click();
+  await page.getByRole("button", { name: /Roadmap/ }).click();
+  await expect(page.getByText("Now", { exact: true })).toBeVisible();
 });

@@ -111,8 +111,14 @@ test("blind mode keeps tags, colors and connectors of masked cards private", asy
   await one.getByRole("button", { name: "Priority" }).click();
   await one.getByRole("button", { name: "Sticky color" }).click();
   await ana.getByRole("button", { name: "Pink", exact: true }).click();
-  await one.getByRole("button", { name: "Link to another sticky" }).click();
-  await ana.locator("[data-card-id]", { hasText: "secret two" }).click();
+  await one.hover();
+  const handle = one.getByLabel("Drag to connect");
+  const hb = (await handle.boundingBox())!;
+  await ana.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await ana.mouse.down();
+  const two = (await ana.locator("[data-card-id]", { hasText: "secret two" }).boundingBox())!;
+  await ana.mouse.move(two.x + two.width / 2, two.y + two.height / 2, { steps: 8 });
+  await ana.mouse.up();
   await expect(ana.locator("[data-edge-id]")).toHaveCount(1);
 
   // Facilitator flips the room blind: Ben's view must reveal nothing.

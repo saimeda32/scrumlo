@@ -131,6 +131,8 @@ export const RETRO_TEMPLATES: Record<
     seeds?: { text: string; x: number; y: number }[];
     /** Quadrant overlay for matrix formats: axis names + [TL, TR, BL, BR] labels. */
     quad?: { x: string; y: string; labels: [string, string, string, string] };
+    /** Lives under the Plan activity (board) instead of Retro. */
+    plan?: boolean;
   }
 > = {
   ssc: {
@@ -250,6 +252,7 @@ export const RETRO_TEMPLATES: Record<
   // group, dot-vote priorities, export. Ephemeral roadmapping without a database.
   roadmap: {
     label: "Roadmap board",
+    plan: true,
     columns: [
       { id: "now", title: "Now", emoji: "🔥" },
       { id: "next", title: "Next", emoji: "➡️" },
@@ -260,6 +263,7 @@ export const RETRO_TEMPLATES: Record<
   // Free-canvas formats · one open band, stickies + connectors do the talking.
   mindmap: {
     label: "Mind map",
+    plan: true,
     kind: "free",
     span: 3,
     columns: [{ id: "canvas", title: "Mind map", emoji: "🧠" }],
@@ -267,6 +271,7 @@ export const RETRO_TEMPLATES: Record<
   },
   flow: {
     label: "Flowchart (lite)",
+    plan: true,
     kind: "free",
     span: 3,
     columns: [{ id: "canvas", title: "Flow", emoji: "🔀" }],
@@ -274,6 +279,7 @@ export const RETRO_TEMPLATES: Record<
   },
   matrix: {
     label: "Impact / Effort matrix",
+    plan: true,
     kind: "free",
     span: 3,
     columns: [{ id: "canvas", title: "Impact / Effort", emoji: "🎯" }],

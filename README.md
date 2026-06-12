@@ -25,10 +25,10 @@ Other tools keep your boards; Scrumlo keeps **nothing** · on purpose. There's n
 
 1. **Open the app** and hit *Start a room* · you get a private link like `scrumlo.com/r/brave-otter-42`.
 2. **Share the link.** Anyone who opens it lands as a spectator and renders instantly; they **drop a name** to grab a seat and act. No sign-up.
-3. **The facilitator drives.** Whoever claims the baton switches between **Estimate / Retro / Roadmap / Pick** and starts the shared **timer** · everyone's screen follows live.
+3. **The facilitator drives.** Whoever claims the baton switches between **Estimate / Retro / Plan / Pick** and starts the shared **timer** · everyone's screen follows live.
    - **Estimate:** pick a card (or press a number key; `R` reveals). Votes stay hidden until everyone's in, then reveal together. Build a custom deck, queue a backlog (paste CSV/Jira), step through it, and export the results.
    - **Retro:** pick a format, then step the room through brainstorm → group → vote → discuss (notes stay hidden until the reveal). Drop stickies on the zoomable canvas, drag to cluster, dot-vote, react, flag action items with owners, and see everyone's **live cursors**.
-   - **Roadmap:** a Now/Next/Later/Someday board with its own cards · plan, group, dot-vote, export.
+   - **Plan:** a planning space with four formats — Now/Next/Later roadmap, mind map, flowchart and impact/effort matrix · drag curved connectors between stickies, group, dot-vote, export.
    - **Pick:** spin the wheel for a random person, shuffle an order, or pick from a comma-separated list · with confetti and no repeats.
 4. **Export before you go.** One click gives you **Markdown**, a **full-board PNG/PDF**, or a **Jira CSV** · the only things that survive the room.
    - **Jira handoff:** the export sheet lists every action item (with owner) and locked estimate · check what should become a ticket, hit *Jira CSV*, then import it in Jira via **System → External system import → CSV** and map the columns (Summary, Issue Type, Description, Assignee, Story Points). Built entirely in your browser · nothing is sent anywhere.

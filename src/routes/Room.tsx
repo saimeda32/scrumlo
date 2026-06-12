@@ -158,7 +158,9 @@ export default function Room() {
   const formatLabel =
     activity === "retro"
       ? (RETRO_TEMPLATES[retro.template]?.label ?? "Retro")
-      : activity === "estimate"
+      : activity === "board"
+        ? (RETRO_TEMPLATES[board.template]?.label ?? "Plan")
+        : activity === "estimate"
         ? (DECK_LABELS[estimate.deck] ?? "Deck")
         : pick.mode === "person"
           ? "Pick a person"
@@ -168,7 +170,7 @@ export default function Room() {
 
   return (
     <div className="flex min-h-screen flex-col [background:radial-gradient(54rem_32rem_at_50%_-10rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(54rem_32rem_at_50%_-10rem,#1b1838,transparent_60%)]">
-      <main className="mx-auto w-full max-w-4xl flex-1 px-3 py-8 sm:px-6">
+      <main className={`mx-auto w-full flex-1 px-3 py-8 sm:px-6 ${activity === "retro" || activity === "board" ? "max-w-[1500px]" : "max-w-4xl"}`}>
         <h1 className="sr-only">Scrumlo room {room}, {activity} activity</h1>
         {skewed && (
           <div role="alert" className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
@@ -266,17 +268,17 @@ export default function Room() {
             canSwitch={isFacil}
             onSwitch={(a) => client.switchActivity(a)}
           />
-          {activity !== "board" && activity !== "pulse" && activity !== "poll" && (
+          {activity !== "pulse" && activity !== "poll" && (
             <button
               onClick={() => setPickerOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-iris-300 hover:text-iris-600 dark:border-white/10 dark:text-slate-300 dark:hover:text-iris-300"
               title="Browse formats with previews"
             >
-              {activity === "retro" && (
+              {(activity === "retro" || activity === "board") && (
                 <RetroGlyph
-                  template={retro.template}
+                  template={(activity === "board" ? board : retro).template}
                   className="h-4 w-4"
-                  style={{ color: retroTheme(retro.template).glow }}
+                  style={{ color: retroTheme((activity === "board" ? board : retro).template).glow }}
                 />
               )}
               {formatLabel}

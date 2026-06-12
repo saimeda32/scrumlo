@@ -52,6 +52,9 @@ export type RoomClient = {
   reportRoom: () => void;
   timerStart: (seconds: number) => void;
   timerStop: () => void;
+  timerExtend: (seconds: number) => void;
+  timerPause: () => void;
+  timerResume: () => void;
   // activity + retro
   switchActivity: (activity: Activity) => void;
   retroSetTemplate: (template: string) => void;
@@ -238,6 +241,9 @@ export function createRoomClient(
     reportRoom: () => send({ t: "reportRoom", v: 1 }),
     timerStart: (seconds) => send({ t: "timerStart", v: 1, seconds }),
     timerStop: () => send({ t: "timerStop", v: 1 }),
+    timerExtend: (seconds) => send({ t: "timerExtend", v: 1, seconds }),
+    timerPause: () => send({ t: "timerPause", v: 1 }),
+    timerResume: () => send({ t: "timerResume", v: 1 }),
     switchActivity: (activity) => send({ t: "switchActivity", v: 1, activity }),
     retroSetTemplate: (template) => send({ t: "retroSetTemplate", v: 1, template }),
     retroAddCard: (column, text) => send({ t: "retroAddCard", v: 1, column, text }),

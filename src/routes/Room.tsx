@@ -50,6 +50,7 @@ export default function Room() {
     pick,
     timerEndsAt,
     timerDurationMs,
+    timerPausedMs,
     setConnected,
     setEnded,
     apply,
@@ -212,6 +213,7 @@ export default function Room() {
           facilitator={facilitator}
           you={you}
           timerEndsAt={timerEndsAt}
+          timerPausedMs={timerPausedMs}
           onClaim={() => client.claimFacilitator()}
           onHandBaton={(toId) => client.handBaton(toId)}
           onExport={() => setShowExport(true)}
@@ -224,8 +226,12 @@ export default function Room() {
         <TimerBanner
           endsAt={timerEndsAt}
           durationMs={timerDurationMs}
+          pausedMs={timerPausedMs}
           isFacil={isFacil}
           onStop={() => client.timerStop()}
+          onExtend={(s) => client.timerExtend(s)}
+          onPause={() => client.timerPause()}
+          onResume={() => client.timerResume()}
         />
 
         {/* After someone chooses "just watching", keep a slim reminder so they can grab

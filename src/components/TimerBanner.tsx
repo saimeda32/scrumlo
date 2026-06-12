@@ -15,13 +15,21 @@ function fmt(ms: number): string {
 export function TimerBanner({
   endsAt,
   durationMs,
+  pausedMs = null,
   isFacil,
   onStop,
+  onExtend,
+  onPause,
+  onResume,
 }: {
   endsAt: number | null;
   durationMs: number | null;
+  pausedMs?: number | null;
   isFacil: boolean;
   onStop: () => void;
+  onExtend?: (seconds: number) => void;
+  onPause?: () => void;
+  onResume?: () => void;
 }) {
   const [now, setNow] = useState(() => Date.now());
   const [dismissed, setDismissed] = useState(false);
@@ -47,10 +55,11 @@ export function TimerBanner({
     }
   }, [now, endsAt]);
 
-  if (endsAt === null) return null;
+  const paused = pausedMs !== null;
+  if (endsAt === null && !paused) return null;
 
-  const remaining = endsAt - now;
-  const done = remaining <= 0;
+  const remaining = paused ? pausedMs : endsAt! - now;
+  const done = !paused && remaining <= 0;
   const total = durationMs ?? Math.max(remaining, 1);
   const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
   const urgent = !done && remaining <= 10_000;
@@ -70,19 +79,41 @@ export function TimerBanner({
       <div className={`mb-4 rounded-2xl border px-4 py-3 shadow-soft ${tone}`}>
         <div className="flex items-center gap-3">
           <IconClock className={`h-5 w-5 ${urgent && !done ? "animate-pulse-soft" : ""}`} />
-          <div className="text-2xl font-extrabold tabular-nums tracking-tight">
+          <div data-testid="timer-remaining" className="text-2xl font-extrabold tabular-nums tracking-tight">
             {done ? "Time’s up" : fmt(remaining)}
           </div>
           <div className="text-xs font-medium opacity-70">
-            {done ? "" : warning || urgent ? "wrap it up" : "timer running"}
+            {done ? "" : paused ? "paused" : warning || urgent ? "wrap it up" : "timer running"}
           </div>
           {isFacil && (
-            <button
-              onClick={onStop}
-              className="ml-auto rounded-lg border border-current/20 px-2.5 py-1 text-xs font-semibold opacity-80 hover:opacity-100"
-            >
-              {done ? "Clear" : "Stop"}
-            </button>
+            <div className="ml-auto flex items-center gap-1.5">
+              {!done && !paused && onExtend && (
+                <>
+                  <button onClick={() => onExtend(30)} className="rounded-lg border border-current/20 px-2 py-1 text-xs font-semibold opacity-80 hover:opacity-100">
+                    +30s
+                  </button>
+                  <button onClick={() => onExtend(60)} className="rounded-lg border border-current/20 px-2 py-1 text-xs font-semibold opacity-80 hover:opacity-100">
+                    +1m
+                  </button>
+                </>
+              )}
+              {!done && !paused && onPause && (
+                <button onClick={onPause} aria-label="Pause timer" title="Pause" className="rounded-lg border border-current/20 px-2 py-1 text-xs font-semibold opacity-80 hover:opacity-100">
+                  ⏸
+                </button>
+              )}
+              {paused && onResume && (
+                <button onClick={onResume} aria-label="Resume timer" title="Resume" className="rounded-lg border border-current/20 px-2 py-1 text-xs font-semibold opacity-80 hover:opacity-100">
+                  ▶ Resume
+                </button>
+              )}
+              <button
+                onClick={onStop}
+                className="rounded-lg border border-current/20 px-2.5 py-1 text-xs font-semibold opacity-80 hover:opacity-100"
+              >
+                {done ? "Clear" : "Stop"}
+              </button>
+            </div>
           )}
         </div>
         <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">

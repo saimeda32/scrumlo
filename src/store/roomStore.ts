@@ -25,6 +25,7 @@ type RoomState = {
   pick: PickView | null;
   timerEndsAt: number | null;
   timerDurationMs: number | null;
+  timerPausedMs: number | null;
   setConnected: (connected: boolean) => void;
   setEnded: (ended: boolean) => void;
   apply: (snapshot: Snapshot) => void;
@@ -45,6 +46,7 @@ export const useRoom = create<RoomState>((set) => ({
   pick: null,
   timerEndsAt: null,
   timerDurationMs: null,
+  timerPausedMs: null,
   setConnected: (connected) => set({ connected }),
   setEnded: (ended) => set({ ended }),
   apply: (s) =>
@@ -61,5 +63,6 @@ export const useRoom = create<RoomState>((set) => ({
       pick: s.pick,
       timerEndsAt: s.timerEndsAt,
       timerDurationMs: s.timerDurationMs,
+      timerPausedMs: s.timerPausedMs,
     }),
 }));

@@ -390,6 +390,9 @@ export type ClientMsg =
   // timer (a shared, facilitator-run countdown, available during any activity)
   | { t: "timerStart"; v: 1; seconds: number }
   | { t: "timerStop"; v: 1 }
+  | { t: "timerExtend"; v: 1; seconds: number } // add time to a running or paused countdown
+  | { t: "timerPause"; v: 1 }
+  | { t: "timerResume"; v: 1 }
   | { t: "switchActivity"; v: 1; activity: Activity }
   | { t: "retroSetTemplate"; v: 1; template: string }
   | { t: "retroAddCard"; v: 1; column: string; text: string }
@@ -455,6 +458,8 @@ export type Snapshot = {
   timerEndsAt: number | null;
   /** total length of the running timer in ms (for the progress bar); null when no timer */
   timerDurationMs: number | null;
+  /** remaining ms while the timer is paused; null when not paused */
+  timerPausedMs: number | null;
 };
 
 /** server -> client: the room has expired and been deleted. */

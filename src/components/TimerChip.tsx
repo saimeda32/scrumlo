@@ -10,19 +10,21 @@ const PRESETS = [
 
 export function TimerChip({
   endsAt,
+  pausedMs = null,
   isFacil,
   onStart,
 }: {
   endsAt: number | null;
+  pausedMs?: number | null;
   isFacil: boolean;
   onStart: (seconds: number) => void;
   onStop?: () => void; // running timer is shown by TimerBanner; kept for caller compatibility
 }) {
   const [menu, setMenu] = useState(false);
 
-  // A running timer is shown by the prominent TimerBanner · and only the
+  // A running OR paused timer is shown by the prominent TimerBanner · and only the
   // facilitator gets the start control here.
-  if (endsAt !== null || !isFacil) return null;
+  if (endsAt !== null || pausedMs !== null || !isFacil) return null;
 
   return (
     <div className="relative">

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { newRoom, twoUsers } from "./helpers";
+import { newRoom, twoUsers, join } from "./helpers";
 
 test("word-cloud poll: blind while answering, words appear on reveal", async ({ browser }) => {
   const [ana, ben] = await twoUsers(browser, newRoom());
@@ -88,4 +88,26 @@ test("pulse: reveal distills the room into one word", async ({ browser }) => {
 
   await ana.context().close();
   await ben.context().close();
+});
+
+test("timer: facilitator can extend and pause the countdown", async ({ page }) => {
+  await join(page, newRoom(), "Eve");
+
+  await page.getByRole("button", { name: "Timer" }).click();
+  await page.getByRole("button", { name: "1m" }).click();
+  await expect(page.getByTestId("timer-remaining")).toHaveText(/0:5[0-9]/);
+
+  // +1m stretches the running countdown past a minute.
+  await page.getByRole("button", { name: "+1m" }).click();
+  await expect(page.getByTestId("timer-remaining")).toHaveText(/1:5[0-9]/);
+
+  // Pause freezes it; resume picks it back up.
+  await page.getByRole("button", { name: "Pause timer" }).click();
+  await expect(page.getByRole("button", { name: "Resume timer" })).toBeVisible();
+  const frozen = await page.getByTestId("timer-remaining").textContent();
+  await page.waitForTimeout(1500);
+  expect(await page.getByTestId("timer-remaining").textContent()).toBe(frozen);
+
+  await page.getByRole("button", { name: "Resume timer" }).click();
+  await expect(page.getByRole("button", { name: "Pause timer" })).toBeVisible();
 });

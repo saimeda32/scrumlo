@@ -190,6 +190,7 @@ export class RoomDO extends DurableObject<Env> {
   private clients: Record<string, string> = {}; // clientId -> memberId (survives reconnect)
   private timerEndsAt: number | null = null;
   private timerDurationMs: number | null = null;
+  private timerPausedMs: number | null = null; // remaining ms while paused
   private reports: { id: string; at: number }[] = []; // abuse reports (in-memory, ephemeral)
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -273,6 +274,7 @@ export class RoomDO extends DurableObject<Env> {
       this.facilitatorId = (await ctx.storage.get<string>("facilitator")) ?? null;
       this.timerEndsAt = (await ctx.storage.get<number>("timerEndsAt")) ?? null;
       this.timerDurationMs = (await ctx.storage.get<number>("timerDurationMs")) ?? null;
+      this.timerPausedMs = (await ctx.storage.get<number>("timerPausedMs")) ?? null;
       this.departed = (await ctx.storage.get<Record<string, number>>("departed")) ?? {};
       this.lastActivityAt = (await ctx.storage.get<number>("lastActivityAt")) ?? Date.now();
       // createdAt is stamped once and persisted, so the absolute lifetime cap survives
@@ -308,6 +310,8 @@ export class RoomDO extends DurableObject<Env> {
     else batch.timerEndsAt = this.timerEndsAt;
     if (this.timerDurationMs === null) dels.push("timerDurationMs");
     else batch.timerDurationMs = this.timerDurationMs;
+    if (this.timerPausedMs === null) dels.push("timerPausedMs");
+    else batch.timerPausedMs = this.timerPausedMs;
     if (this.facilitatorId === null) dels.push("facilitator");
     else batch.facilitator = this.facilitatorId;
     await this.ctx.storage.put(batch);
@@ -694,12 +698,37 @@ export class RoomDO extends DurableObject<Env> {
         const secs = Math.max(5, Math.min(60 * 60, Math.floor(Number(msg.seconds) || 0)));
         this.timerEndsAt = Date.now() + secs * 1000;
         this.timerDurationMs = secs * 1000;
+        this.timerPausedMs = null;
+        break;
+      }
+      case "timerExtend": {
+        if (!this.isFacilitator(me)) return;
+        const add = Math.max(5, Math.min(10 * 60, Math.floor(Number(msg.seconds) || 0))) * 1000;
+        if (this.timerPausedMs !== null) this.timerPausedMs += add;
+        else if (this.timerEndsAt !== null) this.timerEndsAt += add;
+        else return;
+        this.timerDurationMs = (this.timerDurationMs ?? 0) + add; // keep the progress bar honest
+        break;
+      }
+      case "timerPause": {
+        if (!this.isFacilitator(me)) return;
+        if (this.timerEndsAt === null) return;
+        this.timerPausedMs = Math.max(0, this.timerEndsAt - Date.now());
+        this.timerEndsAt = null;
+        break;
+      }
+      case "timerResume": {
+        if (!this.isFacilitator(me)) return;
+        if (this.timerPausedMs === null) return;
+        this.timerEndsAt = Date.now() + this.timerPausedMs;
+        this.timerPausedMs = null;
         break;
       }
       case "timerStop": {
         if (!this.isFacilitator(me)) return;
         this.timerEndsAt = null;
         this.timerDurationMs = null;
+        this.timerPausedMs = null;
         break;
       }
 
@@ -1844,6 +1873,7 @@ export class RoomDO extends DurableObject<Env> {
         pick,
         timerEndsAt: this.timerEndsAt,
         timerDurationMs: this.timerDurationMs,
+        timerPausedMs: this.timerPausedMs,
       };
       try {
         w.send(JSON.stringify(snapshot));

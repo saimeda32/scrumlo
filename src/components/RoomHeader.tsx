@@ -13,6 +13,7 @@ export function RoomHeader({
   facilitator,
   you,
   timerEndsAt,
+  timerPausedMs = null,
   onClaim,
   onHandBaton,
   onExport,
@@ -27,6 +28,7 @@ export function RoomHeader({
   facilitator: string | null;
   you: string | null;
   timerEndsAt: number | null;
+  timerPausedMs?: number | null;
   onClaim: () => void;
   onHandBaton: (toId: string) => void;
   onExport: () => void;
@@ -119,6 +121,7 @@ export function RoomHeader({
         <ThemeToggle />
         <TimerChip
           endsAt={timerEndsAt}
+          pausedMs={timerPausedMs}
           isFacil={isFacil}
           onStart={onTimerStart}
           onStop={onTimerStop}

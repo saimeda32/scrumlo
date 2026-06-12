@@ -5,6 +5,10 @@ import { newRoom, join, openRetro, addSticky } from "./helpers";
 // pointer handling usually breaks (touch-action: none, double-tap, drag).
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
+// Playwright's touch emulation is chromium/webkit-only; Firefox phones exist, but we
+// can't emulate them here. Desktop Firefox interaction is covered by the main specs.
+test.skip(({ browserName }) => browserName === "firefox", "no touch emulation on Firefox");
+
 test("phone: join, add a sticky, double-tap to edit", async ({ page }) => {
   await join(page, newRoom(), "Mo");
   await openRetro(page);

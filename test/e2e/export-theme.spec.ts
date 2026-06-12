@@ -1,8 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { newRoom, join, openRetro, addSticky } from "./helpers";
 
-test("export: markdown copy, .md download, and board PNG all produce output", async ({ browser }) => {
-  const ctx = await browser.newContext({ permissions: ["clipboard-read", "clipboard-write"] });
+test("export: markdown copy, .md download, and board PNG all produce output", async ({ browser, browserName }) => {
+  // Firefox automation can't grant clipboard permissions; the copy button still works
+  // there for real users (user-gesture path) — we just can't read the result back.
+  const canClip = browserName === "chromium";
+  const ctx = await browser.newContext(canClip ? { permissions: ["clipboard-read", "clipboard-write"] } : {});
   const page = await ctx.newPage();
   await join(page, newRoom(), "Eve");
   await openRetro(page);
@@ -11,10 +14,12 @@ test("export: markdown copy, .md download, and board PNG all produce output", as
   await page.getByRole("button", { name: "⤓ Export" }).click();
   await expect(page.getByText("Take the session with you")).toBeVisible();
 
-  await page.getByRole("button", { name: "Copy Markdown" }).click();
-  await expect(page.getByRole("button", { name: "Copied ✓" })).toBeVisible();
-  const clip = await page.evaluate(() => navigator.clipboard.readText());
-  expect(clip).toContain("keep this decision");
+  if (canClip) {
+    await page.getByRole("button", { name: "Copy Markdown" }).click();
+    await expect(page.getByRole("button", { name: "Copied ✓" })).toBeVisible();
+    const clip = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clip).toContain("keep this decision");
+  }
 
   const dl = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download .md" }).click();

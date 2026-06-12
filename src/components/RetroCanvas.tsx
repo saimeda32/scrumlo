@@ -600,6 +600,7 @@ function CanvasCard({
   const start = useRef({ px: 0, py: 0, cx: 0, cy: 0 });
   const moved = useRef(false);
   const linking = useRef(false); // an edge-handle drag is in flight
+  const lastTapAt = useRef(0); // manual double-tap detection (touch)
   const pressed = useRef(false); // a press is in flight · synchronous, unlike the drag state
   const lastLive = useRef(0);
 
@@ -685,6 +686,17 @@ function CanvasCard({
       if (ontoId) client.retroGroupCard(card.id, ontoId);
       else client.retroMoveXY(card.id, Math.round(drag.x), Math.round(drag.y));
       client.cursor(drag.x, drag.y); // clear the live-drag flag for everyone
+    } else if (e.pointerType === "touch" && canAct && card.mine && !editing) {
+      // Double-tap to edit, detected by hand: WebKit (every iPhone) doesn't reliably
+      // synthesize dblclick from two taps the way desktop double-click does.
+      const now = e.timeStamp;
+      if (now - lastTapAt.current < 380) {
+        lastTapAt.current = 0;
+        setText(card.text);
+        setEditing(true);
+      } else {
+        lastTapAt.current = now;
+      }
     }
     setDropTarget(null);
     setDrag(null);

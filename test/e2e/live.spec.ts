@@ -97,3 +97,54 @@ test("take the lead: followers' canvases track the facilitator's viewport", asyn
   await ana.context().close();
   await ben.context().close();
 });
+
+test("blind mode keeps tags, colors and connectors of masked cards private", async ({ browser }) => {
+  const [ana, ben] = await twoUsers(browser, newRoom());
+  await openRetro(ana);
+  await addSticky(ana, "secret one");
+  await addSticky(ana, "secret two");
+
+  // Ana decorates: tag + color on one, a connector between the two.
+  const one = ana.locator("[data-card-id]", { hasText: "secret one" });
+  await one.hover();
+  await one.getByRole("button", { name: "Add tag" }).click();
+  await one.getByRole("button", { name: "Priority" }).click();
+  await one.getByRole("button", { name: "Sticky color" }).click();
+  await ana.getByRole("button", { name: "Pink", exact: true }).click();
+  await one.getByRole("button", { name: "Link to another sticky" }).click();
+  await ana.locator("[data-card-id]", { hasText: "secret two" }).click();
+  await expect(ana.locator("[data-edge-id]")).toHaveCount(1);
+
+  // Facilitator flips the room blind: Ben's view must reveal nothing.
+  await ana.getByRole("button", { name: /Cards shown/ }).click();
+  await expect(ben.getByText("\u{1F512}").first()).toBeVisible(); // masked placeholders
+  await expect(ben.getByText("Priority")).toBeHidden();
+  await expect(ben.locator('[data-color="pink"]')).toHaveCount(0);
+  await expect(ben.locator("[data-edge-id]")).toHaveCount(0);
+
+  // The facilitator still sees everything (they run the session).
+  await expect(ana.locator("[data-edge-id]")).toHaveCount(1);
+  await expect(ana.getByText("Priority").first()).toBeVisible();
+
+  await ana.context().close();
+  await ben.context().close();
+});
+
+test("anonymous rooms don't name reactors on hover", async ({ browser }) => {
+  const [ana, ben] = await twoUsers(browser, newRoom());
+  await openRetro(ana);
+  await addSticky(ana, "react to me");
+
+  // Anonymous is the default · Ben reacts; the chip shows a count but no names.
+  const onBen = ben.locator("[data-card-id]", { hasText: "react to me" });
+  await onBen.hover();
+  await onBen.getByRole("button", { name: "Add reaction" }).click();
+  await onBen.getByRole("button", { name: "👍", exact: true }).click();
+
+  const chip = ana.locator("[data-card-id]").getByRole("button", { name: /👍 reaction/ });
+  await expect(chip).toBeVisible();
+  await expect(chip).not.toHaveAttribute("title", /Ben/);
+
+  await ana.context().close();
+  await ben.context().close();
+});

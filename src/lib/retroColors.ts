@@ -31,3 +31,27 @@ const C: Record<string, ColC> = {
 export function columnColor(columnId: string, index: number): ColC {
   return C[SEMANTIC[columnId] ?? PALETTE[index % PALETTE.length]] ?? C.slate;
 }
+
+/** Author-picked sticky colors (protocol STICKY_COLORS) → the same tone set columns use. */
+const STICKY_TONE: Record<string, keyof typeof C> = {
+  yellow: "amber",
+  green: "emerald",
+  blue: "sky",
+  pink: "rose",
+  purple: "violet",
+  orange: "orange",
+};
+
+export function stickyTone(color: string): ColC {
+  return C[STICKY_TONE[color]] ?? C.slate;
+}
+
+/** Swatch hex for the color picker dots (matches the -200 tones above). */
+export const STICKY_SWATCH: Record<string, string> = {
+  yellow: "#fde68a",
+  green: "#a7f3d0",
+  blue: "#bae6fd",
+  pink: "#fecdd3",
+  purple: "#ddd6fe",
+  orange: "#fed7aa",
+};

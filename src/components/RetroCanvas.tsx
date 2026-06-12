@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { RetroView, RetroCardView } from "../../shared/protocol";
-import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS, RETRO_TAGS, RETRO_TEMPLATES, retroSpanOf } from "../../shared/protocol";
+import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS, RETRO_TAGS, RETRO_TEMPLATES, STICKY_COLORS, retroSpanOf } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { avatarColor, initials } from "../lib/colors";
 import { useLead } from "../store/leadStore";
-import { columnColor, type ColC } from "../lib/retroColors";
+import { columnColor, stickyTone, STICKY_SWATCH, type ColC } from "../lib/retroColors";
 import { retroTheme } from "../lib/retroThemes";
 import { RetroGlyph } from "./RetroGlyph";
 import { useCursors } from "../store/cursorStore";
@@ -317,6 +317,32 @@ export function RetroCanvas({
               );
             })}
 
+            {/* quadrant overlay for matrix formats (axes + corner labels, under everything) */}
+            {tplDef?.quad && (
+              <div className="pointer-events-none absolute inset-0 z-[2]" aria-hidden>
+                <div className="absolute left-1/2 top-0 h-full w-px bg-slate-300/80 dark:bg-white/15" />
+                <div className="absolute left-0 top-1/2 h-px w-full bg-slate-300/80 dark:bg-white/15" />
+                <span className="absolute left-3 top-1/2 -translate-y-7 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  {tplDef.quad.y} ↑
+                </span>
+                <span className="absolute bottom-2 left-1/2 ml-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  {tplDef.quad.x} →
+                </span>
+                {(
+                  [
+                    ["left-4 top-14", 0],
+                    ["right-4 top-14 text-right", 1],
+                    ["left-4 bottom-10", 2],
+                    ["right-4 bottom-10 text-right", 3],
+                  ] as const
+                ).map(([pos, i]) => (
+                  <span key={i} className={`absolute ${pos} text-lg font-extrabold tracking-tight text-slate-300 dark:text-slate-600`}>
+                    {tplDef.quad!.labels[i]}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {/* connectors (under the stickies) */}
             <svg className="pointer-events-none absolute inset-0 z-[5]" width={W} height={boardH} aria-hidden>
               <defs>
@@ -521,6 +547,7 @@ function CanvasCard({
   const [text, setText] = useState(card.text);
   const [pick, setPick] = useState(false);
   const [tagPick, setTagPick] = useState(false);
+  const [colorPick, setColorPick] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleText, setTitleText] = useState("");
   const start = useRef({ px: 0, py: 0, cx: 0, cy: 0 });
@@ -649,6 +676,7 @@ function CanvasCard({
   return (
     <div
       data-card-id={card.id}
+      data-color={card.color ?? undefined}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
@@ -660,7 +688,7 @@ function CanvasCard({
       aria-label={`Sticky: ${card.text || "(empty)"}.${card.mine ? " Double-click to edit." : ""} Arrow keys to move.`}
       title={card.mine && canAct ? "Double-click to edit" : undefined}
       style={{ left: x, top: y, width: CARD_W, touchAction: "none", rotate: spotlit || drag || live ? "0deg" : `${tiltOf(card.id)}deg` }}
-      className={`group absolute select-none rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_16px_-8px_rgba(15,23,42,0.45)] ${c.note} ${
+      className={`group absolute select-none rounded-[10px] px-3.5 pb-2.5 pt-3 text-[15px] leading-snug text-slate-800 shadow-[0_6px_16px_-8px_rgba(15,23,42,0.45)] ${(card.color ? stickyTone(card.color) : c).note} ${
         canAct ? "cursor-grab active:cursor-grabbing" : ""
       } ${
         drag
@@ -814,6 +842,39 @@ function CanvasCard({
                 {RETRO_TAGS.filter((t) => !card.tags.includes(t)).map((t) => (
                   <button key={t} onClick={() => { client.retroTagCard(card.id, t, true); setTagPick(false); }} className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold hover:scale-105 ${tagTone(t)}`}>{t}</button>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+        {canAct && card.mine && (
+          <div className="relative">
+            <button
+              onClick={() => setColorPick((v) => !v)}
+              className="inline-flex items-center rounded-full bg-white/55 px-2 py-0.5 text-sm leading-none hover:bg-white/90"
+              aria-label="Sticky color"
+              title="Recolor this sticky"
+            >
+              🎨
+            </button>
+            {colorPick && (
+              <div className="absolute left-0 top-7 z-40 flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-lg">
+                {STICKY_COLORS.map((col) => (
+                  <button
+                    key={col}
+                    onClick={() => { client.retroColorCard(card.id, col); setColorPick(false); }}
+                    aria-label={col[0].toUpperCase() + col.slice(1)}
+                    title={col}
+                    className={`h-5 w-5 rounded-full border hover:scale-110 ${card.color === col ? "border-slate-500 ring-2 ring-slate-300" : "border-black/10"}`}
+                    style={{ background: STICKY_SWATCH[col] }}
+                  />
+                ))}
+                <button
+                  onClick={() => { client.retroColorCard(card.id, null); setColorPick(false); }}
+                  className="rounded-full px-1.5 text-[10px] font-bold text-slate-500 hover:text-slate-700"
+                  title="Back to the column's color"
+                >
+                  Auto
+                </button>
               </div>
             )}
           </div>

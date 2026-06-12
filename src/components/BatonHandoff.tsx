@@ -76,7 +76,8 @@ export function BatonHandoff({ from, to, onDone }: { from: string; to: string; o
   );
   useEffect(() => {
     fireConfetti();
-    const id = setTimeout(onDone, 3800);
+    // Long enough to actually read the quip (crown lands ~2s in, then the line).
+    const id = setTimeout(onDone, 7000);
     return () => clearTimeout(id);
     // run once per mount — parent re-renders (snapshots) must not restart the show
     // eslint-disable-next-line react-hooks/exhaustive-deps

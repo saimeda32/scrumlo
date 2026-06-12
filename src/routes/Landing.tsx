@@ -287,7 +287,7 @@ export default function Landing() {
             },
             {
               q: "What can I run in a room?",
-              a: "Sprint estimation (planning poker) with blind reveal and custom decks, retrospectives in 16 formats including mind map and flowchart canvases, sticky connectors for dependencies, a Now/Next/Later roadmap board, polls and live word clouds with hide-until-reveal, anonymous team health checks, a random picker wheel, and a shared timer — all behind one link.",
+              a: "Sprint estimation (planning poker) with blind reveal and custom decks, retrospectives in 17 formats including mind map, flowchart and impact/effort matrix canvases, sticky connectors for dependencies, your own sticky colors, a Now/Next/Later roadmap board, polls and live word clouds with hide-until-reveal, anonymous team health checks, a random picker wheel, and a shared timer — all behind one link.",
             },
             {
               q: "How many people can join?",

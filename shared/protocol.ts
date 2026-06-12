@@ -129,6 +129,8 @@ export const RETRO_TEMPLATES: Record<
     span?: number;
     /** Starter cards dropped when the facilitator picks this format. */
     seeds?: { text: string; x: number; y: number }[];
+    /** Quadrant overlay for matrix formats: axis names + [TL, TR, BL, BR] labels. */
+    quad?: { x: string; y: string; labels: [string, string, string, string] };
   }
 > = {
   ssc: {
@@ -270,6 +272,13 @@ export const RETRO_TEMPLATES: Record<
     columns: [{ id: "canvas", title: "Flow", emoji: "🔀" }],
     seeds: [{ text: "Start", x: 110, y: 110 }],
   },
+  matrix: {
+    label: "Impact / Effort matrix",
+    kind: "free",
+    span: 3,
+    columns: [{ id: "canvas", title: "Impact / Effort", emoji: "🎯" }],
+    quad: { x: "Effort", y: "Impact", labels: ["Quick wins", "Big bets", "Fill-ins", "Money pit"] },
+  },
 };
 
 /** Board width of a template, in zone-widths (free formats span wider than their one column). */
@@ -286,6 +295,9 @@ export const RETRO_REACTIONS = ["👍", "❤️", "🎯", "🔥", "😂", "👀"
 export const RETRO_TAGS = ["Priority", "Quick win", "Blocked", "Idea"] as const;
 export const RETRO_MAX_TAGS = 3;
 
+/** Colors a sticky's author can pick (null = the column's color, the default). */
+export const STICKY_COLORS = ["yellow", "green", "blue", "pink", "purple", "orange"] as const;
+
 /** A retro card as a client sees it. Author is sent only when the room is non-anonymous. */
 export type RetroCardView = {
   id: string;
@@ -297,6 +309,7 @@ export type RetroCardView = {
   youVoted: boolean;
   reactions: { emoji: string; count: number; mine: boolean; who: string[] }[]; // who = reactor names ([] while anonymous/masked)
   tags: string[]; // structured labels from RETRO_TAGS (empty while masked)
+  color: string | null; // author-picked STICKY_COLORS entry; null = column color
   discussed: boolean; // already picked by the random picker → marked done, won't be re-picked
   order: number; // legacy column ordering
   groupId: string | null; // cards sharing a groupId are stacked into a cluster
@@ -400,6 +413,7 @@ export type ClientMsg =
   | { t: "retroDeleteCard"; v: 1; cardId: string }
   | { t: "retroReact"; v: 1; cardId: string; emoji: string } // toggle an emoji reaction
   | { t: "retroTagCard"; v: 1; cardId: string; tag: string; on: boolean } // toggle a structured tag
+  | { t: "retroColorCard"; v: 1; cardId: string; color: string | null } // author recolors their sticky
   | { t: "retroRenameGroup"; v: 1; groupId: string; title: string } // rename a cluster
   | { t: "retroSort"; v: 1; by: "tag" | "votes" | "author" } // facilitator: gather cards into clusters by criterion
   | { t: "retroLinkCards"; v: 1; fromId: string; toId: string } // draw a connector between two stickies

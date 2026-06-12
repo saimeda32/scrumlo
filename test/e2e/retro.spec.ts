@@ -263,3 +263,29 @@ test("reaction chips reveal who reacted when names are shown", async ({ page }) 
   // The chip's tooltip names the reactors (server-derived, anonymous-aware).
   await expect(chip).toHaveAttribute("title", /Pat/);
 });
+
+test("a sticky can take its own color", async ({ page }) => {
+  await joinRetro(page, newRoom());
+  await addSticky(page, "paint me");
+
+  const card = page.locator("[data-card-id]", { hasText: "paint me" });
+  await card.hover();
+  await card.getByRole("button", { name: "Sticky color" }).click();
+  await page.getByRole("button", { name: "Pink", exact: true }).click();
+
+  // The color rides server state (visible to everyone), not local CSS.
+  await expect(card).toHaveAttribute("data-color", "pink");
+});
+
+test("the impact/effort matrix lays out quadrants on a free canvas", async ({ page }) => {
+  await joinRetro(page, newRoom());
+
+  await page.getByTitle("Browse formats with previews").click();
+  await page.getByRole("button", { name: /Impact \/ Effort/ }).click();
+
+  // Quadrant labels + axes on one open canvas.
+  await expect(page.getByText("Quick wins")).toBeVisible();
+  await expect(page.getByText("Big bets")).toBeVisible();
+  await expect(page.getByText("Money pit")).toBeVisible();
+  await expect(page.locator("#scrumlo-canvas > div.border-r")).toHaveCount(1);
+});

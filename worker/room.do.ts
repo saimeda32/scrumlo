@@ -30,6 +30,7 @@ import {
   RETRO_REACTIONS,
   RETRO_TAGS,
   RETRO_MAX_TAGS,
+  STICKY_COLORS,
   retroSpanOf,
   RETRO_ZONE_W as ZONE_W,
   RETRO_CANVAS_H as CANVAS_H,
@@ -80,6 +81,7 @@ type RetroCard = {
   voters: string[]; // memberIds who dot-voted this card
   reactions: Record<string, string[]>; // emoji -> memberIds
   tags?: string[]; // structured labels from RETRO_TAGS (max RETRO_MAX_TAGS)
+  color?: string | null; // author-picked sticky color (STICKY_COLORS)
   order: number; // legacy column ordering (kept for tolerance)
   groupId: string | null; // cards sharing a groupId are clustered
   action?: boolean; // promoted to an action item
@@ -1017,6 +1019,15 @@ export class RoomDO extends DurableObject<Env> {
         else if (!msg.on && i >= 0) tags.splice(i, 1);
         break;
       }
+      case "retroColorCard": {
+        if (!me) return;
+        const card = R.cards.find((c) => c.id === msg.cardId);
+        if (!card) return;
+        if (card.authorId !== me.id && !this.isFacilitator(me)) return; // your sticky, your color
+        if (msg.color !== null && !STICKY_COLORS.includes(msg.color as (typeof STICKY_COLORS)[number])) return;
+        card.color = msg.color;
+        break;
+      }
       case "retroSetAnonymous": {
         if (!this.isFacilitator(me)) return;
         R.anonymous = !!msg.on;
@@ -1731,6 +1742,7 @@ export class RoomDO extends DurableObject<Env> {
               who: state.anonymous ? [] : c.reactions[e].map((id) => nameById.get(id)).filter((n): n is string => !!n),
             })),
         tags: masked ? [] : (c.tags ?? []),
+        color: masked ? null : (c.color ?? null),
         discussed: state.discussed.includes(c.id),
         order: c.order ?? 0,
         groupId: c.groupId ?? null,

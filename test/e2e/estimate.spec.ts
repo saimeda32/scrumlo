@@ -59,3 +59,19 @@ test("t-shirt deck: a split reveal shows the spread instead of a dead end", asyn
   await expect(ana.getByText("· median S")).toBeVisible();
   await expect(ben.getByText("· median S")).toBeVisible();
 });
+
+test("t-shirt consensus: everyone said M", async ({ browser }) => {
+  const [ana, ben] = await twoUsers(browser, newRoom());
+
+  await ana.getByTitle("Browse formats with previews").click();
+  await ana.getByRole("button", { name: /^T-shirt XS/ }).click();
+
+  await ben.getByTestId("deck").getByRole("button", { name: "Vote M", exact: true }).click();
+  await ana.getByTestId("deck").getByRole("button", { name: "Vote M", exact: true }).click();
+
+  await expect(ana.getByText("Everyone said M")).toBeVisible();
+  await expect(ben.getByText("Everyone said M")).toBeVisible();
+
+  await ana.context().close();
+  await ben.context().close();
+});

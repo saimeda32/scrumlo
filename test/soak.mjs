@@ -33,16 +33,29 @@ const STICKY_LINES = [
 class Bot {
   constructor(name, i) {
     this.name = name;
+    this.cid = `soak-${ROOM}-${i}`;
     this.snap = null;
     this.ended = false;
+    this.reconnects = 0;
+    this.stopped = false;
+    this.ready = new Promise((res) => (this.onReady = res));
+    this.connect();
+  }
+  // The real client auto-reconnects (partysocket) and the server re-attaches identity
+  // by clientId; the bots do the same, so edge connection recycling reads as the
+  // sub-second blip users actually experience, not as a dead bot.
+  connect() {
     this.ws = new WebSocket(`${HOST}/ws?room=${ROOM}`);
-    this.ready = new Promise((res) => {
-      this.ws.addEventListener("open", () => {
-        this.send({ t: "hello", v: 1, name, clientId: `soak-${ROOM}-${i}` });
-        res();
-      });
+    this.ws.addEventListener("open", () => {
+      this.send({ t: "hello", v: 1, name: this.name, clientId: this.cid });
+      this.onReady?.();
     });
-    this.ws.addEventListener("close", (e) => log(`socket closed: ${name} code=${e.code} reason=${e.reason || "(none)"}`));
+    this.ws.addEventListener("close", (e) => {
+      if (this.stopped || this.ended) return;
+      this.reconnects++;
+      log(`socket recycled: ${this.name} code=${e.code} · reconnecting (#${this.reconnects})`);
+      setTimeout(() => !this.stopped && this.connect(), 400 + Math.random() * 600);
+    });
     this.ws.addEventListener("message", (e) => {
       const m = JSON.parse(e.data);
       if (m.t === "snapshot") this.snap = m;
@@ -52,6 +65,12 @@ class Bot {
   send(m) {
     try {
       this.ws.send(JSON.stringify(m));
+    } catch {}
+  }
+  close() {
+    this.stopped = true;
+    try {
+      this.ws.close();
     } catch {}
   }
 }
@@ -344,12 +363,13 @@ while (left() > 30_000) {
 clearInterval(wander);
 clearInterval(emoter);
 const dead = bots.filter((b) => b.ended || b.ws.readyState !== WebSocket.OPEN);
-log(`done after ${Math.round((Date.now() - started) / 60000)} min · cycles: ${cycle} · dead sockets: ${dead.length}/12 · room ended flag: ${bots.some((b) => b.ended)}`);
+const reconnects = bots.reduce((a, b) => a + b.reconnects, 0);
+log(`done after ${Math.round((Date.now() - started) / 60000)} min · cycles: ${cycle} · reconnects: ${reconnects} · unrecovered: ${dead.length}/12 · room ended flag: ${bots.some((b) => b.ended)}`);
 if (dead.length) {
-  console.error("FAIL: sockets died during the soak");
+  console.error("FAIL: bots could not stay connected even with reconnects");
   process.exit(1);
 }
 const sig = new Set(bots.map((b) => JSON.stringify({ m: b.snap?.members?.length, a: b.snap?.activity })));
 log(`final state agreement: ${sig.size === 1 ? "✓ identical" : "✗ DIVERGED " + [...sig].join(" vs ")}`);
-for (const b of bots) b.ws.close();
+for (const b of bots) b.close();
 log("soak passed.");

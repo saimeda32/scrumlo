@@ -43,23 +43,32 @@ export function TensionLine({
     estimate.deck === "custom" && estimate.customDeck?.length
       ? estimate.customDeck
       : (DECKS[estimate.deck] ?? DECKS.fib);
-  const scale = deckCards.filter((c) => numericValue(c) !== null);
+  // One value scale for any deck. Numeric decks rank by number; word decks (t-shirts)
+  // rank by deck position. "?" and "☕" are never rankable either way.
+  const numericMode = deckCards.filter((c) => numericValue(c) !== null).length >= 2;
+  const scale = numericMode
+    ? deckCards.filter((c) => numericValue(c) !== null)
+    : deckCards.filter((c) => c !== "?" && c !== "☕");
+  const valueOf = (card: string): number | null =>
+    numericMode ? numericValue(card) : scale.indexOf(card) >= 0 ? scale.indexOf(card) : null;
+  const cardOf = (value: number): string =>
+    numericMode ? (scale.find((c) => numericValue(c) === value) ?? String(value)) : (scale[value] ?? "?");
   const posOf = (card: string) =>
     scale.length <= 1 ? 0.5 : Math.max(0, scale.indexOf(card)) / (scale.length - 1);
 
-  const numeric = Object.entries(votes).filter(([, c]) => numericValue(c) !== null);
-  const nonNumeric = Object.entries(votes).filter(([, c]) => numericValue(c) === null);
+  const numeric = Object.entries(votes).filter(([, c]) => valueOf(c) !== null);
+  const nonNumeric = Object.entries(votes).filter(([, c]) => valueOf(c) === null);
 
   if (numeric.length < 2) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-[#14141b] dark:text-slate-400">
-        Not enough numeric votes to compare.
+        Not enough comparable votes yet.
         {isFacil && <ReestimateBar client={client} className="mt-4 justify-center" />}
       </div>
     );
   }
 
-  const values = numeric.map(([, c]) => numericValue(c)!);
+  const values = numeric.map(([, c]) => valueOf(c)!);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const tension = min !== max;
@@ -67,12 +76,12 @@ export function TensionLine({
   // The whole distribution as camps, not just the extremes.
   const byValue = new Map<number, string[]>();
   for (const [id, c] of numeric) {
-    const v = numericValue(c)!;
+    const v = valueOf(c)!;
     (byValue.get(v) ?? byValue.set(v, []).get(v)!).push(id);
   }
   const clusters: Cluster[] = [...byValue.entries()]
     .map(([value, ids]) => {
-      const card = scale.find((c) => numericValue(c) === value) ?? String(value);
+      const card = cardOf(value);
       return {
         value,
         card,
@@ -85,11 +94,11 @@ export function TensionLine({
 
   const sorted = [...values].sort((a, b) => a - b);
   const median = sorted[Math.floor((sorted.length - 1) / 2)];
-  const medianCard = scale.find((c) => numericValue(c) === median) ?? String(median);
+  const medianCard = cardOf(median);
 
   // Text alternative · the distribution in words (color is not the only signal).
   const distText =
-    `Vote distribution: ${numeric.length} votes from ${min} to ${max}, median ${median}. ` +
+    `Vote distribution: ${numeric.length} votes from ${cardOf(min)} to ${cardOf(max)}, median ${medianCard}. ` +
     clusters.map((c) => `${c.card} (${c.ids.map(nameOf).join(", ")})`).join("; ") + ".";
 
   if (!tension) {
@@ -113,12 +122,12 @@ export function TensionLine({
 
   const minPos = clusters[0].pos * 100;
   const maxPos = clusters[clusters.length - 1].pos * 100;
-  const youVal = estimate.yourVote ? numericValue(estimate.yourVote) : null;
+  const youVal = estimate.yourVote ? valueOf(estimate.yourVote) : null;
   const youOutlier = youVal === min || youVal === max;
   const youHasRationale = !!rationales[you]?.trim();
 
   const endRationale = (val: number) => {
-    const e = numeric.find(([id, c]) => numericValue(c) === val && rationales[id]?.trim());
+    const e = numeric.find(([id, c]) => valueOf(c) === val && rationales[id]?.trim());
     return e ? { name: nameOf(e[0]), text: rationales[e[0]] } : null;
   };
   const lowR = endRationale(min);
@@ -199,7 +208,7 @@ export function TensionLine({
             {c.ids.map(nameOf).join(", ")}
           </span>
         ))}
-        <span className="text-slate-400 dark:text-slate-500"> · median {median}</span>
+        <span className="text-slate-400 dark:text-slate-500"> · median {medianCard}</span>
       </div>
 
       {/* the captured "why" */}
@@ -226,8 +235,8 @@ export function TensionLine({
         (waitingLow || waitingHigh) && (
           <p className="mt-4 text-center text-xs text-slate-400 dark:text-slate-500">
             {waitingLow && waitingHigh
-              ? `Waiting on the ${min} and the ${max} to say what they're pricing…`
-              : `Waiting on the ${waitingLow ? min : max} to say what they're pricing…`}
+              ? `Waiting on the ${cardOf(min)} and the ${cardOf(max)} to say what they're pricing…`
+              : `Waiting on the ${cardOf(waitingLow ? min : max)} to say what they're pricing…`}
           </p>
         )
       )}

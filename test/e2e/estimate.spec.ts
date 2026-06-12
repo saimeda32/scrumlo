@@ -43,3 +43,19 @@ test("a participant cannot reveal or see facilitator-only controls", async ({ br
   await ana.context().close();
   await ben.context().close();
 });
+
+test("t-shirt deck: a split reveal shows the spread instead of a dead end", async ({ browser }) => {
+  const [ana, ben] = await twoUsers(browser, newRoom());
+
+  await ana.getByTitle("Browse formats with previews").click();
+  await ana.getByRole("button", { name: /^T-shirt XS/ }).click();
+
+  // Both vote different sizes → auto-reveal.
+  await ben.getByTestId("deck").getByRole("button", { name: "Vote S", exact: true }).click();
+  await ana.getByTestId("deck").getByRole("button", { name: "Vote L", exact: true }).click();
+
+  // The reveal renders the word-card camps on the line, not "Not enough numeric votes".
+  await expect(ana.getByText("Not enough numeric votes")).toBeHidden();
+  await expect(ana.getByText("· median S")).toBeVisible();
+  await expect(ben.getByText("· median S")).toBeVisible();
+});

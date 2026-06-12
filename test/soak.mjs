@@ -42,6 +42,7 @@ class Bot {
         res();
       });
     });
+    this.ws.addEventListener("close", (e) => log(`socket closed: ${name} code=${e.code} reason=${e.reason || "(none)"}`));
     this.ws.addEventListener("message", (e) => {
       const m = JSON.parse(e.data);
       if (m.t === "snapshot") this.snap = m;

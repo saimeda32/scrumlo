@@ -76,3 +76,24 @@ test("the facilitator can pass the baton to a teammate", async ({ browser }) => 
   await ben.context().close();
   await ana.context().close();
 });
+
+test("take the lead: followers' canvases track the facilitator's viewport", async ({ browser }) => {
+  const [ana, ben] = await twoUsers(browser, newRoom());
+  await openRetro(ana);
+  await expect(ben.getByRole("button", { name: /Add a sticky/i }).first()).toBeVisible();
+
+  await ana.getByRole("button", { name: "Take the lead" }).click();
+  await expect(ben.getByText(/Following Ana/)).toBeVisible();
+
+  // Ana zooms out; Ben's canvas follows to the same zoom level.
+  await ana.getByRole("button", { name: "Zoom out" }).click();
+  const anaZoom = await ana.getByTestId("zoom-level").textContent();
+  await expect(ben.getByTestId("zoom-level")).toHaveText(anaZoom!);
+
+  // A follower can break away.
+  await ben.getByRole("button", { name: "Stop following" }).click();
+  await expect(ben.getByText(/Following Ana/)).toBeHidden();
+
+  await ana.context().close();
+  await ben.context().close();
+});

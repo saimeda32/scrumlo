@@ -8,6 +8,7 @@ import type {
   CursorsMsg,
   EmoteMsg,
   BatonMsg,
+  LeadMsg,
   SpotlightMsg,
   Member,
   EstimateView,
@@ -383,6 +384,31 @@ export class RoomDO extends DurableObject<Env> {
     if (msg.t === "emote") {
       if (!me || !(EMOTES as readonly string[]).includes(msg.emoji)) return;
       const payload = JSON.stringify({ t: "emote", v: 1, emoji: msg.emoji, from: me.id } satisfies EmoteMsg);
+      for (const s of this.ctx.getWebSockets()) {
+        try {
+          s.send(payload);
+        } catch {
+          /* ignore */
+        }
+      }
+      return;
+    }
+
+    // Take the lead: rebroadcast the facilitator's viewport so followers pan/zoom along.
+    // Ephemeral side-channel like cursors — never persisted.
+    if (msg.t === "lead") {
+      if (!me || !this.isFacilitator(me)) return;
+      const clamp = (n: unknown, max: number) => Math.max(0, Math.min(Math.round(Number(n) || 0), max));
+      const payload = JSON.stringify({
+        t: "lead",
+        v: 1,
+        on: !!msg.on,
+        byId: me.id,
+        byName: me.name,
+        x: clamp(msg.x, 100_000),
+        y: clamp(msg.y, 100_000),
+        zoom: Math.max(0.3, Math.min(Number(msg.zoom) || 1, 2)),
+      } satisfies LeadMsg);
       for (const s of this.ctx.getWebSockets()) {
         try {
           s.send(payload);

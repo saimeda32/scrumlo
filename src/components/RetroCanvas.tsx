@@ -3,6 +3,7 @@ import type { RetroView, RetroCardView } from "../../shared/protocol";
 import { RETRO_ZONE_W as ZONE_W, RETRO_CANVAS_H as CANVAS_H, RETRO_REACTIONS, RETRO_TAGS, RETRO_TEMPLATES, retroSpanOf } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { avatarColor, initials } from "../lib/colors";
+import { useLead } from "../store/leadStore";
 import { columnColor, type ColC } from "../lib/retroColors";
 import { retroTheme } from "../lib/retroThemes";
 import { RetroGlyph } from "./RetroGlyph";
@@ -75,6 +76,11 @@ export function RetroCanvas({
   const [full, setFull] = useState(false);
   const [gatherOpen, setGatherOpen] = useState(false);
   const [linkFrom, setLinkFrom] = useState<string | null>(null);
+  const [leading, setLeading] = useState(false);
+  const lead = useLead((s) => s.lead);
+  const ignoring = useLead((s) => s.ignoring);
+  const following = !!lead && lead.byId !== you && !ignoring;
+  const lastLead = useRef(0);
   const viewportRef = useRef<HTMLDivElement>(null);
 
   // Fullscreen makes the wall big enough for 4–5 columns. Escape exits.
@@ -107,6 +113,28 @@ export function RetroCanvas({
     if (linkFrom && linkFrom !== toId) client.retroLinkCards(linkFrom, toId);
     setLinkFrom(null);
   }
+
+  // "Take the lead": publish my viewport (scroll + zoom) while leading; followers mirror it.
+  function publishLead(on = true) {
+    const el = viewportRef.current;
+    client.lead(on, el?.scrollLeft ?? 0, el?.scrollTop ?? 0, zoom);
+  }
+  function onViewportScroll() {
+    if (!leading) return;
+    const now = performance.now();
+    if (now - lastLead.current < 150) return; // light throttle, like cursors
+    lastLead.current = now;
+    publishLead();
+  }
+  useEffect(() => {
+    if (leading) publishLead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom, leading]);
+  useEffect(() => {
+    if (!following || !lead) return;
+    setZoom(lead.zoom);
+    viewportRef.current?.scrollTo({ left: lead.x, top: lead.y, behavior: "smooth" });
+  }, [following, lead]);
   const tplDef = RETRO_TEMPLATES[retro.template];
   const freeCanvas = tplDef?.kind === "free";
   const W = (tplDef ? retroSpanOf(tplDef) : cols.length) * ZONE_W;
@@ -162,6 +190,22 @@ export function RetroCanvas({
       {/* zoom + fullscreen controls */}
       <div className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 shadow-soft backdrop-blur dark:border-white/10 dark:bg-[#14141b]/90">
         {isFacil && (
+          <button
+            onClick={() => {
+              const v = !leading;
+              setLeading(v);
+              if (!v) publishLead(false);
+            }}
+            aria-pressed={leading}
+            title={leading ? "Stop syncing everyone's view to yours" : "Sync everyone's view to yours"}
+            className={`mr-1 rounded-lg px-2 py-1 text-xs font-semibold transition ${
+              leading ? "bg-iris-600 text-white" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+            }`}
+          >
+            {leading ? "Stop leading" : "Take the lead"}
+          </button>
+        )}
+        {isFacil && (
           <div className="relative mr-1 border-r border-slate-200 pr-1 dark:border-white/10">
             <button
               onClick={() => setGatherOpen((v) => !v)}
@@ -186,7 +230,7 @@ export function RetroCanvas({
           </div>
         )}
         <button onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom out">−</button>
-        <span className="w-10 text-center text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">{Math.round(zoom * 100)}%</span>
+        <span data-testid="zoom-level" className="w-10 text-center text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((z) => Math.min(full ? 1.5 : 1.4, +(z + 0.1).toFixed(2)))} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Zoom in">+</button>
         <button onClick={fit} className="ml-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10">Fit</button>
         <button
@@ -198,6 +242,16 @@ export function RetroCanvas({
           {full ? "⤡" : "⤢"}
         </button>
       </div>
+
+      {/* following the leader */}
+      {following && lead && (
+        <div className="absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-iris-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+          👀 Following {lead.byName}
+          <button onClick={() => useLead.getState().stopFollowing()} className="rounded-full bg-white/20 px-2 py-0.5 font-bold hover:bg-white/30">
+            Stop following
+          </button>
+        </div>
+      )}
 
       {/* linking mode hint */}
       {linkFrom && (
@@ -223,6 +277,7 @@ export function RetroCanvas({
       {/* pannable viewport (native scroll) */}
       <div
         ref={viewportRef}
+        onScroll={onViewportScroll}
         className={`dot-grid overflow-auto ${
           full
             ? "h-[calc(100dvh-24px)] rounded-2xl border border-slate-200/70 bg-white/50 pt-14 shadow-soft dark:border-white/10 dark:bg-white/[0.02]"

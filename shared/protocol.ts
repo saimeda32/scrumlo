@@ -383,6 +383,7 @@ export type ClientMsg =
   // facilitation
   | { t: "claimFacilitator"; v: 1 }
   | { t: "handBaton"; v: 1; toId: string } // facilitator passes the role to a present member
+  | { t: "lead"; v: 1; on: boolean; x: number; y: number; zoom: number } // facilitator viewport, while leading
   | { t: "endRoom"; v: 1 } // facilitator kills the room now
   | { t: "reportRoom"; v: 1 } // anyone; 2 distinct reports in 60s ends an abusive room
   // activity + retro
@@ -477,10 +478,12 @@ export type CursorsMsg = {
 export type EmoteMsg = { t: "emote"; v: 1; emoji: string; from: string };
 /** Broadcast when the facilitator passes the baton — clients play the coronation. */
 export type BatonMsg = { t: "baton"; v: 1; fromName: string; toName: string };
+/** Facilitator's live viewport while "taking the lead" — followers pan/zoom along. */
+export type LeadMsg = { t: "lead"; v: 1; on: boolean; byId: string; byName: string; x: number; y: number; zoom: number };
 
 /** server -> client: someone span the "pick a person" wheel. The server chose the
  *  winner fairly (server-authoritative), so every screen lands on the same name.
  *  `nonce` bumps per spin so a repeat winner still re-triggers the animation. */
 export type SpotlightMsg = { t: "spotlight"; v: 1; name: string; by: string; nonce: number };
 
-export type ServerMsg = Snapshot | EndedMsg | CursorsMsg | EmoteMsg | SpotlightMsg | BatonMsg;
+export type ServerMsg = Snapshot | EndedMsg | CursorsMsg | EmoteMsg | SpotlightMsg | BatonMsg | LeadMsg;

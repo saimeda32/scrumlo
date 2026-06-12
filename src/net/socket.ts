@@ -1,5 +1,5 @@
 import { WebSocket as ReconnectingWebSocket } from "partysocket";
-import type { ClientMsg, ServerMsg, Snapshot, Activity, PickMode } from "../../shared/protocol";
+import type { ClientMsg, ServerMsg, Snapshot, Activity, PickMode, LeadMsg } from "../../shared/protocol";
 import { PROTOCOL_VERSION } from "../../shared/protocol";
 
 /** A server frame is only trusted if it's a versioned object with a string `t`. */
@@ -47,6 +47,7 @@ export type RoomClient = {
   estimateNextStory: () => void;
   claimFacilitator: () => void;
   handBaton: (toId: string) => void;
+  lead: (on: boolean, x: number, y: number, zoom: number) => void;
   endRoom: () => void;
   reportRoom: () => void;
   timerStart: (seconds: number) => void;
@@ -127,6 +128,7 @@ export function createRoomClient(
   onSpotlight?: (name: string, by: string, nonce: number) => void,
   onSkew?: () => void, // server speaks a different protocol version (deploy in progress)
   onBaton?: (fromName: string, toName: string) => void, // facilitator hand-off · play the coronation
+  onLead?: (lead: LeadMsg) => void, // facilitator viewport while leading
 ): RoomClient {
   const clientId = clientIdFor(room);
   const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -191,6 +193,7 @@ export function createRoomClient(
       } else if (msg.t === "cursors") onCursors?.(msg.cursors);
       else if (msg.t === "emote") onEmote?.(msg.emoji, msg.from);
       else if (msg.t === "baton") onBaton?.(msg.fromName, msg.toName);
+      else if (msg.t === "lead") onLead?.(msg);
       else if (msg.t === "spotlight") onSpotlight?.(msg.name, msg.by, msg.nonce);
       else if (msg.t === "ended") {
         onEnded();
@@ -230,6 +233,7 @@ export function createRoomClient(
     estimateNextStory: () => send({ t: "estimateNextStory", v: 1 }),
     claimFacilitator: () => send({ t: "claimFacilitator", v: 1 }),
     handBaton: (toId) => send({ t: "handBaton", v: 1, toId }),
+    lead: (on, x, y, zoom) => send({ t: "lead", v: 1, on, x, y, zoom }),
     endRoom: () => send({ t: "endRoom", v: 1 }),
     reportRoom: () => send({ t: "reportRoom", v: 1 }),
     timerStart: (seconds) => send({ t: "timerStart", v: 1, seconds }),

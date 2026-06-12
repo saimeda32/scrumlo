@@ -5,6 +5,7 @@ import { useRoom } from "../store/roomStore";
 import { useCursors } from "../store/cursorStore";
 import { useEmotes } from "../store/emoteStore";
 import { useSpotlight } from "../store/spotlightStore";
+import { useLead } from "../store/leadStore";
 import { ActionDock, ReactionLayer } from "../components/Reactions";
 import { SpotlightLayer } from "../components/Spotlight";
 import { RoomHeader } from "../components/RoomHeader";
@@ -77,6 +78,7 @@ export default function Room() {
       (name, by, nonce) => useSpotlight.getState().show({ name, by, nonce }),
       () => setSkewed(true),
       (fromName, toName) => setBaton({ from: fromName, to: toName }),
+      (lead) => useLead.getState().apply(lead),
     );
     clientRef.current = client;
     return () => client.close();

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useParams } from "wouter";
 import { createRoomClient, type RoomClient } from "../net/socket";
 import { useRoom } from "../store/roomStore";
@@ -61,7 +61,7 @@ export default function Room() {
   const [baton, setBaton] = useState<{ from: string; to: string } | null>(null);
   const [skewed, setSkewed] = useState(false); // server speaks a newer protocol (a deploy landed)
   const [watchOnly, setWatchOnly] = useState(false); // chose to spectate instead of naming themselves
-  const clientRef = useRef<RoomClient | null>(null);
+  const [client, setClient] = useState<RoomClient | null>(null);
 
   // Render-first: connect as a spectator on mount; the user names themselves
   // (becomes a participant) only when they want to act.
@@ -81,40 +81,46 @@ export default function Room() {
       (fromName, toName) => setBaton({ from: fromName, to: toName }),
       (lead) => useLead.getState().apply(lead),
     );
-    clientRef.current = client;
-    return () => client.close();
+    // Mirroring the connection into state is the StrictMode-safe way to expose an
+    // external resource to render (a lazy useState initializer would open a second,
+    // leaked socket under StrictMode's double-invoke). The sync setState is the point.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClient(client);
+    return () => {
+      client.close();
+      setClient(null);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room]);
 
   function join() {
     const trimmed = name.trim();
     if (!trimmed) return;
-    clientRef.current?.join(trimmed);
+    client?.join(trimmed);
   }
 
-  // When the facilitator opens Retro on an empty board, surface the format picker
-  // so the team starts by choosing a format (the requested "popup on entering retro").
-  useEffect(() => {
-    const facil = !!you && you === facilitator;
-    if (facil && activity === "retro" && retro && retro.cards.length === 0) setPickerOpen(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activity]);
+  // When the facilitator opens Retro on an empty board, surface the format picker.
+  // Adjusted during render on the activity transition (no after-paint flicker).
+  const [prevActivity, setPrevActivity] = useState(activity);
+  if (activity !== prevActivity) {
+    setPrevActivity(activity);
+    const facilNow = !!you && you === facilitator;
+    if (facilNow && activity === "retro" && retro && retro.cards.length === 0) setPickerOpen(true);
+  }
 
   // Announce when the facilitator baton moves (a takeover), with a banner that
   // auto-dismisses after a few seconds so everyone notices who's driving now.
-  const prevFacil = useRef<string | null | undefined>(undefined);
+  const [prevFacil, setPrevFacil] = useState<string | null | undefined>(undefined);
   const [takeover, setTakeover] = useState<string | null>(null);
-  useEffect(() => {
-    const prev = prevFacil.current;
-    prevFacil.current = facilitator;
-    if (prev === undefined) return; // first snapshot · not a takeover
-    if (facilitator && facilitator !== prev) {
+  if (facilitator !== prevFacil) {
+    setPrevFacil(facilitator);
+    // first snapshot (undefined) isn't a takeover; later changes are
+    if (prevFacil !== undefined && facilitator) {
       const isMe = facilitator === you;
       const name = members.find((m) => m.id === facilitator)?.name ?? "Someone";
       setTakeover(isMe ? "You're now facilitating" : `${name} took over as facilitator`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facilitator]);
+  }
   useEffect(() => {
     if (!takeover) return;
     const t = setTimeout(() => setTakeover(null), 7000);
@@ -142,7 +148,7 @@ export default function Room() {
     );
   }
 
-  if (!estimate || !retro || !board || !pulse || !poll || !pick) {
+  if (!client || !estimate || !retro || !board || !pulse || !poll || !pick) {
     return (
       <div className="grid min-h-screen place-items-center text-base font-medium text-slate-600 dark:text-slate-300 [background:radial-gradient(50rem_30rem_at_50%_-8rem,var(--color-iris-100),transparent_55%)] dark:[background:radial-gradient(50rem_30rem_at_50%_-8rem,#1b1838,transparent_60%)]">
         <StatusTicker phrases={FLAVOR.connecting} />
@@ -150,7 +156,6 @@ export default function Room() {
     );
   }
 
-  const client = clientRef.current!;
   const joined = !!you; // "" (spectator) is falsy
   const isFacil = joined && you === facilitator;
   const canAct = joined;
@@ -226,6 +231,7 @@ export default function Room() {
         />
 
         <TimerBanner
+          key={`${timerEndsAt}-${timerPausedMs}`}
           endsAt={timerEndsAt}
           durationMs={timerDurationMs}
           pausedMs={timerPausedMs}

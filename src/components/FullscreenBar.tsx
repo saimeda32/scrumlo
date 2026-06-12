@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { RETRO_PHASES, type RetroView } from "../../shared/protocol";
+import { useNow } from "../lib/useNow";
 import type { RoomClient } from "../net/socket";
 
 /**
@@ -24,13 +24,7 @@ export function FullscreenBar({
   timerDurationMs: number | null;
   onExit: () => void;
 }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (timerEndsAt === null) return;
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(id);
-  }, [timerEndsAt]);
+  const now = useNow(timerEndsAt !== null, 250); // time as an external store
 
   const idx = RETRO_PHASES.findIndex((p) => p.id === retro.phase);
   const next = RETRO_PHASES[idx + 1] ?? null;

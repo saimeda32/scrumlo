@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const COLORS = [
   "#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444",
@@ -28,33 +28,33 @@ export function Wheel({
   onSettle: () => void;
 }) {
   const [rotation, setRotation] = useState(0);
-  const lastNonce = useRef(nonce);
+  const [seenNonce, setSeenNonce] = useState(nonce);
+  // Media queries rarely flip mid-session; read once per mount (initializers are render-safe).
+  const [reduce] = useState(() => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+  const [settleNow, setSettleNow] = useState(0); // bumped when settle must fire without a CSS transition
 
   const n = Math.max(candidates.length, 1);
   const seg = 360 / n;
 
-  useEffect(() => {
-    if (nonce === lastNonce.current) return;
-    lastNonce.current = nonce;
-    // Can't land on a winner that isn't on the wheel (a member left / list item was
-    // removed between the spin and the snapshot). Release the lock instead of hanging.
+  // A new spin: adjust during render (no stale painted frame), settle via effect when
+  // no transition will fire (reduced motion, or the winner left the wheel).
+  if (nonce !== seenNonce) {
+    setSeenNonce(nonce);
     const idx = winner ? candidates.indexOf(winner) : -1;
-    if (idx < 0) {
-      onSettle();
-      return;
+    if (idx < 0 || reduce) setSettleNow((k) => k + 1);
+    if (idx >= 0) {
+      const targetMod = -(idx + 0.5) * seg; // slice center under the top pointer
+      setRotation((cur) => {
+        let next = cur - (((cur % 360) + 360) % 360) + targetMod;
+        if (!reduce) while (next < cur + 360 * 5) next += 360; // at least 5 full turns
+        return next;
+      });
     }
-    // angle that lands slice idx's center under the top pointer
-    const targetMod = -(idx + 0.5) * seg;
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    setRotation((cur) => {
-      let next = cur - (((cur % 360) + 360) % 360) + targetMod;
-      if (!reduce) while (next < cur + 360 * 5) next += 360; // at least 5 full turns
-      return next;
-    });
-    // No CSS transition fires for reduced-motion, so onTransitionEnd won't · settle now.
-    if (reduce) onSettle();
+  }
+  useEffect(() => {
+    if (settleNow > 0) onSettle();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nonce]);
+  }, [settleNow]);
 
   const cx = 100;
   const cy = 100;

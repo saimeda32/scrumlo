@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconClock } from "./icons";
 import { useFocusTrap } from "../lib/useFocusTrap";
+import { useNow } from "../lib/useNow";
 
 function fmt(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -31,18 +32,11 @@ export function TimerBanner({
   onPause?: () => void;
   onResume?: () => void;
 }) {
-  const [now, setNow] = useState(() => Date.now());
+  // Time is an external store; the parent keys this component by endsAt/pausedMs,
+  // so dismissed/buzzed reset by remount instead of effects mirroring props.
+  const now = useNow(endsAt !== null, 200);
   const [dismissed, setDismissed] = useState(false);
   const buzzed = useRef(false);
-
-  useEffect(() => {
-    setDismissed(false);
-    buzzed.current = false;
-    if (endsAt === null) return;
-    setNow(Date.now()); // refresh immediately so the first paint isn't stale
-    const id = setInterval(() => setNow(Date.now()), 200);
-    return () => clearInterval(id);
-  }, [endsAt]);
 
   // one gentle buzz on mobile when it lands on zero (side effect, not in render)
   useEffect(() => {

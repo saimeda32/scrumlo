@@ -150,9 +150,15 @@ export function RetroCanvas({
     if (leading) publishLead();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoom, leading]);
+  // Followers mirror the leader's zoom during render (no stale frame); the scroll is
+  // a DOM operation, so it stays in an effect.
+  const [seenLead, setSeenLead] = useState(lead);
+  if (lead !== seenLead) {
+    setSeenLead(lead);
+    if (following && lead) setZoom(lead.zoom);
+  }
   useEffect(() => {
     if (!following || !lead) return;
-    setZoom(lead.zoom);
     viewportRef.current?.scrollTo({ left: lead.x, top: lead.y, behavior: "smooth" });
   }, [following, lead]);
   const tplDef = RETRO_TEMPLATES[retro.template];

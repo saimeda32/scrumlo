@@ -470,18 +470,22 @@ export function PollBoard({
 
 /** A one-shot burst over the results when the reveal lands. Pure flavor. */
 function ConfettiBurst() {
+  // Deterministic per-index scatter (hash-noise): identical vibe to Math.random,
+  // but pure — render can run twice (StrictMode/compiler) and produce the same burst.
+  const noise = (k: number) => Math.abs(Math.sin(k * 127.1) * 43758.5453) % 1;
   const parts = useMemo(
     () =>
       Array.from({ length: 26 }, (_, i) => {
         const angle = (i / 26) * Math.PI * 2;
-        const dist = 60 + Math.random() * 100;
+        const dist = 60 + noise(i + 1) * 100;
         return {
           cx: `${Math.round(Math.cos(angle) * dist)}px`,
           cy: `${Math.round(Math.sin(angle) * dist - 40)}px`,
           c: CLOUD_COLORS[i % CLOUD_COLORS.length],
-          d: Math.random() * 0.25,
+          d: noise(i + 100) * 0.25,
         };
       }),
+     
     [],
   );
   return (
@@ -569,7 +573,8 @@ function WaitingPanel({ answered, compact }: { answered: number; compact?: boole
   const [feed, setFeed] = useState<{ id: number; text: string }[]>([]);
   const idRef = useRef(0);
   const prevAnswered = useRef(answered);
-  const quipRef = useRef(Math.floor(Math.random() * QUIPS.length));
+  const [quipSeed] = useState(() => Math.floor(Math.random() * QUIPS.length)); // one-time, initializer-safe
+  const quipRef = useRef(quipSeed);
 
   function push(text: string) {
     idRef.current += 1;

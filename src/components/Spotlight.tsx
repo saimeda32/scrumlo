@@ -33,15 +33,15 @@ export function SpotlightLayer({
   const [spinning, setSpinning] = useState(false);
   const [visible, setVisible] = useState(false);
 
-  // A new spin (bumped nonce) opens the overlay and starts the wheel.
-  useEffect(() => {
-    if (!current) return;
+  // A new spin (bumped nonce) opens the overlay and starts the wheel. Adjusted
+  // during render (React's sanctioned reset-on-prop-change), so the wheel never
+  // paints a stale frame the way an after-paint effect would.
+  if (current && current.nonce !== nonce) {
     setWinner(current.name);
     setNonce(current.nonce);
     setSpinning(true);
     setVisible(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.nonce]);
+  }
 
   // Linger on the result, then dissolve (true to the room: nothing sticks around).
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { PickView, PickMode, Member } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
 import { IconPerson, IconOrder, IconList, IconPick } from "./icons";
@@ -28,16 +28,19 @@ export function PickerBoard({
 }) {
   const [item, setItem] = useState("");
   const [spinning, setSpinning] = useState(false);
-  const lastNonce = useRef(pick.nonce);
+  const [seenNonce, setSeenNonce] = useState(pick.nonce);
 
   const candidates = pick.mode === "list" ? pick.items : members.map((m) => m.name);
   const wheelMode = pick.mode === "person" || pick.mode === "list";
 
   // Effects run AFTER paint, so on the snapshot frame that bumps the nonce the
-  // `spinning` state is still false and the winner would flash on screen for a
-  // moment before the wheel starts. Derive "mid-spin" during render instead.
-  const justSpun = wheelMode && pick.nonce !== lastNonce.current && pick.result.length > 0;
-  const wheelBusy = spinning || justSpun;
+  // winner would flash before the wheel starts. Adjust state during render instead
+  // (the re-render happens before paint), which also keeps refs out of render.
+  if (pick.nonce !== seenNonce) {
+    setSeenNonce(pick.nonce);
+    setSpinning(wheelMode && pick.result.length > 0);
+  }
+  const wheelBusy = spinning;
 
   // The server pushes the winner into `recent` the moment it spins, but the wheel is
   // still turning — showing it in "Picked so far" would spoil the landing. Hold the
@@ -50,13 +53,9 @@ export function PickerBoard({
   // When the server bumps the spin nonce, start the wheel (person/list); the Wheel
   // calls onSettle when it lands. Order mode reveals its list instantly.
   useEffect(() => {
-    if (pick.nonce === lastNonce.current) return;
-    lastNonce.current = pick.nonce;
-    const willSpin = wheelMode && pick.result.length > 0;
-    setSpinning(willSpin);
     // Safety net: never let the Spin button stay disabled if the wheel's settle
     // never fires (e.g. transition interrupted). Auto-release after the spin window.
-    if (willSpin) {
+    if (spinning) {
       const t = setTimeout(() => setSpinning(false), 4500);
       return () => clearTimeout(t);
     }

@@ -11,10 +11,14 @@ export default defineConfig({
     baseURL: process.env.BASE_URL || "http://localhost:8787",
     viewport: { width: 1440, height: 900 },
   },
-  webServer: {
-    command: "pnpm build && npx wrangler dev --port 8787",
-    url: "http://localhost:8787",
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  // With BASE_URL set (e.g. a prod smoke run against https://scrumlo.com) there is
+  // no local server to boot; rooms there are ephemeral, so e2e droppings self-delete.
+  webServer: process.env.BASE_URL
+    ? undefined
+    : {
+        command: "pnpm build && npx wrangler dev --port 8787",
+        url: "http://localhost:8787",
+        reuseExistingServer: true,
+        timeout: 120_000,
+      },
 });

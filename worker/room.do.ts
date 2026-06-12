@@ -37,6 +37,9 @@ import {
   EMOTES,
   PULSE_DIMENSIONS,
   PULSE_THEMES,
+} from "../shared/protocol";
+import { reapReason } from "../shared/lifecycle";
+import {
   PULSE_MIN_REVEAL,
   PROTOCOL_VERSION,
 } from "../shared/protocol";
@@ -1404,12 +1407,22 @@ export class RoomDO extends DurableObject<Env> {
    * against the persisted lastActivityAt so it survives hibernation).
    */
   async alarm(): Promise<void> {
-    if (this.ctx.getWebSockets().length === 0) {
-      await this.terminate("empty");
+    const now = Date.now();
+    const sockets = this.ctx.getWebSockets();
+    const presentIds = new Set(this.membersFrom(sockets).map((m) => m.id));
+    const reap = reapReason({
+      sockets: sockets.length,
+      members: presentIds.size,
+      now,
+      lastActivityAt: this.lastActivityAt,
+      createdAt: this.createdAt,
+      idleMs: IDLE_MS,
+      maxRoomMs: MAX_ROOM_MS,
+    });
+    if (reap) {
+      await this.terminate(reap);
       return;
     }
-    const now = Date.now();
-    const presentIds = new Set(this.membersFrom(this.ctx.getWebSockets()).map((m) => m.id));
     let changed = false;
     for (const [id, at] of Object.entries(this.departed)) {
       if (presentIds.has(id)) {
@@ -1421,10 +1434,6 @@ export class RoomDO extends DurableObject<Env> {
         if (this.facilitatorId === id) changed = true;
         delete this.departed[id];
       }
-    }
-    if (now - this.lastActivityAt >= IDLE_MS || now - this.createdAt >= MAX_ROOM_MS) {
-      await this.terminate(now - this.createdAt >= MAX_ROOM_MS ? "lifetime" : "idle");
-      return;
     }
     if (changed) {
       this.maybeAutoReveal();

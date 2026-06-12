@@ -56,3 +56,36 @@ test("pick: a person spin lands on a member, for both screens", async ({ browser
   await ana.context().close();
   await ben.context().close();
 });
+
+test("pulse: facilitator switches the theme and everyone gets new questions", async ({ browser }) => {
+  const [ana, ben] = await twoUsers(browser, newRoom());
+  await ana.getByRole("tab", { name: "Pulse" }).click();
+
+  await ana.getByRole("button", { name: "Sprint health" }).click();
+  // New dimension set lands on both screens; old one is gone.
+  await expect(ana.getByText("Pace")).toBeVisible();
+  await expect(ben.getByText("Pace")).toBeVisible();
+  await expect(ben.getByText("Morale")).toBeHidden();
+
+  await ana.context().close();
+  await ben.context().close();
+});
+
+test("pulse: reveal distills the room into one word", async ({ browser }) => {
+  const [ana, ben] = await twoUsers(browser, newRoom());
+  await ana.getByRole("tab", { name: "Pulse" }).click();
+
+  for (const page of [ana, ben]) {
+    await expect(page.getByRole("button", { name: /: 4 of 5/ }).first()).toBeVisible();
+    for (const btn of await page.getByRole("button", { name: /: 4 of 5/ }).all()) await btn.click();
+    await expect(page.getByText("✓ your ratings are in")).toBeVisible();
+  }
+  await ana.getByRole("button", { name: /Reveal results/ }).click();
+
+  // 4.0 across the board → the room is "Humming" on both screens.
+  await expect(ana.getByTestId("pulse-verdict")).toHaveText("Humming");
+  await expect(ben.getByTestId("pulse-verdict")).toHaveText("Humming");
+
+  await ana.context().close();
+  await ben.context().close();
+});

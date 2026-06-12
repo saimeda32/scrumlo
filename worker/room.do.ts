@@ -34,6 +34,7 @@ import {
   RETRO_CANVAS_H as CANVAS_H,
   EMOTES,
   PULSE_DIMENSIONS,
+  PULSE_THEMES,
   PULSE_MIN_REVEAL,
   PROTOCOL_VERSION,
 } from "../shared/protocol";
@@ -107,6 +108,7 @@ type PickState = {
 };
 
 type PulseState = {
+  theme: string; // key into PULSE_THEMES
   dimensions: string[];
   phase: "voting" | "revealed";
   votes: Record<string, Record<string, number>>; // memberId -> { dimension -> 1..5 }
@@ -180,7 +182,7 @@ export class RoomDO extends DurableObject<Env> {
     phase: "vote",
   };
   private pick: PickState = { mode: "person", items: [], result: [], nonce: 0, recent: [] };
-  private pulse: PulseState = { dimensions: [...PULSE_DIMENSIONS], phase: "voting", votes: {} };
+  private pulse: PulseState = { theme: "classic", dimensions: [...PULSE_DIMENSIONS], phase: "voting", votes: {} };
   private poll: PollState = { mode: "open", prompt: "", multi: false, blind: true, phase: "answering", entries: [], queue: [], log: [] };
   private activity: Activity = "estimate";
   private facilitatorId: string | null = null;
@@ -244,6 +246,7 @@ export class RoomDO extends DurableObject<Env> {
       if (pu) {
         this.pulse = pu;
         this.pulse.dimensions ??= [...PULSE_DIMENSIONS];
+        this.pulse.theme ??= "classic";
         this.pulse.phase ??= "voting";
         this.pulse.votes ??= {};
       }
@@ -1081,6 +1084,14 @@ export class RoomDO extends DurableObject<Env> {
         this.pulse.phase = "voting";
         break;
       }
+      case "pulseSetTheme": {
+        if (!this.isFacilitator(me)) return;
+        const theme = PULSE_THEMES[msg.theme];
+        if (!theme) return;
+        // New questions, fresh blind round — old votes don't map onto new dimensions.
+        this.pulse = { theme: msg.theme, dimensions: [...theme.dims], phase: "voting", votes: {} };
+        break;
+      }
 
       // ---- poll / Q&A ----
       case "pollSetMode": {
@@ -1602,6 +1613,7 @@ export class RoomDO extends DurableObject<Env> {
     const voted = ids.filter((id) => dims.every((d) => this.pulse.votes[id]?.[d] !== undefined));
     const revealed = this.pulse.phase === "revealed";
     return {
+      theme: this.pulse.theme ?? "classic",
       dimensions: dims,
       phase: this.pulse.phase,
       voted,

@@ -70,6 +70,7 @@ export type RoomClient = {
   retroSetAction: (cardId: string, on: boolean, owner?: string | null) => void;
   retroSetPhase: (phase: "brainstorm" | "group" | "vote" | "discuss") => void;
   pulseVote: (dim: string, value: number) => void;
+  pulseSetTheme: (theme: string) => void;
   pulseReveal: () => void;
   pulseReset: () => void;
   pollSetMode: (mode: "open" | "choice" | "cloud") => void;
@@ -252,6 +253,7 @@ export function createRoomClient(
     retroSetAction: (cardId, on, owner) => send({ t: "retroSetAction", v: 1, cardId, on, owner }),
     retroSetPhase: (phase) => send({ t: "retroSetPhase", v: 1, phase }),
     pulseVote: (dim, value) => send({ t: "pulseVote", v: 1, dim, value }),
+    pulseSetTheme: (theme) => send({ t: "pulseSetTheme", v: 1, theme }),
     pulseReveal: () => send({ t: "pulseReveal", v: 1 }),
     pulseReset: () => send({ t: "pulseReset", v: 1 }),
     pollSetMode: (mode) => send({ t: "pollSetMode", v: 1, mode }),

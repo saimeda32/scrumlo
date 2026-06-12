@@ -1,6 +1,32 @@
 import type { PulseView, Member } from "../../shared/protocol";
-import { PULSE_MIN_REVEAL } from "../../shared/protocol";
+import { PULSE_MIN_REVEAL, PULSE_THEMES } from "../../shared/protocol";
 import type { RoomClient } from "../net/socket";
+import { pulseVerdict } from "../lib/pulseVerdict";
+
+const VERDICT_COLORS = { good: "#10b981", ok: "#f59e0b", bad: "#ef4444" } as const;
+
+/** Facilitator-only chips to swap the question set (resets the blind round). */
+function ThemeChips({ pulse, isFacil, client }: { pulse: PulseView; isFacil: boolean; client: RoomClient }) {
+  if (!isFacil) return null;
+  return (
+    <div className="mb-4 flex flex-wrap gap-1.5">
+      {Object.entries(PULSE_THEMES).map(([id, t]) => (
+        <button
+          key={id}
+          onClick={() => id !== pulse.theme && client.pulseSetTheme(id)}
+          aria-pressed={id === pulse.theme}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+            id === pulse.theme
+              ? "bg-iris-600 text-white"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/15"
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Team health check: everyone rates a few dimensions 1–5, blind, then the facilitator
@@ -35,8 +61,21 @@ export function PulseBoard({
     const overall = pulse.results.length
       ? pulse.results.reduce((a, r) => a + r.avg, 0) / pulse.results.length
       : 0;
+    const verdict = pulseVerdict(pulse.results);
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
+        {verdict && (
+          <div className="mb-5 text-center sm:text-left">
+            <span
+              data-testid="pulse-verdict"
+              className="animate-pop text-4xl font-extrabold tracking-tight"
+              style={{ color: VERDICT_COLORS[verdict.tone] }}
+            >
+              {verdict.word}
+            </span>
+            <span className="ml-3 align-middle text-sm text-slate-400 dark:text-slate-500">the room, in one word</span>
+          </div>
+        )}
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-8">
           <Radar results={pulse.results} />
           <div className="min-w-0 flex-1">
@@ -80,10 +119,13 @@ export function PulseBoard({
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft dark:border-white/10 dark:bg-[#14141b]">
-      <div className="mb-1 text-lg font-bold text-slate-800 dark:text-slate-100">How's the team doing?</div>
-      <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
+      <div className="mb-1 text-lg font-bold text-slate-800 dark:text-slate-100">
+        {PULSE_THEMES[pulse.theme]?.label ?? "How's the team doing?"}
+      </div>
+      <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
         Rate each 1–5. It's blind · nobody sees the numbers until the facilitator reveals.
       </p>
+      <ThemeChips pulse={pulse} isFacil={isFacil} client={client} />
 
       <div className="space-y-4">
         {pulse.dimensions.map((dim) => {

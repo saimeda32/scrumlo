@@ -47,11 +47,20 @@ export type PollView = {
 
 // ---- Pulse (team health check) ----
 export const PULSE_DIMENSIONS = ["Morale", "Clarity", "Delivery", "Collaboration", "Fun"] as const;
+
+/** Selectable health-check themes · each is a different five-question lens on the team. */
+export const PULSE_THEMES: Record<string, { label: string; dims: string[] }> = {
+  classic: { label: "Team health", dims: [...PULSE_DIMENSIONS] },
+  sprint: { label: "Sprint health", dims: ["Pace", "Scope sanity", "Quality", "Focus", "Unblocked"] },
+  vibes: { label: "Team vibes", dims: ["Energy", "Safety", "Trust", "Laughs", "Growth"] },
+  remote: { label: "Remote check", dims: ["Connection", "Meetings", "Deep work", "Tooling", "Balance"] },
+};
 // Minimum fully-submitted people before a health check can be revealed, so a single
 // person's scores can't be read straight off the aggregate.
 export const PULSE_MIN_REVEAL = 2;
 
 export type PulseView = {
+  theme: string; // key into PULSE_THEMES
   dimensions: string[];
   phase: "voting" | "revealed";
   voted: string[]; // member ids who've rated every dimension
@@ -399,6 +408,7 @@ export type ClientMsg =
   | { t: "retroSetPhase"; v: 1; phase: RetroPhase } // facilitator steps the retro phase
   // pulse (health check)
   | { t: "pulseVote"; v: 1; dim: string; value: number }
+  | { t: "pulseSetTheme"; v: 1; theme: string } // facilitator swaps the question set (resets votes)
   | { t: "pulseReveal"; v: 1 }
   | { t: "pulseReset"; v: 1 }
   // poll / Q&A

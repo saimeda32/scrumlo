@@ -107,7 +107,7 @@ export default function Landing() {
       <section className="mx-auto grid max-w-5xl items-center gap-12 px-6 pb-8 pt-8 lg:grid-cols-2 lg:pt-16">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-iris-100 px-3 py-1 text-xs font-semibold text-iris-700">
-            No login · No AI · Nothing stored · Deleted when you leave
+            No login · Nothing stored · Deleted when you leave
           </span>
           <h1 className="mt-5 text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
             Estimate. Retro.
@@ -284,10 +284,6 @@ export default function Landing() {
             {
               q: "Where is my data stored?",
               a: "Only in memory, in a single ephemeral room server, and only while the room is live. There is no database — when everyone leaves, the room deletes itself. Export to Markdown, PNG or PDF before you go if you want to keep the results.",
-            },
-            {
-              q: "Does AI read our retro?",
-              a: "No. Nothing does. What your team writes here is never summarized, sorted, scored or \u201cenhanced\u201d by a model \u2014 not ours, not anyone's. It isn't stored either. The room forgets; so does everything else. That's a feature, and it's permanent.",
             },
             {
               q: "What can I run in a room?",

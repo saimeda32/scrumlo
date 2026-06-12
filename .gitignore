@@ -22,3 +22,8 @@ playwright-report/
 
 # local design specs/plans (superpowers workflow)
 docs/superpowers/
+
+# internal working docs (kept local, not published)
+AUDIT.md
+docs/research/
+docs/seo/

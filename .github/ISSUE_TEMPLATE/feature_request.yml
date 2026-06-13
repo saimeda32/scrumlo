@@ -1,0 +1,52 @@
+name: Feature request
+description: Suggest a new ceremony tool, retro format, deck, or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Love the ideas. One thing to know first: Scrumlo is intentionally tiny and **ephemeral**.
+
+        These are **non-goals** and won't be added: accounts, a database, persistent history,
+        integrations / OAuth, or anything that makes a room keep data across sessions. New ceremony
+        tools must reuse the existing engines (blind-reveal, cards, dot-vote, presence) and survive a
+        room that forgets everything. See [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md).
+
+        New retro formats and estimation decks are pure data in `shared/protocol.ts` and are very welcome.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem or the moment this helps?
+      description: Describe the ceremony pain or the gap, not just the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+      description: How might it look or work in a room?
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of change is this?
+      options:
+        - New retro format (data only)
+        - New estimation deck (data only)
+        - Improvement to an existing tool
+        - A new ceremony tool
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: This keeps nothing across sessions (no accounts, no database, no persistence)
+          required: true
+        - label: I read the non-goals in CONTRIBUTING.md and this fits them
+          required: true
+        - label: I searched existing issues and this isn't a duplicate
+          required: true

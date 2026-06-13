@@ -1,0 +1,71 @@
+name: Bug report
+description: Something in a room is broken or behaving unexpectedly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        Heads up: rooms are **ephemeral** and store nothing, so we can't look yours up after the fact.
+        The clearer your reproduction steps, the faster this gets fixed.
+
+        Please **do not** report security vulnerabilities here. See [SECURITY.md](../blob/main/SECURITY.md) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What went wrong, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: A numbered list we can follow in a fresh room.
+      placeholder: |
+        1. Start a room and open Estimate
+        2. Have two people vote
+        3. Reveal
+        4. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where in the app
+      options:
+        - Estimate (planning poker)
+        - Retro
+        - Roadmap board
+        - Pulse (team health)
+        - Poll / word cloud
+        - Pick (wheel)
+        - Timer
+        - Export (Markdown / PNG / PDF)
+        - Room, presence, or reconnection
+        - Landing page
+        - Not sure / other
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Browser and device
+      placeholder: e.g. Chrome 140 on macOS, Safari on iPhone 15
+    validations:
+      required: true
+  - type: input
+    id: people
+    attributes:
+      label: How many people were in the room?
+      placeholder: e.g. just me, or 8
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched existing issues and this isn't a duplicate
+          required: true
+        - label: This is a bug, not a security vulnerability (those go through SECURITY.md)
+          required: true

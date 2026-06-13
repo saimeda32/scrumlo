@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/saimeda32/scrumlo/security/advisories/new
+    about: Please report exploitable vulnerabilities privately, not as a public issue (see SECURITY.md).
+  - name: Contributing guide
+    url: https://github.com/saimeda32/scrumlo/blob/main/CONTRIBUTING.md
+    about: Setup, the easiest ways to help, and what won't be accepted (the non-goals).
+  - name: Questions and ideas
+    url: https://github.com/saimeda32/scrumlo/discussions
+    about: For open-ended questions or discussion, use Discussions if they're enabled.

@@ -5,7 +5,6 @@ import { FLAVOR } from "../lib/flavor";
 import { IconEstimate, IconRetro, IconPick, IconBoard, IconPulse, IconPoll } from "../components/icons";
 import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
-import { DemoTheater } from "../components/DemoTheater";
 
 // A live, count-up tally of rooms ever run (one global integer on the edge · no DB).
 function RoomsCounter() {
@@ -156,8 +155,25 @@ export default function Landing() {
           <RoomsCounter />
         </div>
 
-        {/* live demo theater · a looping mini-session */}
-        <DemoTheater />
+        {/* the hero · a real recorded session (15 people, one room) on a silent loop.
+            muted + playsInline so it autoplays inline on mobile; poster covers the case
+            where a phone (e.g. Low Power Mode) blocks autoplay. */}
+        <div className="relative">
+          <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-tr from-iris-200/40 to-violet-200/30 blur-2xl" />
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-iris-900/10 dark:border-white/10 dark:bg-[#14141b] dark:shadow-black/40">
+            <video
+              className="block w-full"
+              src="/soak-highlight.mp4"
+              poster="/soak-poster.jpg"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="A real scrumlo session: fifteen people moving through estimate, retro, planning, a team-health pulse, a word cloud and a pick-a-person wheel — all on one link."
+            />
+          </div>
+        </div>
       </section>
 
       {/* activities band */}

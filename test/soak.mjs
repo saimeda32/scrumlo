@@ -3,21 +3,27 @@
 // spotlight/timer), plan (all four canvases), pulse, poll, pick, baton passes,
 // emotes and wandering cursors — looping scenes until DURATION elapses.
 //
-//   HOST=wss://scrumlo.com ROOM=team-soak-live MINUTES=15 node test/soak.mjs
+//   HOST=wss://scrumlo.com ROOM=team-soak-live MINUTES=15 N=12 node test/soak.mjs
 //
 // Join the same room in a browser to watch it live.
 
 const HOST = process.env.HOST || "ws://localhost:8787";
 const ROOM = process.env.ROOM || `soak-${Date.now().toString(36)}`;
 const DURATION_MS = (Number(process.env.MINUTES) || 15) * 60 * 1000;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// DEMO mode: one fast, readable pass through every tool for a ~45s marketing reel —
+// the same ceremony scripts, just with the human pauses scaled right down. SPEED
+// multiplies every sleep/think; tune DEMO_SPEED to hit the target clip length.
+const DEMO = process.env.DEMO === "1";
+const SPEED = DEMO ? Number(process.env.DEMO_SPEED) || 0.16 : 1;
+const sleep = (ms) => new Promise((r) => setTimeout(r, Math.max(0, Math.round(ms * SPEED))));
 const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const think = (lo = 2500, hi = 7000) => sleep(lo + Math.random() * (hi - lo)); // a human moment
 const started = Date.now();
 const left = () => DURATION_MS - (Date.now() - started);
 const log = (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`);
 
-const NAMES = ["Priya", "Marco", "Yuki", "Dana", "Tom", "Aisha", "Leo", "Ines", "Sam", "Noor", "Felix", "Zara"];
+const ALL_NAMES = ["Priya", "Marco", "Yuki", "Dana", "Tom", "Aisha", "Leo", "Ines", "Sam", "Noor", "Felix", "Zara", "Omar", "Greta", "Ravi", "Lena", "Kai", "Mona", "Theo", "Bea"];
+const NAMES = ALL_NAMES.slice(0, Math.max(3, Math.min(ALL_NAMES.length, Number(process.env.N) || 12)));
 const EMOTES = ["👍", "❤️", "🎉", "😂", "🔥", "👏", "🤯", "🙌"];
 const REACTS = ["👍", "❤️", "🎯", "🔥", "😂", "👀", "🎉", "💡", "🚀", "🤔", "😮", "💯"];
 const TAGS = ["Priority", "Quick win", "Blocked", "Idea"];
@@ -86,7 +92,7 @@ for (let i = 0; i < NAMES.length; i++) {
 await sleep(400);
 let facil = bots[0];
 const others = () => bots.filter((b) => b !== facil);
-log(`12 bots in · facilitator: ${facil.name}`);
+log(`${bots.length} bots in · facilitator: ${facil.name}`);
 
 // Cursors like humans: mostly resting (reading), occasionally gliding to look at
 // something, then still again. Never the whole room moving at once.
@@ -95,8 +101,9 @@ const wander = setInterval(() => {
   for (const b of bots) {
     if (b.restUntil && now < b.restUntil) continue; // reading, hand off the mouse
     if (!b.moveUntil || now > b.moveUntil) {
-      b.restUntil = now + 5000 + Math.random() * 18000; // long, uneven rests
-      b.moveUntil = b.restUntil + 900 + Math.random() * 2600; // then a short glide
+      // DEMO: short rests so cursors keep gliding on camera; live: long human rests.
+      b.restUntil = now + (DEMO ? 250 + Math.random() * 700 : 5000 + Math.random() * 18000);
+      b.moveUntil = b.restUntil + (DEMO ? 600 + Math.random() * 1100 : 900 + Math.random() * 2600); // then a glide
       b.tx = 60 + Math.random() * 1380;
       b.ty = 60 + Math.random() * 840;
       continue;
@@ -107,7 +114,7 @@ const wander = setInterval(() => {
   }
 }, 120);
 // A stray emote every so often, from someone.
-const emoter = setInterval(() => rnd(bots).send({ t: "emote", v: 1, emoji: rnd(EMOTES) }), 9000);
+const emoter = setInterval(() => rnd(bots).send({ t: "emote", v: 1, emoji: rnd(EMOTES) }), DEMO ? 1400 : 9000);
 
 const cards = () => facil.snap?.retro?.cards ?? [];
 // Not everyone does everything: each scene, a few people are reading Slack instead.
@@ -235,7 +242,9 @@ async function sceneRetro() {
     facil.send({ t: "retroSetAction", v: 1, cardId: top.id, on: true, owner: rnd(NAMES) });
     facil.send({ t: "retroSpotlight", v: 1, cardId: null });
   }
-  facil.send({ t: "spotlightPick", v: 1 });
+  // The dedicated PICK scene showcases the wheel; firing it here too would land on
+  // top of the baton coronation below — so in the demo reel we keep them apart.
+  if (!DEMO) facil.send({ t: "spotlightPick", v: 1 });
   facil.send({ t: "timerStop", v: 1 });
   await sleep(1500);
 
@@ -246,6 +255,9 @@ async function sceneRetro() {
     log(`baton: ${facil.name} → ${heir.name}`);
     facil.send({ t: "handBaton", v: 1, toId: heirId });
     facil = heir;
+    // Let the coronation (a ~7s overlay) breathe on camera before the next scene
+    // churns underneath it — an unscaled hold, so the demo reel actually shows it.
+    if (DEMO) await new Promise((r) => setTimeout(r, 4000));
     await sleep(4000);
   }
 }
@@ -299,23 +311,27 @@ async function scenePoll() {
   log("scene: POLL");
   facil.send({ t: "switchActivity", v: 1, activity: "poll" });
   await sleep(700);
-  facil.send({ t: "pollSetMode", v: 1, mode: "open" });
-  facil.send({ t: "pollSetPrompt", v: 1, prompt: "Name our team mascot" });
-  await sleep(800);
-  const ANSWERS = ["Captain Standup", "The Blocked Badger", "Sir Ships-a-Lot", "Velocity Raptor", "Scrumzilla", "The Mergewolf"];
-  for (const b of bots.slice(0, 6)) {
-    b.send({ t: "pollSubmit", v: 1, text: rnd(ANSWERS) });
-    await sleep(1500 + Math.random() * 1500); // typing a mascot name is serious work
+  // The reel only wants the word cloud (the "one word" round); skip the open mascot
+  // poll in demo mode and go straight to it.
+  if (!DEMO) {
+    facil.send({ t: "pollSetMode", v: 1, mode: "open" });
+    facil.send({ t: "pollSetPrompt", v: 1, prompt: "Name our team mascot" });
+    await sleep(800);
+    const ANSWERS = ["Captain Standup", "The Blocked Badger", "Sir Ships-a-Lot", "Velocity Raptor", "Scrumzilla", "The Mergewolf"];
+    for (const b of bots.slice(0, 6)) {
+      b.send({ t: "pollSubmit", v: 1, text: rnd(ANSWERS) });
+      await sleep(1500 + Math.random() * 1500); // typing a mascot name is serious work
+    }
+    await sleep(800);
+    facil.send({ t: "pollReveal", v: 1 });
+    await sleep(1800);
+    for (const b of bots) {
+      const a = rnd(facil.snap?.poll?.answers ?? []);
+      if (a) b.send({ t: "pollVote", v: 1, id: a.id });
+      await sleep(500 + Math.random() * 700);
+    }
+    await sleep(2500);
   }
-  await sleep(800);
-  facil.send({ t: "pollReveal", v: 1 });
-  await sleep(1800);
-  for (const b of bots) {
-    const a = rnd(facil.snap?.poll?.answers ?? []);
-    if (a) b.send({ t: "pollVote", v: 1, id: a.id });
-    await sleep(500 + Math.random() * 700);
-  }
-  await sleep(2500);
   // word cloud round
   facil.send({ t: "pollSetMode", v: 1, mode: "cloud" });
   facil.send({ t: "pollSetPrompt", v: 1, prompt: "This sprint in one word" });
@@ -337,6 +353,12 @@ async function scenePick() {
   facil.send({ t: "pickSetMode", v: 1, mode: "person" });
   await sleep(500);
   facil.send({ t: "pickSpin", v: 1 });
+  if (DEMO) {
+    // The wheel spins for ~3.6s client-side — give it an unscaled beat so the reel
+    // actually catches it land + the confetti, then stop (one clean spin is enough).
+    await new Promise((r) => setTimeout(r, 4300));
+    return;
+  }
   await sleep(6000); // wheel + confetti
   facil.send({ t: "pickSetMode", v: 1, mode: "order" });
   await sleep(500);
@@ -346,17 +368,31 @@ async function scenePick() {
 
 const scenes = [sceneEstimate, sceneRetro, scenePlan, scenePulse, scenePoll, scenePick];
 let cycle = 0;
-while (left() > 30_000) {
-  cycle++;
-  log(`— cycle ${cycle} (${Math.round(left() / 60000)} min left) —`);
+if (DEMO) {
+  // One brisk lap through every tool, then stop — that's the whole reel.
+  cycle = 1;
+  log("— DEMO montage: one fast lap through every tool —");
   for (const scene of scenes) {
-    if (left() < 30_000) break;
     try {
       await scene();
     } catch (e) {
       log(`scene error (continuing): ${e.message}`);
     }
-    await think(3500, 6000); // a beat between activities
+    await think(3500, 6000); // a (scaled) beat between activities
+  }
+} else {
+  while (left() > 30_000) {
+    cycle++;
+    log(`— cycle ${cycle} (${Math.round(left() / 60000)} min left) —`);
+    for (const scene of scenes) {
+      if (left() < 30_000) break;
+      try {
+        await scene();
+      } catch (e) {
+        log(`scene error (continuing): ${e.message}`);
+      }
+      await think(3500, 6000); // a beat between activities
+    }
   }
 }
 
@@ -364,7 +400,7 @@ clearInterval(wander);
 clearInterval(emoter);
 const dead = bots.filter((b) => b.ended || b.ws.readyState !== WebSocket.OPEN);
 const reconnects = bots.reduce((a, b) => a + b.reconnects, 0);
-log(`done after ${Math.round((Date.now() - started) / 60000)} min · cycles: ${cycle} · reconnects: ${reconnects} · unrecovered: ${dead.length}/12 · room ended flag: ${bots.some((b) => b.ended)}`);
+log(`done after ${Math.round((Date.now() - started) / 60000)} min · cycles: ${cycle} · reconnects: ${reconnects} · unrecovered: ${dead.length}/${bots.length} · room ended flag: ${bots.some((b) => b.ended)}`);
 if (dead.length) {
   console.error("FAIL: bots could not stay connected even with reconnects");
   process.exit(1);

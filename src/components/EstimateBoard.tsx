@@ -5,6 +5,7 @@ import type { RoomClient } from "../net/socket";
 import { Seats } from "./Seats";
 import { Deck } from "./Deck";
 import { TensionLine } from "./TensionLine";
+import { EstimateReveal } from "./EstimateReveal";
 import { StatusTicker } from "./StatusTicker";
 import { FLAVOR } from "../lib/flavor";
 import { parseStoryList } from "../lib/parseStories";
@@ -61,6 +62,9 @@ export function EstimateBoard({
 
   return (
     <>
+      {/* the median flashes big the moment cards are revealed, then fades */}
+      <EstimateReveal estimate={estimate} />
+
       {/* backlog bar */}
       {(estimate.queue.length > 0 || estimate.log.length > 0 || isFacil) && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/60 px-4 py-2.5 text-xs dark:border-white/10 dark:bg-white/5">

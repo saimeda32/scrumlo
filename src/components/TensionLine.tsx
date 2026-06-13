@@ -208,7 +208,16 @@ export function TensionLine({
             {c.ids.map(nameOf).join(", ")}
           </span>
         ))}
-        <span className="text-slate-400 dark:text-slate-500"> · median {medianCard}</span>
+      </div>
+
+      {/* the headline number · the answer the room came for, in our colour and unmissable */}
+      <div className="animate-rise mt-4 flex items-center justify-center gap-2.5" style={{ animationDelay: "0.4s" }}>
+        <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-iris-400 dark:text-iris-400/80">
+          Median
+        </span>
+        <span className="rounded-xl bg-iris-100 px-3 py-1 text-2xl font-extrabold tracking-tight text-iris-700 dark:bg-iris-500/15 dark:text-iris-300">
+          {medianCard}
+        </span>
       </div>
 
       {/* the captured "why" */}
